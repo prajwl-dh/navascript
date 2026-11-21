@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "nava-ast",
  "nava-diagnostics",
+ "nava-ir",
  "nava-lexer",
  "nava-parser",
  "nava-symbol",
@@ -32,6 +33,12 @@ dependencies = [
 [[package]]
 name = "nava-ir"
 version = "0.1.0"
+dependencies = [
+ "nava-ast",
+ "nava-diagnostics",
+ "nava-symbol",
+ "nava-typechecker",
+]
 
 [[package]]
 name = "nava-lexer"

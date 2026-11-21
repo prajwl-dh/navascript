@@ -180,6 +180,42 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0013 — Stack slots instead of SSA phi nodes in Nava IR
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** The Phase 3 roadmap allows phi nodes or a documented alternative
+  such as stack slots. LLVM's `mem2reg` pass reliably promotes simple stack
+  slots to SSA, and our front end already allocates one location per variable.
+  Phi insertion during lowering would complicate the lowering, the verifier
+  and the planned Nava rewrite for no measurable benefit at this stage.
+- **Decision:** Nava IR uses explicit `alloca`/`store`/`load` stack slots for
+  local variables. Control flow is expressed only with unconditional and
+  conditional branches; there are no phi nodes. Instruction results are
+  SSA-like values but are scoped to their block's dominance region.
+- **Consequences:** The verifier checks dominance of value definitions and
+  stack-slot allocations. Phase 4 lowers slots to LLVM `alloca` and lets
+  optimization promote them. If profiling later shows a need, SSA can be
+  introduced as a separate IR pass without changing the front-end seam.
+
+## ADR-0014 — The IR lowering seam
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 3 needs a platform-independent representation that Phase 4
+  can lower to LLVM. The driver already owns the parsed program, the typed
+  program and the source text.
+- **Decision:** `nava_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput`
+  is the single external seam. `LowerOutput` owns an `IrModule` plus
+  `Diagnostics` in the same shape as earlier phases. `verify` and `print` are
+  separate public functions because the verifier and IR debug output are
+  explicit roadmap deliverables with real callers (driver, tests).
+- **Consequences:** IR depends only on `nava-ast`, `nava-diagnostics` and
+  `nava-symbol` — never LLVM. The driver calls parse → check → lower and
+  renders diagnostics from all three uniformly.
+
+---
+
 ## Template for new decisions
 
 ```

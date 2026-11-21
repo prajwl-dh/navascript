@@ -15,12 +15,13 @@ Usage:
   nava [OPTIONS] <COMMAND>
 
 Commands:
-  build <FILE.ts>   Parse and type-check a source file, reporting diagnostics
+  build <FILE.ts>   Parse, type-check and lower a source file to Nava IR
                     (native code generation arrives in Phase 4)
 
 Options:
   -h, --help        Print this help message
   -V, --version     Print the compiler version
+      --emit-ir     With build, print the generated Nava IR
 
 Examples:
   nava --version
@@ -35,8 +36,8 @@ pub enum Command {
     Help,
     /// Print the compiler version.
     Version,
-    /// Build a source file into a native executable.
-    Build { input: PathBuf },
+    /// Lower a source file to Nava IR; optionally print it.
+    Build { input: PathBuf, emit_ir: bool },
     /// An invalid invocation, with a human-readable reason.
     Error(String),
 }
@@ -73,18 +74,22 @@ where
         "-h" | "--help" => no_arg_flag(args, "--help", Command::Help),
         "-V" | "--version" => no_arg_flag(args, "--version", Command::Version),
         "build" => {
-            let mut rest = args.map(|value| value.as_ref().to_owned());
-            match (rest.next(), rest.next()) {
-                (None, _) => Command::Error("nava build: missing input file".to_owned()),
-                (Some(_), Some(_)) => {
-                    Command::Error("nava build: expected exactly one input file".to_owned())
+            let rest: Vec<String> = args.map(|value| value.as_ref().to_owned()).collect();
+            let emit_ir = rest.iter().any(|arg| arg == "--emit-ir");
+            let inputs: Vec<&String> = rest
+                .iter()
+                .filter(|arg| arg.as_str() != "--emit-ir")
+                .collect();
+            match inputs.as_slice() {
+                [] => Command::Error("nava build: missing input file".to_owned()),
+                [_] if inputs[0].starts_with('-') => {
+                    Command::Error(format!("nava build: unknown option '{}'", inputs[0]))
                 }
-                (Some(input), None) if input.starts_with('-') => {
-                    Command::Error(format!("nava build: unknown option '{input}'"))
-                }
-                (Some(input), None) => Command::Build {
+                [input] => Command::Build {
                     input: PathBuf::from(input),
+                    emit_ir,
                 },
+                _ => Command::Error("nava build: expected exactly one input file".to_owned()),
             }
         }
         other if other.starts_with('-') => {
@@ -110,7 +115,7 @@ fn dispatch(command: Command) -> i32 {
             println!("nava {VERSION}");
             0
         }
-        Command::Build { input } => {
+        Command::Build { input, emit_ir } => {
             let source = match std::fs::read_to_string(&input) {
                 Ok(source) => source,
                 Err(error) => {
@@ -128,10 +133,20 @@ fn dispatch(command: Command) -> i32 {
                 eprint!("{}", checked.diagnostics.render(&source));
                 return 1;
             }
-            println!(
-                "nava: parsed and type-checked '{}' successfully; native code generation arrives in Phase 4.",
-                input.display()
-            );
+            let lowered = nava_ir::lower(&parsed.program, &checked.typed, &source);
+            if lowered.diagnostics.has_errors() {
+                eprint!("{}", lowered.diagnostics.render(&source));
+                return 1;
+            }
+            if emit_ir {
+                print!("{}", nava_ir::print(&lowered.module));
+            } else {
+                println!(
+                    "nava: lowered '{}' to {} IR function(s); native code generation arrives in Phase 4.",
+                    input.display(),
+                    lowered.module.functions.len()
+                );
+            }
             0
         }
         Command::Error(message) => {

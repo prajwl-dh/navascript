@@ -6,8 +6,8 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-20 — Phase 1 syntax and Phase 2 type-system entries are
-implemented and tested; runtime entries remain unimplemented.
+Last updated: 2026-11-21 — Phase 1 syntax, Phase 2 type-system and Phase 3 IR
+entries are implemented and tested; runtime entries remain unimplemented.
 
 ## 1. Syntax
 
@@ -57,7 +57,7 @@ implemented and tested; runtime entries remain unimplemented.
 | Arrays & objects | [ ] | — | Phase 5 |
 | Closures / function values | [ ] | — | Phase 5/6 |
 | Exceptions | [ ] | — | Phase 5; semantics will differ initially |
-| `console.log` | [ ] | — | Phase 5 |
+| `console.log` | [~] | `tests/ir/` | typed + lowered as a call; runtime implementation Phase 5 |
 | Memory management | [ ] | — | Strategy in ADR-0005 |
 
 ## 4. Platform
@@ -97,3 +97,6 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
 | Mixed string/number `+` coercion | accepted as JavaScript-style concatenation (`"a" + 1` is `string`); documented difference, not a TypeScript parity claim | Phase 7 |
+| Collection literals in IR | type-check but lowering reports "not supported in IR yet" | Phase 5 |
+| Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 5 |
+| Functions falling through without returning | lowering reports "may fall through without returning" instead of fabricating a value | Phase 5 |

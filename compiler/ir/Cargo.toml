@@ -6,3 +6,9 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
+
+[dependencies]
+nava-ast = { path = "../ast" }
+nava-diagnostics = { path = "../diagnostics" }
+nava-symbol = { path = "../symbol" }
+nava-typechecker = { path = "../typechecker" }

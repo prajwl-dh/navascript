@@ -129,13 +129,24 @@ fn build_rejects_option_as_input() {
 }
 
 #[test]
+fn build_emits_ir_on_request() {
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
+    let text = ok(nava()
+        .args(["build", source, "--emit-ir"])
+        .output()
+        .expect("run nava build --emit-ir"));
+    assert!(text.contains("fn fibonacci("), "{text}");
+    assert!(text.contains("fn main("), "{text}");
+}
+
+#[test]
 fn build_parses_a_valid_source_file() {
     let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
     let text = ok(nava()
         .args(["build", source])
         .output()
         .expect("run nava build examples/fibonacci.ts"));
-    assert!(text.contains("parsed"), "{text}");
+    assert!(text.contains("lowered"), "{text}");
     assert!(text.contains("fibonacci.ts"), "{text}");
 }
 

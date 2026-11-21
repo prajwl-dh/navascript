@@ -16,6 +16,7 @@ name = "nava"
 path = "src/main.rs"
 
 [dependencies]
+nava-ir = { path = "../ir" }
 nava-parser = { path = "../parser" }
 nava-typechecker = { path = "../typechecker" }
 
@@ -24,6 +25,7 @@ nava-typechecker = { path = "../typechecker" }
 [dev-dependencies]
 nava-ast = { path = "../ast" }
 nava-diagnostics = { path = "../diagnostics" }
+nava-ir = { path = "../ir" }
 nava-lexer = { path = "../lexer" }
 nava-symbol = { path = "../symbol" }
 
@@ -62,6 +64,18 @@ path = "../../tests/typechecker/checker.rs"
 [[test]]
 name = "typechecker_pipeline"
 path = "../../tests/typechecker/pipeline.rs"
+
+[[test]]
+name = "ir_lower"
+path = "../../tests/ir/lower.rs"
+
+[[test]]
+name = "ir_verify"
+path = "../../tests/ir/verify.rs"
+
+[[test]]
+name = "ir_print"
+path = "../../tests/ir/print.rs"
 
 [[test]]
 name = "driver_cli"

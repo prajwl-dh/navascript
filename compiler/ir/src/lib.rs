@@ -1,4 +1,19 @@
-//! Nava IR crate.
+//! Nava IR — the platform-independent middle of the compiler.
 //!
-//! Placeholder: the implementation arrives in Phase 3. This crate establishes
-//! the module boundary in the Cargo workspace.
+//! The external seam is [`lower`]. It consumes the typed AST and produces an
+//! owned [`IrModule`] plus diagnostics in the same shape as earlier phases.
+//! [`verify`] and [`print`] are separate, deliberate entry points for the
+//! verifier and textual debug output required by Phase 3.
+
+mod ir;
+mod lower;
+mod print;
+mod verify;
+
+pub use ir::{
+    BasicBlock, BinaryOp, BlockId, GlobalId, Instruction, IrFunction, IrGlobal, IrModule, IrParam,
+    IrType, SlotId, Terminator, UnaryOp, Value, ValueId,
+};
+pub use lower::{LowerOutput, lower};
+pub use print::print;
+pub use verify::{VerifyError, verify};

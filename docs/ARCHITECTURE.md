@@ -116,7 +116,7 @@ compiler/     source modules + Cargo crates (workspace)
 runtime/      allocator, strings, arrays, objects, exceptions
 bootstrap/    stage0 (Rust), stage1 and stage2 (Nava compiler source + artifacts)
 stdlib/       Nava standard library source
-tests/        ast, diagnostics, lexer, parser, symbol, typechecker, driver;
+tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, driver;
               codegen/runtime/compatibility reserved for later phases
 benchmarks/   reproducible performance suite
 docs/         this documentation set

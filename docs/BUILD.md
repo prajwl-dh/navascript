@@ -69,6 +69,7 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/symbol/` | scopes, shadowing, type display |
 | `tests/typechecker/` | type resolution, checking, plus `pipeline.rs` |
 | `tests/driver/` | CLI argument parsing and the real `nava` binary |
+| `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 
 `tests/codegen/`, `tests/runtime/` and `tests/compatibility/` are reserved for
 Phase 4, 5 and 7 suites.
@@ -96,8 +97,9 @@ target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts
 ```
 
-`nava build` currently validates arguments and the input file, then reports
-that code generation is not implemented yet. Native compilation is Phase 4.
+`nava build` parses, type-checks and lowers the source to Nava IR. Add
+`--emit-ir` to print the IR instead of the status line. Native compilation is
+Phase 4.
 
 ## 5. Workspace layout
 

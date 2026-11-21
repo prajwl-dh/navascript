@@ -299,8 +299,12 @@ impl<'a> Checker<'a> {
             .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
             .unwrap_or_else(|| self.infer_return_type(&decl.body));
 
-        // Refresh the global signature so later functions see the inferred
-        // return type rather than the placeholder registered in pass one.
+        self.check_block(&decl.body, Some(&expected_ret));
+        self.symbols.leave_scope();
+
+        // Refresh the *global* signature so later functions and IR lowering
+        // see the inferred return type, not the placeholder from pass one.
+        // This must happen after leaving the parameter scope.
         if let Some(Type::Function { params, .. }) = self
             .symbols
             .lookup(&decl.name.name)
@@ -311,14 +315,11 @@ impl<'a> Checker<'a> {
                 kind: SymbolKind::Function,
                 ty: Type::Function {
                     params,
-                    ret: Box::new(expected_ret.clone()),
+                    ret: Box::new(expected_ret),
                 },
                 span: decl.name.span,
             });
         }
-
-        self.check_block(&decl.body, Some(&expected_ret));
-        self.symbols.leave_scope();
     }
 
     fn check_block(&mut self, block: &Block, expected_ret: Option<&Type>) {

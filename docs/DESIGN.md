@@ -104,8 +104,10 @@ diagnostics or a type checker streaming into the same sink).
   next phase. It never imports lexer or AST internals beyond the leaf types.
 - **Type checker (Phase 2)** consumes `&Program` and reports into the same
   `Diagnostics` shape; it does not change `parse`'s signature.
-- **IR lowering (Phase 3)** consumes the typed program; no LLVM types cross the
-  front-end seam.
+- **IR lowering (Phase 3)** consumes the typed program through
+  `nava_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput` (ADR-0014).
+  No LLVM types cross the front-end seam. The IR uses stack slots (ADR-0013),
+  and `verify` plus `print` are explicit public deliverables.
 - **Tests** use the same `parse` seam as the driver. All tests live in the
   top-level `tests/` tree (ADR-0012), so AST-shape assertions use the public AST
   types returned through that seam rather than private internals.

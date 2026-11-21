@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-20
-- **Current phase:** Phase 2 complete — ready for Phase 3 (Intermediate Representation)
+- **Current phase:** Phase 3 complete — ready for Phase 4 (Native Backend)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -22,7 +22,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 0 — Foundation | [x] Complete |
 | Phase 1 — Lexer & Parser | [x] Complete |
 | Phase 2 — Type system | [x] Complete |
-| Phase 3 — IR | [ ] Not started |
+| Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [ ] Not started |
 | Phase 5 — Runtime | [ ] Not started |
 | Phase 6 — Language expansion | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 3 of 12 implementation phases complete.
+**Overall:** 4 of 12 implementation phases complete.
 
 ---
 
@@ -135,11 +135,15 @@ limitations for every milestone.
   `cargo test --workspace` (77 passed, 0 failed) succeed.
 
 ### Phase 3 — IR
-- [ ] Nava IR design
-- [ ] AST → IR lowering
-- [ ] Functions, variables, basic blocks, control flow
-- [ ] IR validation + debug printing
-- **Exit condition:** valid IR produced from a TypeScript-like program.
+- [x] Nava IR design (stack slots, SSA-like values; ADR-0013/0014)
+- [x] AST → IR lowering (`nava_ir::lower`)
+- [x] Functions, variables, basic blocks, control flow (branches, condbr, returns)
+- [x] IR validation (structural + dominance + type checks) + textual printing
+- [x] Driver `build --emit-ir` exposes the debug output
+- **Exit condition met:** the fibonacci fixture lowers to verified IR; all
+  modules produced by the test corpus pass the verifier.
+- **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
+  `cargo test --workspace` (93 passed, 0 failed) succeed.
 
 ### Phase 4 — Native backend
 - [ ] LLVM integration
@@ -361,17 +365,57 @@ limitations for every milestone.
   Recorded as ADR-0012 and reflected in `ARCHITECTURE.md`, `DESIGN.md`,
   `ROADMAP.md`, `COMPATIBILITY.md` and `README.md`.
 
+### 2026-11-21 — Phase 3 (Intermediate Representation) implemented
+- Recorded ADR-0013 (stack slots instead of SSA phi) and ADR-0014 (the
+  `nava_ir::lower` seam) before implementing.
+- `nava-ir` now owns the complete IR data model (modules, functions, basic
+  blocks, typed values, instructions, terminators, globals) behind four public
+  functions: `lower`, `verify`, `print` and the data types themselves.
+- Lowering handles functions, parameters, locals, arithmetic, comparisons,
+  calls (including `console.log`), `if`/`else` control flow, string globals and
+  a synthetic `main` for top-level statements. Allocations are emitted in the
+  entry block so LLVM's `mem2reg` can promote them. Non-boolean `if` conditions
+  get an explicit `ToBool` instruction, so the verifier's type rules stay strict.
+- The verifier checks unique names/labels/ids, terminators, branch targets,
+  dominance of values and slots, slot types, operand types and return types.
+- Driver: `nava build` now runs parse → check → lower; `nava build --emit-ir`
+  prints the textual IR. Added `tests/ir/{lower,verify,print}.rs` and one driver
+  test for `--emit-ir`.
+- Suite grew from 77 to 99 tests; fmt and clippy clean.
+
+### 2026-11-21 — Phase 3 review fixes
+- Two-axis review found 2 hard standards items, 3 judgement smells and several
+  spec gaps. Applied before committing:
+  - Fixed test-count claims (the docs said 99 before the suite reached 99; the
+    suite is now genuinely 99 after adding 6 regression tests).
+  - Verifier now rejects use-before-definition **within** a block (previously
+    only cross-block dominance was checked), out-of-range parameters and
+    references to unknown string globals.
+  - `Instruction::Call` carries a `result_ty` so call results are typed and
+    checked instead of always `Opaque`.
+  - All stack-slot allocations now go in the entry block, matching ADR-0013's
+    `mem2reg` rationale.
+  - Unknown member calls are diagnosed rather than silently lowered as void;
+    only known runtime builtins (currently `console.log`) are allowed.
+  - Fixed a latent Phase 2 bug: inferred function return types were refreshed
+    inside the parameter scope and then discarded. They are now written to the
+    global scope, so `function p() {}` lowers to `-> void` with no phantom call
+    result.
+  - Functions that may fall through without returning now produce a diagnostic
+    instead of a fabricated `0.0`.
+  - Reverted an unrelated CI `macos-14 → macos-15` change to keep the diff
+    focused.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Review the Phase 2 diff and apply improvements before committing it.
-2. Start Phase 3 (IR) in `nava-ir`: functions, basic blocks, control flow,
-   arithmetic and calls, plus a verifier and textual debug output.
-3. Install CMake + Ninja when Phase 4 needs them.
-4. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
-   start of Phase 4.
-5. Update this file after each completed task, using the phase exit protocol in
+1. Review the Phase 3 diff and apply improvements before committing it.
+2. Start Phase 4 (Native backend): resolve ADR-0004, install CMake + Ninja if
+   needed, lower Nava IR → LLVM IR and emit an ARM64 Mach-O executable.
+3. Cross the first major boundary: `fibonacci(10)` prints `55` natively with no
+   Node.js.
+4. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.
 
 ---
