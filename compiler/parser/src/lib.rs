@@ -4,115 +4,14 @@
 //! lexer is a private internal seam; tokenization, AST construction, span
 //! mapping, error recovery and diagnostic ordering are all hidden here.
 
-use std::fmt;
-
 use nava_ast::{
-    BinaryOp, Block, ElseBranch, Expr, ExprKind, FileId, FunctionDecl, Ident, IfStmt, Item,
-    ItemKind, Param, Program, Span, Stmt, StmtKind, TypeAnnotation, UnaryOp, VariableDecl,
+    BinaryOp, Block, ElseBranch, Expr, ExprKind, FileId, FunctionDecl, Ident, IfStmt,
+    InterfaceDecl, Item, ItemKind, ObjectField, Param, Program, Span, Stmt, StmtKind,
+    TypeAliasDecl, TypeAnnotation, TypeExpr, TypeField, UnaryOp, VariableDecl,
 };
+use nava_diagnostics::LineIndex;
+pub use nava_diagnostics::{Diagnostic, Diagnostics, Severity};
 use nava_lexer::{Token, TokenKind, tokenize};
-
-/// Severity of a front-end diagnostic.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Severity {
-    Error,
-    Warning,
-}
-
-impl fmt::Display for Severity {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Severity::Error => f.write_str("error"),
-            Severity::Warning => f.write_str("warning"),
-        }
-    }
-}
-
-/// A diagnostic with a source position derived from its span.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Diagnostic {
-    pub severity: Severity,
-    pub message: String,
-    pub span: Span,
-    pub line: u32,
-    pub column: u32,
-}
-
-/// Deduplicated, source-ordered diagnostics.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Diagnostics {
-    items: Vec<Diagnostic>,
-}
-
-impl Diagnostics {
-    fn new(mut items: Vec<Diagnostic>) -> Self {
-        items.sort_by(|a, b| {
-            a.span
-                .start
-                .cmp(&b.span.start)
-                .then(severity_rank(a.severity).cmp(&severity_rank(b.severity)))
-                .then(a.message.cmp(&b.message))
-        });
-        items.dedup_by(|a, b| {
-            a.span == b.span && a.severity == b.severity && a.message == b.message
-        });
-        Self { items }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    pub fn has_errors(&self) -> bool {
-        self.items.iter().any(|d| d.severity == Severity::Error)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Diagnostic> {
-        self.items.iter()
-    }
-
-    /// Render diagnostics with a source snippet and caret for each one.
-    pub fn render(&self, source: &str) -> String {
-        let mut out = String::new();
-        let line_starts = line_start_offsets(source);
-        for diagnostic in &self.items {
-            out.push_str(&format!(
-                "<input>:{}:{}: {}: {}\n",
-                diagnostic.line, diagnostic.column, diagnostic.severity, diagnostic.message
-            ));
-            let line_text = slice_line(source, &line_starts, diagnostic.line);
-            out.push_str("  ");
-            out.push_str(line_text);
-            out.push('\n');
-            out.push_str("  ");
-            out.push_str(&" ".repeat(diagnostic.column.saturating_sub(1) as usize));
-            let width = diagnostic.span.len().max(1) as usize;
-            out.push_str(&"^".repeat(width));
-            out.push('\n');
-        }
-        out
-    }
-}
-
-fn severity_rank(severity: Severity) -> u8 {
-    match severity {
-        Severity::Error => 0,
-        Severity::Warning => 1,
-    }
-}
-
-/// Slice one line out of `source` using the shared line-start table.
-fn slice_line<'a>(source: &'a str, line_starts: &[u32], line: u32) -> &'a str {
-    let index = (line as usize).saturating_sub(1);
-    let Some(&start) = line_starts.get(index) else {
-        return "";
-    };
-    let start = start as usize;
-    let end = source[start..]
-        .find('\n')
-        .map_or(source.len(), |offset| start + offset);
-    &source[start..end]
-}
 
 /// The result of parsing: an owned program plus all diagnostics.
 #[derive(Debug, Clone, PartialEq)]
@@ -129,26 +28,22 @@ pub struct ParseOutput {
 pub fn parse(source: &str) -> ParseOutput {
     let lexed = tokenize(source);
     let file = FileId(0);
-    let line_starts = line_start_offsets(source);
+    let lines = LineIndex::new(source);
     let mut parser = Parser {
         source,
         tokens: lexed.tokens,
         pos: 0,
         file,
-        line_starts,
+        lines,
         diagnostics: Vec::new(),
         depth: 0,
     };
 
     for error in lexed.errors {
-        let (line, column) = parser.position(error.start);
-        parser.diagnostics.push(Diagnostic {
-            severity: Severity::Error,
-            message: error.message,
-            span: Span::new(file, error.start as usize, error.end as usize),
-            line,
-            column,
-        });
+        let span = Span::new(file, error.start as usize, error.end as usize);
+        parser
+            .diagnostics
+            .push(Diagnostic::error(error.message, span, &parser.lines));
     }
 
     let program = parser.parse_program();
@@ -156,16 +51,6 @@ pub fn parse(source: &str) -> ParseOutput {
         program,
         diagnostics: Diagnostics::new(parser.diagnostics),
     }
-}
-
-fn line_start_offsets(source: &str) -> Vec<u32> {
-    let mut starts = vec![0u32];
-    for (index, byte) in source.bytes().enumerate() {
-        if byte == b'\n' {
-            starts.push((index + 1) as u32);
-        }
-    }
-    starts
 }
 
 /// Keeps `parse` infallible: deeply nested input is diagnosed, not overflowed.
@@ -176,7 +61,7 @@ struct Parser<'a> {
     tokens: Vec<Token>,
     pos: usize,
     file: FileId,
-    line_starts: Vec<u32>,
+    lines: LineIndex,
     diagnostics: Vec<Diagnostic>,
     depth: u32,
 }
@@ -231,6 +116,8 @@ impl<'a> Parser<'a> {
                 ItemKind::Variable(self.parse_variable_decl()?)
             }
             TokenKind::Function => ItemKind::Function(self.parse_function()?),
+            TokenKind::Type => ItemKind::TypeAlias(self.parse_type_alias()?),
+            TokenKind::Interface => ItemKind::Interface(self.parse_interface()?),
             _ => {
                 let expr = self.parse_expr(0)?;
                 self.expect_semicolon();
@@ -300,18 +187,156 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_type_annotation(&mut self) -> Option<TypeAnnotation> {
-        let token = match self.kind() {
-            TokenKind::Ident | TokenKind::Void => self.current().clone(),
+        let start = self.current().start;
+        let expr = self.parse_type_expr()?;
+        let end = self.previous_end(start as usize);
+        Some(TypeAnnotation {
+            expr,
+            span: Span::new(self.file, start as usize, end),
+        })
+    }
+
+    fn parse_type_expr(&mut self) -> Option<TypeExpr> {
+        let mut base = match self.kind() {
+            TokenKind::Ident | TokenKind::Void => {
+                let token = self.current().clone();
+                self.bump();
+                TypeExpr::Named(token.lexeme)
+            }
+            TokenKind::LBrace => self.parse_object_type()?,
+            TokenKind::LParen => self.parse_function_type()?,
             _ => {
-                self.error("expected a type name", self.current_span());
+                self.error("expected a type", self.current_span());
                 return None;
             }
         };
-        self.bump();
-        let span = token_span(&token, self.file);
-        Some(TypeAnnotation {
-            name: token.lexeme,
-            span,
+        while self.eat(TokenKind::LBracket) {
+            self.expect(TokenKind::RBracket, "expected ']' after '['")?;
+            base = TypeExpr::Array(Box::new(base));
+        }
+        Some(base)
+    }
+
+    fn parse_object_type(&mut self) -> Option<TypeExpr> {
+        self.expect(TokenKind::LBrace, "expected '{'")?;
+        let fields = self.parse_type_fields();
+        self.expect(TokenKind::RBrace, "expected '}'")?;
+        Some(TypeExpr::Object(fields))
+    }
+
+    /// Function-type parameters may be named (`n: number`) or bare (`number`).
+    fn parse_type_param(&mut self) -> Option<TypeExpr> {
+        if self.kind() == TokenKind::Ident
+            && self
+                .tokens
+                .get(self.pos + 1)
+                .is_some_and(|token| token.kind == TokenKind::Colon)
+        {
+            self.bump();
+            self.bump();
+        }
+        self.parse_type_expr()
+    }
+
+    fn parse_type_params(&mut self) -> Option<Vec<TypeExpr>> {
+        self.expect(TokenKind::LParen, "expected '('")?;
+        let mut params = Vec::new();
+        while self.kind() != TokenKind::RParen && self.kind() != TokenKind::Eof {
+            params.push(self.parse_type_param()?);
+            if !self.eat(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::RParen, "expected ')'")?;
+        Some(params)
+    }
+
+    fn parse_function_type(&mut self) -> Option<TypeExpr> {
+        let params = self.parse_type_params()?;
+        self.expect(TokenKind::Arrow, "expected '=>' in function type")?;
+        let ret = self.parse_type_expr()?;
+        Some(TypeExpr::Function {
+            params,
+            ret: Box::new(ret),
+        })
+    }
+
+    fn parse_type_fields(&mut self) -> Vec<TypeField> {
+        let mut fields = Vec::new();
+        while self.kind() != TokenKind::RBrace && self.kind() != TokenKind::Eof {
+            let before = self.pos;
+            let start = self.current().start;
+            let Some(name) = self.parse_ident("expected a property name") else {
+                self.recover();
+                if self.pos == before {
+                    self.bump();
+                }
+                continue;
+            };
+            let ty = if self.kind() == TokenKind::LParen {
+                self.parse_method_type()
+            } else {
+                self.expect(TokenKind::Colon, "expected ':' after property name")
+                    .and_then(|_| self.parse_type_expr())
+            };
+            if !self.eat(TokenKind::Semicolon)
+                && !self.eat(TokenKind::Comma)
+                && self.kind() != TokenKind::RBrace
+            {
+                self.error("expected ';' or ',' after property", self.current_span());
+            }
+            if let Some(ty) = ty {
+                let end = self.previous_end(start as usize);
+                fields.push(TypeField {
+                    name: name.name,
+                    ty,
+                    span: Span::new(self.file, start as usize, end),
+                });
+            }
+        }
+        fields
+    }
+
+    fn parse_method_type(&mut self) -> Option<TypeExpr> {
+        let params = self.parse_type_params()?;
+        let ret = if self.eat(TokenKind::Colon) {
+            self.parse_type_expr()?
+        } else {
+            TypeExpr::Named("void".to_owned())
+        };
+        Some(TypeExpr::Function {
+            params,
+            ret: Box::new(ret),
+        })
+    }
+
+    fn parse_type_alias(&mut self) -> Option<TypeAliasDecl> {
+        let start = self.current().start;
+        self.bump(); // `type`
+        let name = self.parse_ident("expected a type alias name")?;
+        self.expect(TokenKind::Eq, "expected '=' after type alias name")?;
+        let ty = self.parse_type_expr()?;
+        self.expect_semicolon();
+        let end = self.previous_end(start as usize);
+        Some(TypeAliasDecl {
+            name,
+            ty,
+            span: Span::new(self.file, start as usize, end),
+        })
+    }
+
+    fn parse_interface(&mut self) -> Option<InterfaceDecl> {
+        let start = self.current().start;
+        self.bump(); // `interface`
+        let name = self.parse_ident("expected an interface name")?;
+        self.expect(TokenKind::LBrace, "expected '{' after interface name")?;
+        let fields = self.parse_type_fields();
+        self.expect(TokenKind::RBrace, "expected '}'")?;
+        let end = self.previous_end(start as usize);
+        Some(InterfaceDecl {
+            name,
+            fields,
+            span: Span::new(self.file, start as usize, end),
         })
     }
 
@@ -551,6 +576,19 @@ impl<'a> Parser<'a> {
                         span,
                     };
                 }
+                TokenKind::LBracket => {
+                    self.bump();
+                    let index = self.parse_expr(0)?;
+                    let close = self.expect(TokenKind::RBracket, "expected ']'")?;
+                    let span = Span::new(self.file, expr.span.start as usize, close.end as usize);
+                    expr = Expr {
+                        kind: ExprKind::Index {
+                            object: Box::new(expr),
+                            index: Box::new(index),
+                        },
+                        span,
+                    };
+                }
                 TokenKind::LParen => {
                     self.bump();
                     let mut args = Vec::new();
@@ -599,6 +637,50 @@ impl<'a> Parser<'a> {
             TokenKind::Ident => {
                 self.bump();
                 (ExprKind::Ident(token.lexeme.clone()), token.end)
+            }
+            TokenKind::LBracket => {
+                self.bump();
+                let mut items = Vec::new();
+                while self.kind() != TokenKind::RBracket && self.kind() != TokenKind::Eof {
+                    items.push(self.parse_expr(0)?);
+                    if !self.eat(TokenKind::Comma) {
+                        break;
+                    }
+                }
+                let close = self.expect(TokenKind::RBracket, "expected ']'")?;
+                let span = Span::new(self.file, token.start as usize, close.end as usize);
+                return Some(Expr {
+                    kind: ExprKind::ArrayLit(items),
+                    span,
+                });
+            }
+            TokenKind::LBrace => {
+                self.bump();
+                let mut fields = Vec::new();
+                while self.kind() != TokenKind::RBrace && self.kind() != TokenKind::Eof {
+                    let field_start = self.current().start;
+                    let name = self.parse_ident("expected a property name")?;
+                    self.expect(TokenKind::Colon, "expected ':' after property name")?;
+                    let value = self.parse_expr(0)?;
+                    let field_end = self.previous_end(field_start as usize);
+                    fields.push(ObjectField {
+                        name: name.name,
+                        value,
+                        span: Span::new(self.file, field_start as usize, field_end),
+                    });
+                    if !self.eat(TokenKind::Comma)
+                        && !self.eat(TokenKind::Semicolon)
+                        && self.kind() != TokenKind::RBrace
+                    {
+                        self.error("expected ',' or ';' after property", self.current_span());
+                    }
+                }
+                let close = self.expect(TokenKind::RBrace, "expected '}'")?;
+                let span = Span::new(self.file, token.start as usize, close.end as usize);
+                return Some(Expr {
+                    kind: ExprKind::ObjectLit(fields),
+                    span,
+                });
             }
             TokenKind::LParen => {
                 self.bump();
@@ -699,21 +781,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn position(&self, offset: u32) -> (u32, u32) {
-        let line = self.line_starts.partition_point(|start| *start <= offset) as u32;
-        let column = offset - self.line_starts[(line - 1) as usize] + 1;
-        (line, column)
-    }
-
     fn error(&mut self, message: impl Into<String>, span: Span) {
-        let (line, column) = self.position(span.start);
-        self.diagnostics.push(Diagnostic {
-            severity: Severity::Error,
-            message: message.into(),
-            span,
-            line,
-            column,
-        });
+        let diagnostic = Diagnostic::error(message, span, &self.lines);
+        self.diagnostics.push(diagnostic);
     }
 }
 
@@ -780,7 +850,10 @@ mod tests {
         let ItemKind::Variable(decl) = &output.program.items[0].kind else {
             panic!("expected a variable");
         };
-        assert_eq!(decl.ty.as_ref().unwrap().name, "string");
+        assert!(matches!(
+            &decl.ty.as_ref().unwrap().expr,
+            TypeExpr::Named(name) if name == "string"
+        ));
         assert!(matches!(&decl.init.as_ref().unwrap().kind, ExprKind::String(s) if s == "nava"));
     }
 
@@ -792,7 +865,10 @@ mod tests {
         };
         assert_eq!(decl.name.name, "add");
         assert_eq!(decl.params.len(), 2);
-        assert_eq!(decl.return_ty.as_ref().unwrap().name, "number");
+        assert!(matches!(
+            &decl.return_ty.as_ref().unwrap().expr,
+            TypeExpr::Named(name) if name == "number"
+        ));
         assert_eq!(decl.body.statements.len(), 1);
         assert!(matches!(decl.body.statements[0].kind, StmtKind::Return(_)));
     }
@@ -962,5 +1038,64 @@ mod tests {
         let debug = format!("{:?}", output.program);
         assert!(debug.contains("Variable"), "{debug}");
         assert!(debug.contains("Number"), "{debug}");
+    }
+
+    #[test]
+    fn parses_type_alias_and_interface() {
+        let source = "type Id = number; interface Point { x: number; y: number; }";
+        let output = ok(source);
+        assert!(matches!(
+            output.program.items[0].kind,
+            ItemKind::TypeAlias(_)
+        ));
+        let ItemKind::Interface(decl) = &output.program.items[1].kind else {
+            panic!("expected an interface");
+        };
+        assert_eq!(decl.name.name, "Point");
+        assert_eq!(decl.fields.len(), 2);
+    }
+
+    #[test]
+    fn parses_array_and_object_types_and_literals() {
+        let source = "let xs: number[] = [1, 2]; let p: { x: number } = { x: 1 }; let y = xs[0];";
+        let output = ok(source);
+        assert_eq!(output.program.items.len(), 3);
+        let ItemKind::Variable(first) = &output.program.items[0].kind else {
+            panic!("expected a variable");
+        };
+        assert!(matches!(
+            first.ty.as_ref().unwrap().expr,
+            TypeExpr::Array(_)
+        ));
+        assert!(matches!(
+            first.init.as_ref().unwrap().kind,
+            ExprKind::ArrayLit(_)
+        ));
+        let ItemKind::Variable(second) = &output.program.items[1].kind else {
+            panic!("expected a variable");
+        };
+        assert!(matches!(
+            second.init.as_ref().unwrap().kind,
+            ExprKind::ObjectLit(_)
+        ));
+        let ItemKind::Variable(third) = &output.program.items[2].kind else {
+            panic!("expected a variable");
+        };
+        assert!(matches!(
+            third.init.as_ref().unwrap().kind,
+            ExprKind::Index { .. }
+        ));
+    }
+
+    #[test]
+    fn parses_function_type_annotations() {
+        let output = ok("let f: (n: number) => number;");
+        let ItemKind::Variable(decl) = &output.program.items[0].kind else {
+            panic!("expected a variable");
+        };
+        assert!(matches!(
+            &decl.ty.as_ref().unwrap().expr,
+            TypeExpr::Function { .. }
+        ));
     }
 }

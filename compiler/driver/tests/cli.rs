@@ -154,6 +154,19 @@ fn build_reports_diagnostics_for_a_broken_file() {
 }
 
 #[test]
+fn build_reports_type_errors() {
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/type_error.ts");
+    let text = failed(
+        nava()
+            .args(["build", source])
+            .output()
+            .expect("run nava build examples/type_error.ts"),
+    );
+    assert!(text.contains("cannot assign"), "{text}");
+    assert!(text.contains("number"), "{text}");
+}
+
+#[test]
 fn build_rejects_a_missing_file() {
     let output = nava()
         .args(["build", "does-not-exist.ts"])

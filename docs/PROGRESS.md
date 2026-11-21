@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-20
-- **Current phase:** Phase 1 complete — ready for Phase 2 (Type system)
+- **Current phase:** Phase 2 complete — ready for Phase 3 (Intermediate Representation)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -21,7 +21,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Git repository initialized | [x] Done (initial commit on `main`) |
 | Phase 0 — Foundation | [x] Complete |
 | Phase 1 — Lexer & Parser | [x] Complete |
-| Phase 2 — Type system | [ ] Not started |
+| Phase 2 — Type system | [x] Complete |
 | Phase 3 — IR | [ ] Not started |
 | Phase 4 — Native backend | [ ] Not started |
 | Phase 5 — Runtime | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 2 of 12 implementation phases complete.
+**Overall:** 3 of 12 implementation phases complete.
 
 ---
 
@@ -123,11 +123,16 @@ limitations for every milestone.
   tracked as unsupported in `COMPATIBILITY.md`, and scheduled for Phase 6.
 
 ### Phase 2 — Type system
-- [ ] Primitives: number, string, boolean, void
-- [ ] Arrays, objects, function signatures
-- [ ] Interfaces and type aliases
-- [ ] Inference and checking
-- **Exit condition:** type-check a meaningful subset of TypeScript.
+- [x] Primitives: number, string, boolean, void, null
+- [x] Arrays, objects, function signatures
+- [x] Interfaces and type aliases
+- [x] Inference and checking (assignment, arity, arguments, returns, identifiers)
+- [x] Lexical scopes with shadowing and duplicate-declaration detection
+- [x] Minimal built-in `console.log` surface for the fibonacci acceptance program
+- **Exit condition met:** the fibonacci program type-checks; negative tests
+  fail as expected; `nava build` reports type errors and exits non-zero.
+- **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
+  `cargo test --workspace` (71 passed, 0 failed) succeed.
 
 ### Phase 3 — IR
 - [ ] Nava IR design
@@ -292,13 +297,56 @@ limitations for every milestone.
     compound operators, optional chaining, non-ASCII identifiers, `\u`/`\x`)
     to the unsupported-features register; scheduled loops in Phase 6.
 
+### 2026-11-20 — Phase 2 (Type system) implemented
+- Added `nava-diagnostics` as a shared leaf: `Diagnostic`, `Severity`,
+  `LineIndex` and `Diagnostics` now live in one crate used by the parser,
+  checker and driver. The parser re-exports the types, so the Phase 1 seam is
+  unchanged (ADR-0009).
+- Extended `nava-ast` with `TypeExpr` (named, array, object, function), type
+  aliases, interfaces, array/object literals and index expressions; the lexer
+  recognises `=>`, `type` and `interface`, and the parser was extended for the
+  new syntax.
+- `nava-symbol` owns `Type` and `SymbolTable` (lexical scopes, shadowing,
+  duplicate detection) as an internal seam.
+- `nava-typechecker` exposes one deep seam,
+  `check(&Program, &str) -> CheckOutput`, hiding two-pass declaration
+  collection, scope handling, inference, alias/interface resolution and
+  assignability. `TypedProgram` carries expression types keyed by span for
+  Phase 3.
+- Driver now runs parse → check and reports both diagnostic sets. Added
+  `examples/type_error.ts` and a minimal built-in `console` type so the
+  fibonacci acceptance program type-checks.
+
+### 2026-11-20 — Phase 2 review fixes
+- Two-axis review found 5 hard standards items and several spec gaps. Applied
+  before committing:
+  - Return-type inference now runs inside `check_function`, after parameters
+    and every top-level signature are registered. Fixed spurious
+    "unknown identifier" errors for `function f(x: number) { return x; }` and
+    for earlier functions calling later ones.
+  - Local duplicate declarations are now reported (previously only top-level).
+  - Alias chains resolve through multiple hops with cycle detection; cycles
+    produce "circular type alias" instead of a misleading assignment error.
+  - Property and element assignment targets (`p.x = ...`, `a[0] = ...`) are
+    now type-checked, not silently skipped.
+  - Comparisons of non-orderable types (e.g. `true < false`) are rejected;
+    documented the remaining divergences (covariant function parameters,
+    JavaScript-style string `+` coercion) in `COMPATIBILITY.md` §6.
+  - Extracted the shared type-parameter parser loop; removed unused
+    `SymbolKind::Type` and `SymbolTable::depth()`.
+  - Documented two deliberate scope decisions: ADR-0010 (semantic analysis
+    folded into the type checker) and ADR-0011 (type-only `console` builtin).
+  - Fixed the stale `COMPATIBILITY.md` header and scope row, and added the
+    missing `cargo fmt` exit evidence above.
+  - Added six regression tests; the suite grew from 65 to 71 tests.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Review the Phase 1 diff and apply improvements before committing it.
-2. Start Phase 2 (Type system) in `nava-typechecker` and `nava-symbol`, keeping
-   the `parse` seam unchanged.
+1. Review the Phase 2 diff and apply improvements before committing it.
+2. Start Phase 3 (IR) in `nava-ir`: functions, basic blocks, control flow,
+   arithmetic and calls, plus a verifier and textual debug output.
 3. Install CMake + Ninja when Phase 4 needs them.
 4. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
    start of Phase 4.

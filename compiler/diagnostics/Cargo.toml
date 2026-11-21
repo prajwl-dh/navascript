@@ -1,0 +1,11 @@
+[package]
+name = "nava-diagnostics"
+description = "Shared Nava diagnostics and source positions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nava-ast = { path = "../ast" }

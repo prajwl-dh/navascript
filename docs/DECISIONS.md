@@ -110,6 +110,54 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0009 — Shared diagnostics leaf crate
+
+- **Date:** 2026-11-20
+- **Status:** Accepted
+- **Context:** Phase 2 needs the type checker to add diagnostics in the same
+  shape as the parser. Keeping `Diagnostic`/`Diagnostics` inside `nava-parser`
+  would force `nava-typechecker` to depend on the parser for a data type, even
+  though it only consumes the AST.
+- **Decision:** Move `Diagnostic`, `Severity`, `LineIndex` and `Diagnostics`
+  into a new dependency-light crate `nava-diagnostics` with three real
+  consumers (parser, type checker, driver). `nava-parser` re-exports them, so
+  the Phase 1 `parse` seam is unchanged.
+- **Consequences:** One sorting/dedup/rendering implementation for every
+  front-end phase; no port or sink trait until a second real adapter exists.
+
+---
+
+## ADR-0010 — Semantic analysis lives inside the type checker
+
+- **Date:** 2026-11-20
+- **Status:** Accepted
+- **Context:** The 12-module architecture lists both "Semantic analyzer" and
+  "Type checker" as separate modules. In practice their Phase 2 work — scope
+  building, duplicate declarations, name resolution, unknown identifiers — is
+  inseparable from symbol-table construction and inference. Splitting them
+  would create a shallow middle module that passes data straight through.
+- **Decision:** Implement these semantic checks inside `nava-typechecker`
+  behind its single `check` seam. `compiler/semantic/` remains reserved as a
+  placeholder; if a genuinely independent semantic pass appears later, it can
+  be extracted from the checker without changing the seam.
+- **Consequences:** `nava-semantic` has no implementation in Phase 2. This is a
+  documented deviation, not an omission: the checks are implemented and tested
+  in `nava-typechecker`, satisfying "no feature claim without a passing test".
+
+## ADR-0011 — Type-only `console` builtin
+
+- **Date:** 2026-11-20
+- **Status:** Accepted
+- **Context:** The fibonacci acceptance program calls `console.log`, but the
+  runtime stdlib is Phase 5. Without a type for `console`, Phase 2 rejects the
+  very program the project uses as its first milestone.
+- **Decision:** Seed the checker with a type-only `console` symbol exposing
+  `log(value: unknown): void`. No runtime implementation is implied.
+- **Consequences:** `examples/fibonacci.ts` type-checks in Phase 2. The real
+  `console.log` implementation and its full signature belong to Phase 5.
+
+---
+
 ## Template for new decisions
 
 ```

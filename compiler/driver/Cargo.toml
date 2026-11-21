@@ -17,3 +17,4 @@ path = "src/main.rs"
 
 [dependencies]
 nava-parser = { path = "../parser" }
+nava-typechecker = { path = "../typechecker" }

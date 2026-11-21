@@ -21,6 +21,8 @@ pub enum TokenKind {
     False,
     Null,
     Void,
+    Type,
+    Interface,
     LParen,
     RParen,
     LBrace,
@@ -37,6 +39,7 @@ pub enum TokenKind {
     Slash,
     Percent,
     Eq,
+    Arrow,
     EqEq,
     StrictEq,
     Bang,
@@ -266,11 +269,12 @@ impl<'a> Lexer<'a> {
 
     fn lex_operator_or_unknown(&mut self) {
         let start = self.pos;
-        let operators: [(&str, TokenKind); 14] = [
+        let operators: [(&str, TokenKind); 15] = [
             ("===", TokenKind::StrictEq),
             ("!==", TokenKind::StrictNotEq),
             ("==", TokenKind::EqEq),
             ("!=", TokenKind::BangEq),
+            ("=>", TokenKind::Arrow),
             ("<=", TokenKind::Le),
             (">=", TokenKind::Ge),
             ("&&", TokenKind::AndAnd),
@@ -340,6 +344,8 @@ fn keyword(word: &str) -> TokenKind {
         "false" => TokenKind::False,
         "null" => TokenKind::Null,
         "void" => TokenKind::Void,
+        "type" => TokenKind::Type,
+        "interface" => TokenKind::Interface,
         _ => TokenKind::Ident,
     }
 }
@@ -383,8 +389,7 @@ mod tests {
                 TokenKind::Ident,
                 TokenKind::Le,
                 TokenKind::Ident,
-                TokenKind::Eq,
-                TokenKind::Gt,
+                TokenKind::Arrow,
                 TokenKind::Ident,
                 TokenKind::Eof,
             ]

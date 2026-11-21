@@ -6,8 +6,8 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-20 — Phase 1 syntax entries implemented and tested; all
-type-system and runtime entries remain unimplemented.
+Last updated: 2026-11-20 — Phase 1 syntax and Phase 2 type-system entries are
+implemented and tested; runtime entries remain unimplemented.
 
 ## 1. Syntax
 
@@ -17,7 +17,7 @@ type-system and runtime entries remain unimplemented.
 | Variables (`let`/`const`/`var`) | [x] | `nava-parser` tests | Phase 1 |
 | Functions & returns | [x] | `nava-parser` tests | Phase 1 |
 | Expressions & operator precedence | [x] | `nava-parser` tests | Phase 1 |
-| Blocks & lexical scope | [~] | `nava-parser` tests | AST blocks parsed; scope resolution is Phase 2 |
+| Blocks & lexical scope | [x] | parser + typechecker tests | AST blocks parsed; scopes and shadowing checked in Phase 2 |
 | `if`/`else` | [x] | `nava-parser` tests | Phase 1 |
 | Loops (`for`/`while`) | [ ] | — | Phase 6 |
 | Comments | [x] | `nava-lexer` unit tests | Phase 1 |
@@ -36,13 +36,13 @@ type-system and runtime entries remain unimplemented.
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| `number`, `string`, `boolean`, `void` | [ ] | — | Phase 2 |
-| Arrays | [ ] | — | Phase 2 |
-| Object types | [ ] | — | Phase 2 |
-| Function signatures | [ ] | — | Phase 2 |
-| Type inference | [ ] | — | Phase 2 |
-| Assignability checks | [ ] | — | Phase 2 |
-| Structural typing | [ ] | — | Phase 6 |
+| `number`, `string`, `boolean`, `void` | [x] | `nava-typechecker` tests | Phase 2 |
+| Arrays | [x] | `nava-typechecker` tests | `T[]` and array literals |
+| Object types | [x] | `nava-typechecker` tests | object literals and member access |
+| Function signatures | [x] | `nava-typechecker` tests | `(a: T) => R`, arity and argument checks |
+| Type inference | [x] | `nava-typechecker` tests | variables and return types |
+| Assignability checks | [x] | `nava-typechecker` tests | assignments, arguments, returns |
+| Structural typing | [~] | `nava-typechecker` tests | basic object field checking; full structural typing Phase 6 |
 | Generics | [ ] | — | Phase 6 |
 | `any` / `unknown` | [ ] | — | Restricted semantics TBD |
 | Conditional / mapped types | [-] | — | Long-term |
@@ -90,8 +90,10 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Full `lib.d.ts` | large surface | long-term |
 | Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
 | `eval` / dynamic code | incompatible with native model | not planned |
-| Arrow functions (`=>`) | lexed as `=` + `>`; not parsed | Phase 6 |
+| Arrow function expressions | `=>` is lexed and used in function *type annotations*, but arrow expressions are not parsed | Phase 6 |
 | Hex / binary / octal / bigint literals | lexer accepts decimal digits only | Phase 6 |
 | Compound operators (`+=`, `++`, `**`) and optional chaining (`?.`) | lexed as separate tokens, not parsed | Phase 6 |
 | Non-ASCII identifiers | lexer accepts ASCII letters, `_`, `$` only | Phase 6 |
 | `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |
+| `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
+| Mixed string/number `+` coercion | accepted as JavaScript-style concatenation (`"a" + 1` is `string`); documented difference, not a TypeScript parity claim | Phase 7 |

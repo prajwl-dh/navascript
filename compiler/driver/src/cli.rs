@@ -14,7 +14,7 @@ Usage:
   nava [OPTIONS] <COMMAND>
 
 Commands:
-  build <FILE.ts>   Parse a TypeScript source file and report diagnostics
+  build <FILE.ts>   Parse and type-check a source file, reporting diagnostics
                     (native code generation arrives in Phase 4)
 
 Options:
@@ -122,8 +122,13 @@ fn dispatch(command: Command) -> i32 {
                 eprint!("{}", parsed.diagnostics.render(&source));
                 return 1;
             }
+            let checked = nava_typechecker::check(&parsed.program, &source);
+            if checked.diagnostics.has_errors() {
+                eprint!("{}", checked.diagnostics.render(&source));
+                return 1;
+            }
             println!(
-                "nava: parsed '{}' successfully; native code generation arrives in Phase 4.",
+                "nava: parsed and type-checked '{}' successfully; native code generation arrives in Phase 4.",
                 input.display()
             );
             0
