@@ -18,6 +18,21 @@ fn llvm_tool(name: &str) -> PathBuf {
     llvm_prefix().join("bin").join(name)
 }
 
+/// Whether the external native toolchain is available. Tests use this to skip
+/// native-only assertions on machines without LLVM installed.
+pub fn native_tools_available() -> bool {
+    let present = |tool: &Path| {
+        if tool.is_absolute() {
+            tool.is_file()
+        } else {
+            which(tool).is_some()
+        }
+    };
+    present(&llvm_tool("llvm-config"))
+        && present(&llvm_tool("llc"))
+        && present(&PathBuf::from("clang"))
+}
+
 /// Ask LLVM for the host target triple.
 pub fn host_triple() -> Result<String, String> {
     let output = Command::new(llvm_tool("llvm-config"))
@@ -35,20 +50,11 @@ pub fn host_triple() -> Result<String, String> {
 
 /// Compile textual LLVM IR and the runtime shim into a native executable.
 pub fn emit_native(ir: &str, runtime_c: &str, output: &Path, release: bool) -> Result<(), String> {
-    for tool in [
-        llvm_tool("llvm-config"),
-        llvm_tool("llc"),
-        PathBuf::from("clang"),
-    ] {
-        if !tool.exists() && std::env::var_os("PATH").is_some() {
-            // `clang` may be on PATH rather than at an absolute path.
-            if tool.is_absolute() {
-                return Err(format!("required tool not found: {}", tool.display()));
-            }
-            if which(&tool).is_none() {
-                return Err(format!("required tool not found: {}", tool.display()));
-            }
-        }
+    if !native_tools_available() {
+        return Err(format!(
+            "native toolchain not found (LLVM prefix {}); install LLVM with `brew install llvm` or set LLVM_SYS_231_PREFIX",
+            llvm_prefix().display()
+        ));
     }
 
     use std::sync::atomic::{AtomicU32, Ordering};

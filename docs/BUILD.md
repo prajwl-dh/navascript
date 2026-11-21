@@ -109,6 +109,12 @@ toolchain is discovered from `LLVM_SYS_231_PREFIX` (or
 `llc` emits the object, and `clang` compiles the small C runtime and links.
 No CMake or Ninja is required.
 
+Tests that need the native toolchain call
+`nava_driver::build::native_tools_available()` and skip cleanly when it is
+absent, so `cargo test --workspace` passes on machines without LLVM. CI installs
+LLVM with `brew install llvm` and exports the discovered prefix so the native
+tests actually execute there.
+
 ## 5. Workspace layout
 
 ```

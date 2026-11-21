@@ -6,9 +6,13 @@ on:
 
 jobs:
   rust:
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - name: Install LLVM toolchain
+        run: |
+          brew install llvm
+          echo "LLVM_SYS_231_PREFIX=$(brew --prefix llvm)" >> "$GITHUB_ENV"
       - name: Install Rust components
         run: rustup component add rustfmt clippy
       - name: Check formatting

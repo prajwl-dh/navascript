@@ -3,22 +3,12 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn tools_available() -> bool {
-    let prefix = std::env::var("LLVM_SYS_231_PREFIX")
-        .unwrap_or_else(|_| "/opt/homebrew/opt/llvm".to_owned());
-    Path::new(&prefix).join("bin/llc").is_file()
-        && std::process::Command::new("clang")
-            .arg("--version")
-            .output()
-            .is_ok()
-}
-
 fn output_path(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("nava-native-{}-{name}", std::process::id()))
 }
 
 fn compile(source: &str, name: &str, extra: &[&str]) -> Option<PathBuf> {
-    if !tools_available() {
+    if !nava_driver::build::native_tools_available() {
         eprintln!("skipping native test: LLVM toolchain not available");
         return None;
     }
@@ -110,7 +100,7 @@ fn release_mode_prints_the_same_result() {
 
 #[test]
 fn emit_ir_prints_llvm_ir_without_linking() {
-    if !tools_available() {
+    if !nava_driver::build::native_tools_available() {
         return;
     }
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/fibonacci.ts");

@@ -130,6 +130,10 @@ fn build_rejects_option_as_input() {
 
 #[test]
 fn build_emits_ir_on_request() {
+    if !nava_driver::build::native_tools_available() {
+        eprintln!("skipping: native toolchain not available");
+        return;
+    }
     let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
     let text = ok(nava()
         .args(["build", source, "--emit-ir"])
@@ -141,6 +145,10 @@ fn build_emits_ir_on_request() {
 
 #[test]
 fn build_produces_a_native_executable() {
+    if !nava_driver::build::native_tools_available() {
+        eprintln!("skipping: native toolchain not available");
+        return;
+    }
     let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
     let output = std::env::temp_dir().join(format!("nava-cli-{}", std::process::id()));
     let text = ok(nava()

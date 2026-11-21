@@ -471,6 +471,18 @@ limitations for every milestone.
   - `README.md` and `ROADMAP.md`: removed stale CMake/Ninja and Phase 0/1 TODOs.
 - No compiler code changed; the 110-test suite, fmt and clippy still pass.
 
+### 2026-11-21 — CI fix: missing LLVM on GitHub runners
+- GitHub's macOS runner does not ship LLVM at `/opt/homebrew/opt/llvm`, so two
+  binary tests that invoke `nava build` failed with `could not run llvm-config`.
+- Added `nava_driver::build::native_tools_available()` as the single shared
+  tool-discovery seam; native tests and the two tool-dependent binary tests now
+  skip cleanly when `llvm-config`, `llc` or `clang` is missing. `emit_native`
+  returns an actionable error instead of a confusing OS error.
+- CI now runs `brew install llvm` and exports `LLVM_SYS_231_PREFIX` from
+  `brew --prefix llvm`, so the native path is actually exercised on the runner.
+- Verified both modes locally: with a bogus prefix the suite passes with native
+  tests skipped; with LLVM present all 110 tests execute and pass.
+
 ---
 
 ## 6. Next actions (in order)
