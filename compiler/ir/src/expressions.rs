@@ -3,7 +3,7 @@
 use nava_ast::{BinaryOp as AstBinaryOp, Expr, ExprKind, UnaryOp as AstUnaryOp};
 
 use super::builder::FunctionBuilder;
-use super::ir::{BinaryOp, Instruction, IrType, UnaryOp, Value};
+use super::ir::{Instruction, IrType, UnaryOp, Value};
 use super::lower::Lowerer;
 
 impl FunctionBuilder {
@@ -29,9 +29,10 @@ impl FunctionBuilder {
                 let lhs = self.lower_expr(left, lowerer);
                 let rhs = self.lower_expr(right, lowerer);
                 let result = self.fresh_value();
-                if lhs_ty == IrType::String || rhs_ty == IrType::String {
-                    // Coerce a numeric operand to a string so both runtime
-                    // calls receive `ptr` values (JavaScript-style `+`).
+                if *op == AstBinaryOp::Add {
+                    self.emit_add(lhs, rhs, lhs_ty, rhs_ty, result);
+                } else if lhs_ty == IrType::String || rhs_ty == IrType::String {
+                    // Equality on strings needs `ptr` operands.
                     let lhs = if lhs_ty == IrType::String {
                         lhs
                     } else {
@@ -43,13 +44,6 @@ impl FunctionBuilder {
                         self.number_to_string(rhs)
                     };
                     match op {
-                        AstBinaryOp::Add => {
-                            self.emit(Instruction::StringConcat {
-                                result,
-                                left: lhs,
-                                right: rhs,
-                            });
-                        }
                         AstBinaryOp::Eq
                         | AstBinaryOp::StrictEq
                         | AstBinaryOp::NotEq
@@ -76,7 +70,7 @@ impl FunctionBuilder {
                 } else {
                     self.emit(Instruction::Binary {
                         result,
-                        op: binary_op(*op),
+                        op: super::operators::to_ir_binary(*op),
                         lhs,
                         rhs,
                     });
@@ -105,6 +99,22 @@ impl FunctionBuilder {
                 let value = self.lower_expr(value, lowerer);
                 self.lower_assign(target, &value, lowerer);
                 value
+            }
+            ExprKind::CompoundAssign { op, target, value } => {
+                self.lower_compound_assign(*op, target, value, lowerer)
+            }
+            ExprKind::Update {
+                op,
+                operand,
+                prefix,
+            } => self.lower_update(*op, operand, *prefix, lowerer),
+            ExprKind::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                let ty = lowerer.expr_ty(expr);
+                self.lower_ternary(condition, then_expr, else_expr, ty, lowerer)
             }
             ExprKind::Call { callee, args } => {
                 let callee_name = match &callee.kind {
@@ -269,25 +279,5 @@ impl FunctionBuilder {
             }
             ExprKind::Paren(inner) => self.lower_expr(inner, lowerer),
         }
-    }
-}
-
-fn binary_op(op: AstBinaryOp) -> BinaryOp {
-    match op {
-        AstBinaryOp::Add => BinaryOp::Add,
-        AstBinaryOp::Sub => BinaryOp::Sub,
-        AstBinaryOp::Mul => BinaryOp::Mul,
-        AstBinaryOp::Div => BinaryOp::Div,
-        AstBinaryOp::Mod => BinaryOp::Mod,
-        AstBinaryOp::Eq => BinaryOp::Eq,
-        AstBinaryOp::StrictEq => BinaryOp::Eq,
-        AstBinaryOp::NotEq => BinaryOp::Ne,
-        AstBinaryOp::StrictNotEq => BinaryOp::Ne,
-        AstBinaryOp::Lt => BinaryOp::Lt,
-        AstBinaryOp::Le => BinaryOp::Le,
-        AstBinaryOp::Gt => BinaryOp::Gt,
-        AstBinaryOp::Ge => BinaryOp::Ge,
-        AstBinaryOp::And => BinaryOp::And,
-        AstBinaryOp::Or => BinaryOp::Or,
     }
 }

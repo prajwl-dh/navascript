@@ -308,6 +308,29 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0018 — Phase 6 literals and operators
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6's second syntax increment adds compound assignment,
+  `++`/`--`, `**`, ternary, based integer literals with separators, Unicode
+  identifiers and `\x`/`\u` escapes. Ternary can introduce basic blocks from
+  inside any expression, while the existing `return` lowering assumed one
+  block per statement.
+- **Decision:** Ternary lowers to a result stack slot written in both arms and
+  read in a join block (consistent with ADR-0013). `**` maps to the LLVM
+  `@llvm.pow.f64` intrinsic, declared in codegen only. Radix-prefix knowledge
+  lives in one shared `nava_lexer::radix_prefix` helper used by both the
+  scanner and parser. Invalid `\x`/`\u` escapes are lex diagnostics, never
+  silently decoded to an empty string. The three files that grew past ADR-0016's
+  size guidance were split into private modules behind their existing façades.
+- **Consequences:** `return` and other statement lowering now use the current
+  block after expression lowering, not the incoming block. Bigint, arrow
+  functions and optional chaining remain unsupported and are recorded in
+  `COMPATIBILITY.md`. No new runtime ABI functions were needed.
+
+---
+
 ## Template for new decisions
 
 ```

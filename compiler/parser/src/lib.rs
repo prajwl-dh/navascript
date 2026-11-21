@@ -6,6 +6,7 @@
 
 mod expressions;
 mod items;
+mod operators;
 mod parser;
 mod statements;
 mod types;

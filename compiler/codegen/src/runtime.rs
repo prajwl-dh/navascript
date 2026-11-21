@@ -44,6 +44,7 @@ pub const RUNTIME_FILES: &[(&str, &str, &str)] = &[
 ];
 
 pub(super) const RUNTIME_DECLS: &[&str] = &[
+    "declare double @llvm.pow.f64(double, double) nounwind readnone",
     "declare void @nava_console_log_f64(double) nounwind",
     "declare void @nava_console_log_bool(i1) nounwind",
     "declare void @nava_console_log_str(ptr) nounwind",

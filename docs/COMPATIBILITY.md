@@ -9,8 +9,10 @@ TypeScript. A feature is only marked supported when a test proves it.
 Last updated: 2026-11-21 — Phases 0–5 are complete and Phase 6 is in progress.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects and fatal error
-reporting; Phase 6 has delivered loops, with closures and exceptions still
-deferred (ADR-0015).
+reporting; Phase 6 has delivered loops and the additional literals/operators
+(compound assignment, `++`/`--`, `**`, ternary, hex/binary/octal, Unicode
+identifiers and `\x`/`\u` escapes). Closures and exceptions are still pending
+(ADR-0015).
 
 ## 1. Syntax
 
@@ -23,6 +25,11 @@ deferred (ADR-0015).
 | Blocks & lexical scope | [x] | `tests/parser/` + `tests/typechecker/` | AST blocks parsed; scopes and shadowing checked in Phase 2 |
 | `if`/`else` | [x] | `tests/parser/` | Phase 1 |
 | Loops (`while`, `do-while`, `for`, `for-of`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `for-of` over arrays/strings (both declaration and assignment forms); no `break`/`continue` yet |
+| Compound operators (`+= -= *= /= %=`, `++`, `--`, `**`) | [x] | `tests/parser/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; string `+=` concatenates |
+| Ternary `?:` | [x] | `tests/parser/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6 |
+| Hex/binary/octal literals & `_` separators | [x] | `tests/lexer/`, `tests/parser/` | Phase 6; bigint still unsupported |
+| Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
+| `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
@@ -94,11 +101,9 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Full `lib.d.ts` | large surface | long-term |
 | Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
 | `eval` / dynamic code | incompatible with native model | not planned |
-| Arrow function expressions | `=>` is lexed and used in function *type annotations*, but arrow expressions are not parsed | Phase 6 |
-| Hex / binary / octal / bigint literals | lexer accepts decimal digits only | Phase 6 |
-| Compound operators (`+=`, `++`, `**`) and optional chaining (`?.`) | lexed as separate tokens, not parsed | Phase 6 |
-| Non-ASCII identifiers | lexer accepts ASCII letters, `_`, `$` only | Phase 6 |
-| `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |
+| Arrow function expressions | `=>` is lexed and used in function *type annotations*, but arrow expressions are not parsed | Phase 6 (pending) |
+| Bigint literals (`123n`) | no BigInt type in the checker or runtime; the suffix is not parsed | Phase 6 (pending) |
+| Optional chaining (`?.`) | `?` and `.` are lexed, but the combined operator is not parsed | Phase 6 (pending) |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |

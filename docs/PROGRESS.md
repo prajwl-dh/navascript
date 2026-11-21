@@ -6,7 +6,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
-- **Current phase:** Phase 6 (Language expansion) in progress — loops complete
+- **Current phase:** Phase 6 (Language expansion) in progress — loops and
+  additional literals/operators complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -25,7 +26,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops done) |
+| Phase 6 — Language expansion | [~] In progress (loops + syntax expansion done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -33,7 +34,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 11 — Production readiness | [ ] Not started |
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
-(loops delivered, remaining expansion items pending).
+(loops and syntax expansion delivered, remaining expansion items pending).
 
 ---
 
@@ -181,7 +182,11 @@ limitations for every milestone.
 ### Phase 6 — Language expansion
 - [x] Loops (`while`, `do-while`, C-style `for`, `for-of` over arrays/strings,
   both `let x of` and `x of` forms) — deferred from Phase 1; done 2026-11-21
-- [ ] Arrow functions and the additional literals/operators in `COMPATIBILITY.md` §6
+- [x] Additional literals/operators: compound assignment (`+= -= *= /= %=`),
+  `++`/`--`, `**`, ternary, hex/binary/octal literals, `_` separators,
+  non-ASCII identifiers, `\x`/`\u` escapes — done 2026-11-21
+- [ ] Arrow functions, optional chaining and bigint (the remaining
+  `COMPATIBILITY.md` §6 syntax rows)
 - [ ] Generics, classes, inheritance
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
@@ -189,10 +194,11 @@ limitations for every milestone.
 - [ ] Closures, higher-order functions
 - [ ] Async/await, promises
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
-- **Current evidence (loops):** `cargo fmt --all -- --check`,
+- **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (135 passed, 0 failed) succeed;
-  `examples/loops.ts` and `examples/for_of.ts` run natively.
+  `cargo test --workspace` (149 passed, 0 failed) succeed;
+  `examples/loops.ts`, `examples/for_of.ts` and `examples/operators.ts` run
+  natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -629,15 +635,35 @@ limitations for every milestone.
     Phase 6 work rather than deferred to a later phase.
 - No compiler code changed; `cargo test --workspace` still passes 135 tests.
 
+### 2026-11-21 — Phase 6 (second increment): literals and operators
+- Added compound assignment (`+= -= *= /= %=`, including string `+=`),
+  prefix/postfix `++`/`--`, right-associative `**` (LLVM `llvm.pow.f64`),
+  ternary `?:`, hex/binary/octal literals with `_` separators, Unicode
+  identifiers and `\xNN`/`\uNNNN`/`\u{...}` escapes.
+- Shared radix-prefix knowledge between lexer and parser via `radix_prefix`;
+  invalid `\x`/`\u` escapes now produce lex diagnostics instead of silently
+  compiling to an empty string.
+- Fixed two latent bugs found by the review: a `return` whose value contains a
+  ternary attached the terminator to the stale block, and ternary expressions
+  in variable/expression statements left the final block unterminated.
+- Split the three files that exceeded ADR-0016's size guidance into private
+  modules: `ir/operators.rs`, `lexer/scanner/{number,string}.rs` and
+  `parser/operators.rs`. All public seams are unchanged.
+- Added `examples/operators.ts` and tests across lexer/parser/typechecker/IR/
+  codegen/native surfaces. Suite grew from 135 to 149 tests; fmt and clippy
+  clean.
+- **Still pending:** arrow functions, optional chaining, bigint, closures,
+  exceptions, generics, classes, unions, modules and async/await.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: arrow functions/deferred literals and operators, generics,
+   `ROADMAP.md`: arrow functions (plus optional chaining and bigint), generics,
    classes, structural typing, unions, modules, closures and exceptions
-   (ADR-0015), async/await. Loops are done; `break`/`continue` can be added
-   later if a fixture needs them.
+   (ADR-0015), async/await. Loops and the additional literals/operators are
+   done; `break`/`continue` can be added later if a fixture needs them.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

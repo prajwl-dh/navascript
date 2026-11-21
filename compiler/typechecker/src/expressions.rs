@@ -44,6 +44,48 @@ impl<'a> Checker<'a> {
                 self.check_assign_target(target, &actual);
                 actual
             }
+            ExprKind::CompoundAssign { op, target, value } => {
+                let current = self.infer_expr(target);
+                let operand = self.infer_expr(value);
+                let result = self.infer_binary(op.binary_op(), &current, &operand, expr.span);
+                self.check_assign_target(target, &result);
+                result
+            }
+            ExprKind::Update { op, operand, .. } => {
+                let current = self.infer_expr(operand);
+                if !matches!(current, Type::Number | Type::Unknown | Type::Error) {
+                    self.error(format!("{} requires a number", op.symbol()), expr.span);
+                }
+                self.check_assign_target(operand, &Type::Number);
+                Type::Number
+            }
+            ExprKind::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                self.infer_expr(condition);
+                let then_ty = self.infer_expr(then_expr);
+                let else_ty = self.infer_expr(else_expr);
+                if then_ty != else_ty
+                    && !matches!(then_ty, Type::Unknown | Type::Error)
+                    && !matches!(else_ty, Type::Unknown | Type::Error)
+                {
+                    self.error(
+                        format!(
+                            "ternary branches have different types '{}' and '{}'",
+                            then_ty.display(),
+                            else_ty.display()
+                        ),
+                        expr.span,
+                    );
+                    Type::Error
+                } else if matches!(then_ty, Type::Unknown | Type::Error) {
+                    else_ty
+                } else {
+                    then_ty
+                }
+            }
             ExprKind::Call { callee, args } => {
                 let callee_ty = self.infer_expr(callee);
                 self.infer_call(&callee_ty, args, expr.span)
@@ -184,7 +226,12 @@ impl<'a> Checker<'a> {
             BinaryOp::Add if matches!(lhs, Type::String) || matches!(rhs, Type::String) => {
                 Type::String
             }
-            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
+            BinaryOp::Add
+            | BinaryOp::Sub
+            | BinaryOp::Mul
+            | BinaryOp::Div
+            | BinaryOp::Mod
+            | BinaryOp::Pow => {
                 if !matches!(lhs, Type::Number | Type::Unknown | Type::Error)
                     || !matches!(rhs, Type::Number | Type::Unknown | Type::Error)
                 {

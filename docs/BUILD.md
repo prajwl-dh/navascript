@@ -73,7 +73,7 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/driver/` | CLI argument parsing and the real `nava` binary |
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 | `tests/codegen/` | Nava IR → LLVM IR translation |
-| `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, dynamic indices, runtime errors, debug/release) |
+| `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, compound/updates/power/ternary, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
 `tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`

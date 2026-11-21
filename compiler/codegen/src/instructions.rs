@@ -52,6 +52,11 @@ pub(super) fn emit_instruction(
                     };
                     format!("{name} double {lhs}, {rhs}")
                 }
+                BinaryOp::Pow => {
+                    require_type(&lhs_ty, IrType::Number, "exponentiation")?;
+                    require_type(&rhs_ty, IrType::Number, "exponentiation")?;
+                    format!("call double @llvm.pow.f64(double {lhs}, double {rhs})")
+                }
                 BinaryOp::Eq | BinaryOp::Ne => {
                     if lhs_ty == IrType::Boolean {
                         require_type(&rhs_ty, IrType::Boolean, "comparison")?;

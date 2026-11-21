@@ -183,6 +183,21 @@ fn for_of_runs_natively() {
 }
 
 #[test]
+fn new_operators_run_natively() {
+    let Some(binary) = compile("operators.ts", "operators", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run operators program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "255\n10\n15\n1000\n15\n12\n24\n6\n0\n8\n3\n3\n4\n3\n3\n2\nhi!\nABC\n3\nyes\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn release_mode_prints_the_same_result() {
     let Some(binary) = compile("fibonacci.ts", "fib-release", &["--release"]) else {
         return;

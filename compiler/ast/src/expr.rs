@@ -28,6 +28,21 @@ pub enum ExprKind {
         target: Box<Expr>,
         value: Box<Expr>,
     },
+    CompoundAssign {
+        op: AssignOp,
+        target: Box<Expr>,
+        value: Box<Expr>,
+    },
+    Update {
+        op: UpdateOp,
+        operand: Box<Expr>,
+        prefix: bool,
+    },
+    Ternary {
+        condition: Box<Expr>,
+        then_expr: Box<Expr>,
+        else_expr: Box<Expr>,
+    },
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
@@ -59,6 +74,7 @@ pub enum BinaryOp {
     Mul,
     Div,
     Mod,
+    Pow,
     Eq,
     StrictEq,
     NotEq,
@@ -76,4 +92,41 @@ pub enum UnaryOp {
     Not,
     Neg,
     Pos,
+}
+
+/// The arithmetic operators available in compound assignments (`+=` etc.).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssignOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+}
+
+impl AssignOp {
+    pub fn binary_op(self) -> BinaryOp {
+        match self {
+            AssignOp::Add => BinaryOp::Add,
+            AssignOp::Sub => BinaryOp::Sub,
+            AssignOp::Mul => BinaryOp::Mul,
+            AssignOp::Div => BinaryOp::Div,
+            AssignOp::Mod => BinaryOp::Mod,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateOp {
+    Inc,
+    Dec,
+}
+
+impl UpdateOp {
+    pub fn symbol(self) -> &'static str {
+        match self {
+            UpdateOp::Inc => "++",
+            UpdateOp::Dec => "--",
+        }
+    }
 }

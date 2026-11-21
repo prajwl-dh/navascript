@@ -2,7 +2,7 @@
 
 use nava_ast::{FileId, Program, Span};
 use nava_diagnostics::{Diagnostic, LineIndex};
-use nava_lexer::{Token, TokenKind};
+use nava_lexer::{Token, TokenKind, radix_prefix};
 
 /// Keeps `parse` infallible: deeply nested input is diagnosed, not overflowed.
 pub(super) const MAX_DEPTH: u32 = 128;
@@ -148,28 +148,76 @@ pub(super) fn token_span(token: &Token, file: FileId) -> Span {
     Span::new(file, token.start as usize, token.end as usize)
 }
 
+/// Parse a numeric lexeme, including `0x`/`0b`/`0o` prefixes and `_` separators.
+pub(super) fn decode_number(lexeme: &str) -> f64 {
+    let clean: String = lexeme.chars().filter(|&ch| ch != '_').collect();
+    let (radix, digits) = radix_prefix(&clean).unwrap_or((10, clean.as_str()));
+    u64::from_str_radix(digits, radix)
+        .map(|value| value as f64)
+        .unwrap_or_else(|_| clean.parse::<f64>().unwrap_or(f64::NAN))
+}
+
 pub(super) fn decode_string(lexeme: &str) -> String {
     if lexeme.len() < 2 {
         return String::new();
     }
     let inner = &lexeme[1..lexeme.len() - 1];
+    let chars: Vec<char> = inner.chars().collect();
     let mut out = String::new();
-    let mut chars = inner.chars();
-    while let Some(ch) = chars.next() {
-        if ch != '\\' {
+    let mut index = 0;
+    while index < chars.len() {
+        let ch = chars[index];
+        index += 1;
+        if ch != '\\' || index >= chars.len() {
             out.push(ch);
             continue;
         }
-        match chars.next() {
-            Some('n') => out.push('\n'),
-            Some('t') => out.push('\t'),
-            Some('r') => out.push('\r'),
-            Some('0') => out.push('\0'),
-            Some('\\') => out.push('\\'),
-            Some('"') => out.push('"'),
-            Some('\'') => out.push('\''),
-            Some(other) => out.push(other),
-            None => {}
+        let escape = chars[index];
+        index += 1;
+        match escape {
+            'n' => out.push('\n'),
+            't' => out.push('\t'),
+            'r' => out.push('\r'),
+            '0' => out.push('\0'),
+            '\\' => out.push('\\'),
+            '"' => out.push('"'),
+            '\'' => out.push('\''),
+            'x' => {
+                let digits: String = chars[index..].iter().take(2).collect();
+                if let Ok(value) = u32::from_str_radix(&digits, 16) {
+                    if let Some(decoded) = char::from_u32(value) {
+                        out.push(decoded);
+                    }
+                }
+                index += digits.len();
+            }
+            'u' => {
+                if chars.get(index) == Some(&'{') {
+                    index += 1;
+                    let start = index;
+                    while index < chars.len() && chars[index] != '}' {
+                        index += 1;
+                    }
+                    let digits: String = chars[start..index].iter().collect();
+                    if index < chars.len() {
+                        index += 1; // closing brace
+                    }
+                    if let Ok(value) = u32::from_str_radix(&digits, 16) {
+                        if let Some(decoded) = char::from_u32(value) {
+                            out.push(decoded);
+                        }
+                    }
+                } else {
+                    let digits: String = chars[index..].iter().take(4).collect();
+                    if let Ok(value) = u32::from_str_radix(&digits, 16) {
+                        if let Some(decoded) = char::from_u32(value) {
+                            out.push(decoded);
+                        }
+                    }
+                    index += digits.len();
+                }
+            }
+            other => out.push(other),
         }
     }
     out

@@ -4,7 +4,7 @@ use nava_ast::{BinaryOp, Expr, ExprKind, ObjectField, Span, UnaryOp};
 use nava_lexer::TokenKind;
 
 use super::parser::Parser;
-use super::parser::decode_string;
+use super::parser::{decode_number, decode_string};
 
 impl<'a> Parser<'a> {
     pub(super) fn parse_expr(&mut self, min_prec: u8) -> Option<Expr> {
@@ -19,7 +19,7 @@ impl<'a> Parser<'a> {
     pub(super) fn parse_expr_inner(&mut self, min_prec: u8) -> Option<Expr> {
         let mut left = self.parse_unary()?;
         loop {
-            if self.kind() == TokenKind::Eq && min_prec == 0 {
+            if min_prec == 0 && self.kind() == TokenKind::Eq {
                 self.bump();
                 let value = self.parse_expr(0)?;
                 let span = Span::new(self.file, left.span.start as usize, value.span.end as usize);
@@ -32,6 +32,23 @@ impl<'a> Parser<'a> {
                 };
                 continue;
             }
+            if min_prec == 0 {
+                if let Some(op) = Self::compound_assign_op(self.kind()) {
+                    self.bump();
+                    let value = self.parse_expr(0)?;
+                    let span =
+                        Span::new(self.file, left.span.start as usize, value.span.end as usize);
+                    left = Expr {
+                        kind: ExprKind::CompoundAssign {
+                            op,
+                            target: Box::new(left),
+                            value: Box::new(value),
+                        },
+                        span,
+                    };
+                    continue;
+                }
+            }
             let Some((op, prec)) = self.peek_binary_op() else {
                 break;
             };
@@ -39,7 +56,8 @@ impl<'a> Parser<'a> {
                 break;
             }
             self.bump();
-            let right = self.parse_expr(prec + 1)?;
+            // `**` is right-associative; other binary operators are left-associative.
+            let right = self.parse_expr(if op == BinaryOp::Pow { prec } else { prec + 1 })?;
             let span = Span::new(self.file, left.span.start as usize, right.span.end as usize);
             left = Expr {
                 kind: ExprKind::Binary {
@@ -49,6 +67,9 @@ impl<'a> Parser<'a> {
                 },
                 span,
             };
+        }
+        if min_prec == 0 && self.kind() == TokenKind::Question {
+            left = self.parse_ternary_tail(left)?;
         }
         Some(left)
     }
@@ -70,6 +91,7 @@ impl<'a> Parser<'a> {
             TokenKind::Star => BinaryOp::Mul,
             TokenKind::Slash => BinaryOp::Div,
             TokenKind::Percent => BinaryOp::Mod,
+            TokenKind::StarStar => BinaryOp::Pow,
             _ => return None,
         };
         let precedence = match op {
@@ -79,6 +101,7 @@ impl<'a> Parser<'a> {
             BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => 4,
             BinaryOp::Add | BinaryOp::Sub => 5,
             BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => 6,
+            BinaryOp::Pow => 7,
         };
         Some((op, precedence))
     }
@@ -93,6 +116,9 @@ impl<'a> Parser<'a> {
     }
 
     pub(super) fn parse_unary_inner(&mut self) -> Option<Expr> {
+        if let Some(expr) = self.parse_prefix_update()? {
+            return Some(expr);
+        }
         let op = match self.kind() {
             TokenKind::Bang => UnaryOp::Not,
             TokenKind::Minus => UnaryOp::Neg,
@@ -115,6 +141,10 @@ impl<'a> Parser<'a> {
     pub(super) fn parse_postfix(&mut self) -> Option<Expr> {
         let mut expr = self.parse_primary()?;
         loop {
+            if let Some(updated) = self.parse_postfix_update(&expr)? {
+                expr = updated;
+                continue;
+            }
             match self.kind() {
                 TokenKind::Dot => {
                     self.bump();
@@ -175,7 +205,7 @@ impl<'a> Parser<'a> {
         let (kind, end) = match self.kind() {
             TokenKind::Number => {
                 self.bump();
-                let value = token.lexeme.parse::<f64>().unwrap_or(f64::NAN);
+                let value = decode_number(&token.lexeme);
                 (ExprKind::Number(value), token.end)
             }
             TokenKind::String => {

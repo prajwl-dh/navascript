@@ -53,6 +53,7 @@ pub enum BinaryOp {
     Mul,
     Div,
     Mod,
+    Pow,
     Eq,
     Ne,
     Lt,
@@ -71,6 +72,7 @@ impl BinaryOp {
             BinaryOp::Mul => "*",
             BinaryOp::Div => "/",
             BinaryOp::Mod => "%",
+            BinaryOp::Pow => "**",
             BinaryOp::Eq => "==",
             BinaryOp::Ne => "!=",
             BinaryOp::Lt => "<",
@@ -92,7 +94,12 @@ impl BinaryOp {
     pub fn is_arithmetic(self) -> bool {
         matches!(
             self,
-            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod
+            BinaryOp::Add
+                | BinaryOp::Sub
+                | BinaryOp::Mul
+                | BinaryOp::Div
+                | BinaryOp::Mod
+                | BinaryOp::Pow
         )
     }
 }

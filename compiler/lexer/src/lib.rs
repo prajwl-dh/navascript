@@ -8,4 +8,4 @@ mod scanner;
 mod token;
 
 pub use scanner::tokenize;
-pub use token::{LexError, Lexed, Token, TokenKind};
+pub use token::{LexError, Lexed, Token, TokenKind, radix_prefix};

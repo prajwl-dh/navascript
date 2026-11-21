@@ -20,16 +20,18 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [ ] Keywords `switch`, `class`, `import`, `export`, `async`, `await`, `throw`,
   `try`, `catch`, `finally` (their features are unimplemented; not yet
   recognized by the lexer). `of` in `for-of` is contextual, not a keyword.
-- [x] Identifiers: ASCII letters, `_`, `$`, then alphanumeric/`_`/`$`.
-  Unicode identifiers are not yet supported.
-- [x] Numeric literals: decimal integers and floats (including exponents).
-  Hex/binary/octal, separators and bigint are not yet supported.
+- [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
+- [x] Numeric literals: decimal integers and floats (including exponents),
+  hex (`0x`), binary (`0b`) and octal (`0o`) integers, and `_` separators.
+  Bigint (`123n`) is not yet supported.
 - [x] String literals: single and double quotes with `\n`, `\t`, `\r`, `\0`,
-  `\\`, `\"`, `\'` escapes. `\u`/`\x` and template literals are not yet supported.
-- [x] Operators: arithmetic (`+ - * / %`), comparison (`== === != !== < <= >
-  >=`), logical (`&& ||`), unary (`! - +`), assignment (`=`), and `=>` in
-  function *type annotations*.
-- [ ] Compound operators (`+=`, `++`, `**`) and optional chaining (`?.`).
+  `\\`, `\"`, `\'`, `\xNN`, `\uNNNN` and `\u{...}` escapes. Template literals
+  are not yet supported.
+- [x] Operators: arithmetic (`+ - * / % **`), comparison (`== === != !== < <=
+  >= >`), logical (`&& ||`), unary (`! - + ++ --`), assignment (`=`), compound
+  assignment (`+= -= *= /= %=`), ternary (`?:`), and `=>` in function *type
+  annotations*.
+- [ ] Optional chaining (`?.`) and bigint literals.
 - [x] Comments: `//` and `/* */`.
 - [x] Every token carries byte offsets; diagnostics derive 1-based line and
   column from them.
@@ -78,7 +80,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
 - [ ] Arrow functions / closures (Phase 6; ADR-0015)
 - [ ] Template literals (Phase 6)
-- [ ] Ternary `cond ? a : b`
+- [x] Ternary `cond ? a : b` (Phase 6)
+- [x] Exponentiation `a ** b` (right-associative, Phase 6)
+- [x] Compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) and `++`/`--`
+  (prefix and postfix, Phase 6)
 
 ## 5. Statements
 

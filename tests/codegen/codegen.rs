@@ -84,6 +84,16 @@ fn emits_string_literals_as_llvm_globals() {
 }
 
 #[test]
+fn emits_llvm_pow_for_exponentiation() {
+    let ir = generate_source("let p = 2 ** 3;");
+    assert!(
+        ir.contains("declare double @llvm.pow.f64(double, double)"),
+        "{ir}"
+    );
+    assert!(ir.contains("call double @llvm.pow.f64(double"), "{ir}");
+}
+
+#[test]
 fn emits_back_edges_for_loops() {
     let ir = generate_source("let i = 0; while (i < 3) { i = i + 1; }");
     let back_edges = ir.matches("br label %bb1").count();

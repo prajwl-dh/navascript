@@ -35,16 +35,19 @@ impl FunctionBuilder {
         match &statement.kind {
             StmtKind::Return(value) => {
                 let value = value.as_ref().map(|expr| self.lower_expr(expr, lowerer));
-                self.set_terminator(current, Terminator::Return(value));
+                // Expression lowering may have created new blocks (e.g. a
+                // ternary), so the return belongs to the current block.
+                let end = self.current.unwrap_or(current);
+                self.set_terminator(end, Terminator::Return(value));
                 None
             }
             StmtKind::Variable(decl) => {
                 self.lower_variable(decl, lowerer);
-                Some(current)
+                Some(self.current.unwrap_or(current))
             }
             StmtKind::Expr(expr) => {
                 self.lower_expr(expr, lowerer);
-                Some(current)
+                Some(self.current.unwrap_or(current))
             }
             StmtKind::If(if_stmt) => self.lower_if(if_stmt, lowerer, current),
             StmtKind::While(stmt) => self.lower_while(stmt, lowerer, current),

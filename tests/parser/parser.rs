@@ -1,6 +1,9 @@
 //! Tests for the parser's public `parse` seam.
 
-use nava_ast::{BinaryOp, ElseBranch, ExprKind, FileId, ItemKind, Span, Stmt, StmtKind, TypeExpr};
+use nava_ast::{
+    AssignOp, BinaryOp, ElseBranch, ExprKind, FileId, ItemKind, Span, Stmt, StmtKind, TypeExpr,
+    UpdateOp,
+};
 use nava_diagnostics::{Diagnostic, Diagnostics, Severity};
 use nava_parser::{ParseOutput, parse};
 
@@ -305,6 +308,87 @@ fn parses_c_style_for_and_for_of() {
         panic!("expected a for-of loop");
     };
     assert_eq!(stmt.binding.name, "x");
+}
+
+#[test]
+fn parses_compound_assignment_and_updates() {
+    let output = ok("let x = 1; x += 2; x++; --x;");
+    let ItemKind::Expr(add) = &output.program.items[1].kind else {
+        panic!("expected an expression item");
+    };
+    assert!(matches!(
+        add.kind,
+        ExprKind::CompoundAssign {
+            op: AssignOp::Add,
+            ..
+        }
+    ));
+    let ItemKind::Expr(post) = &output.program.items[2].kind else {
+        panic!("expected an expression item");
+    };
+    assert!(matches!(
+        post.kind,
+        ExprKind::Update {
+            op: UpdateOp::Inc,
+            prefix: false,
+            ..
+        }
+    ));
+    let ItemKind::Expr(pre) = &output.program.items[3].kind else {
+        panic!("expected an expression item");
+    };
+    assert!(matches!(
+        pre.kind,
+        ExprKind::Update {
+            op: UpdateOp::Dec,
+            prefix: true,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn parses_ternary_and_right_associative_power() {
+    let output = ok("let y = 1 > 0 ? 2 ** 3 ** 2 : 0;");
+    let ItemKind::Variable(decl) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    let ExprKind::Ternary {
+        then_expr,
+        else_expr,
+        ..
+    } = &decl.init.as_ref().unwrap().kind
+    else {
+        panic!("expected a ternary");
+    };
+    assert!(matches!(else_expr.kind, ExprKind::Number(0.0)));
+    let ExprKind::Binary { op, right, .. } = &then_expr.kind else {
+        panic!("expected a power expression");
+    };
+    assert_eq!(*op, BinaryOp::Pow);
+    assert!(matches!(
+        right.kind,
+        ExprKind::Binary {
+            op: BinaryOp::Pow,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn decodes_based_literals_and_unicode_escapes() {
+    let output = ok("let n = 0x10 + 0b11 + 0o7; let s = \"\\x41\\u{42}\\u0043\";");
+    let ItemKind::Variable(numbers) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    assert!(format!("{:?}", numbers.init).contains("16.0"));
+    let ItemKind::Variable(text) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &text.init.as_ref().unwrap().kind,
+        ExprKind::String(value) if value == "ABC"
+    ));
 }
 
 #[test]

@@ -11,6 +11,7 @@ mod expressions;
 mod ir;
 mod loops;
 mod lower;
+mod operators;
 mod print;
 mod statements;
 mod verify;

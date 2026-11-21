@@ -97,6 +97,73 @@ fn recognizes_loop_keywords() {
 }
 
 #[test]
+fn recognizes_new_operators() {
+    assert_eq!(
+        kinds("** ++ -- += -= *= /= %= ?"),
+        vec![
+            TokenKind::StarStar,
+            TokenKind::PlusPlus,
+            TokenKind::MinusMinus,
+            TokenKind::PlusEq,
+            TokenKind::MinusEq,
+            TokenKind::StarEq,
+            TokenKind::SlashEq,
+            TokenKind::PercentEq,
+            TokenKind::Question,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
+fn lexes_based_literals_separators_and_unicode_identifiers() {
+    let lexed = tokenize("let café = 0xFF + 0b1010 + 0o17 + 1_000;");
+    assert!(lexed.errors.is_empty());
+    let kinds: Vec<TokenKind> = lexed.tokens.into_iter().map(|token| token.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::Let,
+            TokenKind::Ident,
+            TokenKind::Eq,
+            TokenKind::Number,
+            TokenKind::Plus,
+            TokenKind::Number,
+            TokenKind::Plus,
+            TokenKind::Number,
+            TokenKind::Plus,
+            TokenKind::Number,
+            TokenKind::Semicolon,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
+fn lexes_unicode_and_hex_escapes_in_strings() {
+    let lexed = tokenize("\"\\x41\\u{42}\\u0043\"");
+    assert!(lexed.errors.is_empty());
+    assert_eq!(lexed.tokens[0].kind, TokenKind::String);
+}
+
+#[test]
+fn reports_invalid_hex_and_unicode_escapes() {
+    let lexed = tokenize("\"\\xGG\\uZZZZ\"");
+    assert!(
+        lexed
+            .errors
+            .iter()
+            .any(|error| error.message.contains("invalid \\x escape"))
+    );
+    assert!(
+        lexed
+            .errors
+            .iter()
+            .any(|error| error.message.contains("invalid \\u escape"))
+    );
+}
+
+#[test]
 fn reports_unknown_character() {
     let lexed = tokenize("let x = @;");
     assert_eq!(lexed.errors.len(), 1);

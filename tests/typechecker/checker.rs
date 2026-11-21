@@ -207,6 +207,30 @@ fn rejects_for_of_over_a_number() {
 }
 
 #[test]
+fn checks_compound_updates_power_and_ternary() {
+    let (output, _) = check_source(
+        "let x = 2; x += 3; x++; --x; let p = x ** 2; let t = x > 0 ? \"yes\" : \"no\"; let s = \"a\"; s += \"b\";",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_non_numeric_update_and_power() {
+    let (output, _) = check_source("let s = \"x\"; s++; let b = 2 ** \"a\";");
+    let messages = messages(&output);
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("++ requires a number"))
+    );
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("arithmetic operator expects numbers"))
+    );
+}
+
+#[test]
 fn checks_assignment_form_for_of() {
     let (output, _) =
         check_source("let x = 0; let xs: number[] = [1]; for (x of xs) { let y = x; }");

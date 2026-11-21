@@ -194,6 +194,54 @@ fn loops_lower_to_verifiable_back_edges() {
 }
 
 #[test]
+fn ternary_in_declarations_and_statements_verifies() {
+    let (module, _) = lower_source(
+        "function f(n: number): number { let x = n > 0 ? 1 : 0; console.log(n > 0 ? \"a\" : \"b\"); return x; }",
+    );
+    assert!(nava_ir::verify(&module).is_empty());
+}
+
+#[test]
+fn lowers_ternary_into_basic_blocks() {
+    let (module, _) = lower_source("function f(n: number): number { return n > 0 ? 1 : -1; }");
+    assert!(nava_ir::verify(&module).is_empty());
+    let function = module.function("f").expect("function f");
+    assert!(
+        function
+            .blocks
+            .iter()
+            .any(|block| block.label.starts_with("ternary."))
+    );
+    assert!(
+        function
+            .blocks
+            .iter()
+            .any(|block| matches!(block.terminator, Some(Terminator::CondBr { .. })))
+    );
+}
+
+#[test]
+fn lowers_power_and_compound_updates() {
+    let (module, _) = lower_source("let x = 2; x += 3; x++; let p = x ** 2;");
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    let has_power = main
+        .blocks
+        .iter()
+        .flat_map(|block| block.instructions.iter())
+        .any(|instruction| {
+            matches!(
+                instruction,
+                Instruction::Binary {
+                    op: nava_ir::BinaryOp::Pow,
+                    ..
+                }
+            )
+        });
+    assert!(has_power, "expected a power instruction");
+}
+
+#[test]
 fn infinite_loops_that_always_return_do_not_need_a_fallthrough() {
     for source in [
         "function f(n: number): number { while (true) { return n; } }",

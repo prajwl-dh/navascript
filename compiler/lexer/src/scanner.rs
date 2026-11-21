@@ -2,6 +2,9 @@
 
 use super::token::{LexError, Lexed, Token, TokenKind, keyword};
 
+mod number;
+mod string;
+
 /// Tokenize UTF-8 source text. Spans are half-open byte offsets.
 pub fn tokenize(source: &str) -> Lexed {
     Scanner::new(source).run()
@@ -39,7 +42,7 @@ impl<'a> Scanner<'a> {
                 self.skip_block_comment();
                 continue;
             }
-            if ch.is_ascii_alphabetic() || ch == '_' || ch == '$' {
+            if ch.is_alphabetic() || ch == '_' || ch == '$' {
                 self.lex_ident_or_keyword();
                 continue;
             }
@@ -121,7 +124,7 @@ impl<'a> Scanner<'a> {
     fn lex_ident_or_keyword(&mut self) {
         let start = self.pos;
         while let Some(ch) = self.peek() {
-            if ch.is_ascii_alphanumeric() || ch == '_' || ch == '$' {
+            if ch.is_alphanumeric() || ch == '_' || ch == '$' {
                 self.advance_char();
             } else {
                 break;
@@ -131,71 +134,10 @@ impl<'a> Scanner<'a> {
         self.push(kind, start);
     }
 
-    fn lex_number(&mut self) {
-        let start = self.pos;
-        while self.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-            self.advance_char();
-        }
-        if self.peek() == Some('.')
-            && self.source[self.pos + 1..]
-                .chars()
-                .next()
-                .is_some_and(|ch| ch.is_ascii_digit())
-        {
-            self.advance_char();
-            while self.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-                self.advance_char();
-            }
-        }
-        if matches!(self.peek(), Some('e' | 'E')) {
-            let save = self.pos;
-            self.advance_char();
-            if matches!(self.peek(), Some('+' | '-')) {
-                self.advance_char();
-            }
-            if self.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-                while self.peek().is_some_and(|ch| ch.is_ascii_digit()) {
-                    self.advance_char();
-                }
-            } else {
-                self.pos = save;
-            }
-        }
-        self.push(TokenKind::Number, start);
-    }
-
-    fn lex_string(&mut self) {
-        let start = self.pos;
-        let quote = self.advance_char().expect("opening quote");
-        let mut closed = false;
-        while let Some(ch) = self.peek() {
-            if ch == quote {
-                self.advance_char();
-                closed = true;
-                break;
-            }
-            if ch == '\\' {
-                self.advance_char();
-                if self.peek().is_some() {
-                    self.advance_char();
-                }
-            } else {
-                self.advance_char();
-            }
-        }
-        self.push(TokenKind::String, start);
-        if !closed {
-            self.errors.push(LexError {
-                start: start as u32,
-                end: self.pos as u32,
-                message: "unterminated string literal".to_owned(),
-            });
-        }
-    }
-
+    /// Consume digits in `radix`, allowing `_` only between two digits.
     fn lex_operator_or_unknown(&mut self) {
         let start = self.pos;
-        let operators: [(&str, TokenKind); 15] = [
+        let operators: [(&str, TokenKind); 23] = [
             ("===", TokenKind::StrictEq),
             ("!==", TokenKind::StrictNotEq),
             ("==", TokenKind::EqEq),
@@ -205,6 +147,14 @@ impl<'a> Scanner<'a> {
             (">=", TokenKind::Ge),
             ("&&", TokenKind::AndAnd),
             ("||", TokenKind::OrOr),
+            ("**", TokenKind::StarStar),
+            ("++", TokenKind::PlusPlus),
+            ("--", TokenKind::MinusMinus),
+            ("+=", TokenKind::PlusEq),
+            ("-=", TokenKind::MinusEq),
+            ("*=", TokenKind::StarEq),
+            ("/=", TokenKind::SlashEq),
+            ("%=", TokenKind::PercentEq),
             ("(", TokenKind::LParen),
             (")", TokenKind::RParen),
             ("{", TokenKind::LBrace),
@@ -234,6 +184,7 @@ impl<'a> Scanner<'a> {
             Some('%') => Some(TokenKind::Percent),
             Some('=') => Some(TokenKind::Eq),
             Some('!') => Some(TokenKind::Bang),
+            Some('?') => Some(TokenKind::Question),
             Some('<') => Some(TokenKind::Lt),
             Some('>') => Some(TokenKind::Gt),
             _ => None,

@@ -4,8 +4,8 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 6 (Language expansion) in progress — loops complete; the
-remaining expansion items are pending.
+**Status:** Phase 6 (Language expansion) in progress — loops and the additional
+literals/operators are complete; the remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -58,7 +58,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 135 tests through Phase 6 (loops)
+cargo test --workspace     # 149 tests through Phase 6 (loops + syntax expansion)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -81,6 +81,7 @@ fibonacci printing `55` without Node.js — is verified by
 remaining Phase 6 items — arrow functions, generics, classes, structural
 typing, unions, modules, closures and exceptions, and async/await — are still
 pending (closures and exceptions were deferred from Phase 5 by ADR-0015).
+Arrow functions, optional chaining and bigint are also still unsupported.
 
 ## Documentation
 
