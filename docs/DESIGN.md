@@ -106,8 +106,9 @@ diagnostics or a type checker streaming into the same sink).
   `Diagnostics` shape; it does not change `parse`'s signature.
 - **IR lowering (Phase 3)** consumes the typed program; no LLVM types cross the
   front-end seam.
-- **Tests** use the same `parse` seam as the driver; any AST-shape assertions
-  live behind an internal seam private to `nava-parser`'s own tests.
+- **Tests** use the same `parse` seam as the driver. All tests live in the
+  top-level `tests/` tree (ADR-0012), so AST-shape assertions use the public AST
+  types returned through that seam rather than private internals.
 - **Self-hosting (Phase 9)** ports plain owned types and one function — no
   traits, generics or borrowed AST in the interface.
 

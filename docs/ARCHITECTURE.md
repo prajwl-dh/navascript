@@ -71,10 +71,12 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Codegen | `compiler/codegen/` | IR → LLVM IR / object; target query | ir, optimizer, LLVM |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
 | Runtime | `runtime/` | Allocator, strings, arrays, objects, exceptions, closures | codegen ABI contract |
-| Tests | `tests/` | Unit + integration + compatibility suites | — |
+| Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
 
-Each module owns its tests. A change to a module must be accompanied by its
-tests passing (`cargo test -p <crate>` or equivalent).
+All tests live in the top-level `tests/` tree (ADR-0012); each module has a
+corresponding test file there and is exercised only through its public
+interface. A change to a module must be accompanied by its tests passing
+(`cargo test --workspace`).
 
 ## 3. Data flow and contracts
 
@@ -114,7 +116,8 @@ compiler/     source modules + Cargo crates (workspace)
 runtime/      allocator, strings, arrays, objects, exceptions
 bootstrap/    stage0 (Rust), stage1 and stage2 (Nava compiler source + artifacts)
 stdlib/       Nava standard library source
-tests/        lexer, parser, typechecker, codegen, runtime, compatibility
+tests/        ast, diagnostics, lexer, parser, symbol, typechecker, driver;
+              codegen/runtime/compatibility reserved for later phases
 benchmarks/   reproducible performance suite
 docs/         this documentation set
 examples/     sample .ts programs, starting with fibonacci.ts
@@ -128,7 +131,8 @@ scripts/      build/test/benchmark helper scripts
 
 ## 7. Testing strategy
 
-- Unit tests next to each module; integration tests in `tests/`.
+- All tests in `tests/`, one file per module's public interface; no inline
+  test modules in `compiler/`. See `docs/BUILD.md` for the target list.
 - Golden tests for lexer/parser/IR output.
 - End-to-end tests compile `.ts` → executable → run → assert stdout/exit code.
 - Compatibility corpus compares behavior against `tsc`/Node where applicable.

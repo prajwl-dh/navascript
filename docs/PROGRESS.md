@@ -358,6 +358,8 @@ limitations for every milestone.
   `compiler/driver/Cargo.toml` and added crate dev-dependencies.
 - Verified no inline test modules remain and no test files remain under
   `compiler/`. All 77 tests still pass; `docs/BUILD.md` documents the layout.
+  Recorded as ADR-0012 and reflected in `ARCHITECTURE.md`, `DESIGN.md`,
+  `ROADMAP.md`, `COMPATIBILITY.md` and `README.md`.
 
 ---
 

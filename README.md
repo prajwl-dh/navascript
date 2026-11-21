@@ -85,7 +85,7 @@ instructions, including LLVM setup for later phases, are in `docs/BUILD.md`.
 
 - One milestone or clearly scoped subtask at a time.
 - Read existing code before modifying it.
-- Tests alongside every implementation; run them after every change.
+- Tests for every implementation in `tests/`; run them after every change.
 - Never claim a feature implemented unless tested.
 - Document unsupported features; never silently miscompile TypeScript.
 - Update `docs/PROGRESS.md` after every completed task.

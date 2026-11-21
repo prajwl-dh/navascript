@@ -99,7 +99,7 @@ Before a phase is marked complete in `PROGRESS.md`:
    stop when `has_errors()`; no LLVM dependency.
 
 **Tests**
-- Internal-seam tests: token classes and spans inside `nava-lexer`.
+- Token classes and spans via the public `tokenize` seam (`tests/lexer/`).
 - Interface tests through `parse`: variables, functions, expressions, blocks,
   conditionals; assert results, not internal state.
 - Syntax error tests asserting diagnostic message, line/column and rendered text.

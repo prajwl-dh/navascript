@@ -158,6 +158,28 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0012 — All tests live in the top-level tests/ tree
+
+- **Date:** 2026-11-20
+- **Status:** Accepted
+- **Context:** Phase 0–2 placed unit tests in `#[cfg(test)]` modules inside each
+  crate and binary tests in `compiler/driver/tests/`, while the documented
+  repository structure reserved a top-level `tests/` tree that stayed empty.
+  That mismatch made the test layout hard to discover and drifted from the
+  spec's structure. Cargo only auto-discovers `tests/` at a package root.
+- **Decision:** Keep **all** tests under `tests/`, organised by module
+  (`ast/`, `diagnostics/`, `lexer/`, `parser/`, `symbol/`, `typechecker/`,
+  `driver/`), with each file importing only public interfaces. Register each
+  file as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`; add
+  dev-dependencies there. No inline test modules remain in `compiler/`.
+- **Consequences:** One discoverable test location matching the documented
+  repository structure. Tests can reach only public interfaces, so interfaces
+  become the test surface by construction. Every new module must add its test
+  file under `tests/` and a corresponding `[[test]]` target. `HELP` was made
+  public so its content could be tested from outside the driver crate.
+
+---
+
 ## Template for new decisions
 
 ```

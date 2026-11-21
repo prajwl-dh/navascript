@@ -13,15 +13,15 @@ implemented and tested; runtime entries remain unimplemented.
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| Lexical keywords & tokens | [x] | `nava-lexer` unit tests | Phase 1 |
-| Variables (`let`/`const`/`var`) | [x] | `nava-parser` tests | Phase 1 |
-| Functions & returns | [x] | `nava-parser` tests | Phase 1 |
-| Expressions & operator precedence | [x] | `nava-parser` tests | Phase 1 |
-| Blocks & lexical scope | [x] | parser + typechecker tests | AST blocks parsed; scopes and shadowing checked in Phase 2 |
-| `if`/`else` | [x] | `nava-parser` tests | Phase 1 |
+| Lexical keywords & tokens | [x] | `tests/lexer/` | Phase 1 |
+| Variables (`let`/`const`/`var`) | [x] | `tests/parser/` | Phase 1 |
+| Functions & returns | [x] | `tests/parser/` | Phase 1 |
+| Expressions & operator precedence | [x] | `tests/parser/` | Phase 1 |
+| Blocks & lexical scope | [x] | `tests/parser/` + `tests/typechecker/` | AST blocks parsed; scopes and shadowing checked in Phase 2 |
+| `if`/`else` | [x] | `tests/parser/` | Phase 1 |
 | Loops (`for`/`while`) | [ ] | — | Phase 6 |
-| Comments | [x] | `nava-lexer` unit tests | Phase 1 |
-| Diagnostics with line/column | [x] | parser + driver tests | caret rendering included |
+| Comments | [x] | `tests/lexer/` | Phase 1 |
+| Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
 | Generics | [ ] | — | Phase 6 |
 | Interfaces | [ ] | — | Phase 2/6 |
@@ -36,13 +36,13 @@ implemented and tested; runtime entries remain unimplemented.
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| `number`, `string`, `boolean`, `void` | [x] | `nava-typechecker` tests | Phase 2 |
-| Arrays | [x] | `nava-typechecker` tests | `T[]` and array literals |
-| Object types | [x] | `nava-typechecker` tests | object literals and member access |
-| Function signatures | [x] | `nava-typechecker` tests | `(a: T) => R`, arity and argument checks |
-| Type inference | [x] | `nava-typechecker` tests | variables and return types |
-| Assignability checks | [x] | `nava-typechecker` tests | assignments, arguments, returns |
-| Structural typing | [~] | `nava-typechecker` tests | basic object field checking; full structural typing Phase 6 |
+| `number`, `string`, `boolean`, `void` | [x] | `tests/typechecker/` | Phase 2 |
+| Arrays | [x] | `tests/typechecker/` | `T[]` and array literals |
+| Object types | [x] | `tests/typechecker/` | object literals and member access |
+| Function signatures | [x] | `tests/typechecker/` | `(a: T) => R`, arity and argument checks |
+| Type inference | [x] | `tests/typechecker/` | variables and return types |
+| Assignability checks | [x] | `tests/typechecker/` | assignments, arguments, returns |
+| Structural typing | [~] | `tests/typechecker/` | basic object field checking; full structural typing Phase 6 |
 | Generics | [ ] | — | Phase 6 |
 | `any` / `unknown` | [ ] | — | Restricted semantics TBD |
 | Conditional / mapped types | [-] | — | Long-term |
