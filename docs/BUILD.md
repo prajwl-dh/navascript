@@ -128,6 +128,10 @@ compiler/
   ast/ lexer/ parser/ symbol/ semantic/ typechecker/
   ir/ optimizer/ codegen/
   driver/                   package `nava`: lib `nava_driver` + bin `nava`
+
+runtime/
+  nava_runtime.h/.c         ABI header and process entry point
+  memory/ strings/ arrays/ objects/ console/   one source per concern
 ```
 
 The front end (lexer → AST → type checker → IR) must not depend on LLVM. Only

@@ -10,7 +10,14 @@ the vocabulary of the codebase-design skill:
 - **Depth** — leverage at the interface: behaviour per unit of interface a caller learns.
 - **Leverage / Locality** — capability for callers; concentration of change, bugs and knowledge for maintainers.
 
-Status: **accepted and implemented through Phase 4**. The front-end seam
+Each crate keeps a single public façade (`src/lib.rs`) and splits its
+implementation into private modules behind that seam: for example the parser
+has `parser.rs`, `items.rs`, `types.rs`, `statements.rs` and `expressions.rs`,
+and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
+`runtime.rs`. Internal seams stay private; only the façade is tested from
+`tests/` (ADR-0012).
+
+Status: **accepted and implemented through Phase 5**. The front-end seam
 (`parse`), the shared diagnostics leaf, the type-checker seam (`check`), the IR
 seam (`lower`) and the backend seam (`generate`) are all in use by the driver
 pipeline and covered by tests in `tests/`. Revisit when a second real adapter

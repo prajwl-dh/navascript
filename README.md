@@ -44,12 +44,10 @@ Compile to a native macOS executable that prints `55` without Node.js.
 ```
 compiler/    lexer, parser, ast, symbol, semantic, typechecker, ir,
              optimizer, codegen, driver
-runtime/     memory, strings, arrays, objects, exceptions
-bootstrap/   stage0 (Rust), stage1, stage2
-stdlib/      Nava standard library
+runtime/     nava_runtime.h/.c plus memory/, strings/, arrays/, objects/,
+             console/ sources (one concern per directory)
 tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-             driver, plus runtime/compatibility reserved for later phases
-benchmarks/  performance suite
+             driver, runtime (compatibility added in Phase 7)
 docs/        planning and tracking documents
 examples/    sample programs
 scripts/     helper scripts

@@ -1,8 +1,9 @@
 /* Unit tests for the C runtime. Compiled and run by tests/runtime/runtime.rs. */
-#define NAVA_NO_MAIN
-#include "../../runtime/nava_runtime.c"
+#include "nava_runtime.h"
 
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 int nava_runtime_test_main(void) {
     void *a = nava_alloc(1);

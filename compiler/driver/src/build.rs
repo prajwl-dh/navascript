@@ -48,8 +48,13 @@ pub fn host_triple() -> Result<String, String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
-/// Compile textual LLVM IR and the runtime shim into a native executable.
-pub fn emit_native(ir: &str, runtime_c: &str, output: &Path, release: bool) -> Result<(), String> {
+/// Compile textual LLVM IR and the runtime sources into a native executable.
+pub fn emit_native(
+    ir: &str,
+    runtime_files: &[(&str, &str, &str)],
+    output: &Path,
+    release: bool,
+) -> Result<(), String> {
     if !native_tools_available() {
         return Err(format!(
             "native toolchain not found (LLVM prefix {}); install LLVM with `brew install llvm` or set LLVM_SYS_231_PREFIX",
@@ -68,7 +73,7 @@ pub fn emit_native(ir: &str, runtime_c: &str, output: &Path, release: bool) -> R
     fs::create_dir_all(&workdir)
         .map_err(|error| format!("could not create build directory: {error}"))?;
 
-    let result = build_in(&workdir, ir, runtime_c, output, release);
+    let result = build_in(&workdir, ir, runtime_files, output, release);
     let _ = fs::remove_dir_all(&workdir);
     result
 }
@@ -76,17 +81,35 @@ pub fn emit_native(ir: &str, runtime_c: &str, output: &Path, release: bool) -> R
 fn build_in(
     workdir: &Path,
     ir: &str,
-    runtime_c: &str,
+    runtime_files: &[(&str, &str, &str)],
     output: &Path,
     release: bool,
 ) -> Result<(), String> {
     let ir_path = workdir.join("program.ll");
     let object_path = workdir.join("program.o");
-    let runtime_path = workdir.join("runtime.c");
-    let runtime_object = workdir.join("runtime.o");
     fs::write(&ir_path, ir).map_err(|error| format!("could not write LLVM IR: {error}"))?;
-    fs::write(&runtime_path, runtime_c)
-        .map_err(|error| format!("could not write runtime shim: {error}"))?;
+
+    let mut runtime_objects = Vec::new();
+    for (index, (name, _, source)) in runtime_files.iter().enumerate() {
+        let path = workdir.join(name);
+        fs::write(&path, source)
+            .map_err(|error| format!("could not write runtime source {name}: {error}"))?;
+        if name.ends_with(".h") {
+            continue;
+        }
+        let object = workdir.join(format!("runtime_{index}.o"));
+        run(
+            Command::new("clang")
+                .args(["-c", if release { "-O2" } else { "-O0" }])
+                .arg("-I")
+                .arg(workdir)
+                .arg(&path)
+                .arg("-o")
+                .arg(&object),
+            &format!("clang ({name})"),
+        )?;
+        runtime_objects.push(object);
+    }
 
     let triple = host_triple()?;
     let opt = if release { "-O3" } else { "-O0" };
@@ -100,18 +123,10 @@ fn build_in(
     )?;
     run(
         Command::new("clang")
-            .args(["-c", if release { "-O2" } else { "-O0" }])
-            .arg(&runtime_path)
-            .arg("-o")
-            .arg(&runtime_object),
-        "clang (runtime)",
-    )?;
-    run(
-        Command::new("clang")
             .arg("-o")
             .arg(output)
             .arg(&object_path)
-            .arg(&runtime_object),
+            .args(&runtime_objects),
         "clang (link)",
     )?;
     Ok(())

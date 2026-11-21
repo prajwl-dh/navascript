@@ -1,7 +1,11 @@
 # Nava Runtime ABI
 
-The native backend emits calls into `runtime/nava_runtime.c`. This is the ABI
-contract between `nava-codegen` and the C runtime; keep both in sync.
+The native backend emits calls into the C runtime sources under `runtime/`:
+`nava_runtime.h` declares the ABI, `nava_runtime.c` is only the process entry
+point, and `memory/`, `strings/`, `arrays/`, `objects/` and `console/` each
+implement one concern. This is the contract between `nava-codegen` and the
+runtime; keep both in sync. `nava-codegen::RUNTIME_FILES` embeds these sources
+for the driver's build pipeline.
 
 ## Memory (ADR-0005)
 
@@ -14,9 +18,11 @@ contract between `nava-codegen` and the C runtime; keep both in sync.
 
 ## Entry point
 
-- `extern void nava_main(void)` is called by the C `main`. The driver emits a
-  stub `nava_main` when the program has no top-level statements.
-- Define `NAVA_NO_MAIN` when including the runtime in unit tests.
+- `extern void nava_main(void)` is called by the C `main` in
+  `runtime/nava_runtime.c`. The driver emits a stub `nava_main` when the program
+  has no top-level statements.
+- Unit tests compile the individual sources except `nava_runtime.c` and define
+  their own `main`, so no preprocessor guard is needed.
 
 ## Functions
 
@@ -38,7 +44,6 @@ contract between `nava-codegen` and the C runtime; keep both in sync.
 | `nava_object_set_{f64,bool,ptr}(ptr, i64, value)` | bounds-checked field write |
 | `nava_object_get_{f64,bool,ptr}(ptr, i64)` | bounds-checked field read |
 | `nava_console_log_{f64,bool,str}(value)` | stdout printing |
-| `void nava_format_number(...)` | shared formatting helper |
 
 Field names are stored for future reflection/debugging; field access by the
 compiler uses the index in the inferred type's sorted field list. Bounds are

@@ -5,9 +5,13 @@
 //! [`verify`] and [`print`] are separate, deliberate entry points for the
 //! verifier and textual debug output required by Phase 3.
 
+mod builder;
+mod checks;
+mod expressions;
 mod ir;
 mod lower;
 mod print;
+mod statements;
 mod verify;
 
 pub use ir::{

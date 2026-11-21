@@ -11,10 +11,22 @@ fn runtime_unit_tests() {
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let source = root.join("tests/runtime/runtime_test.c");
+    let workdir = root.join("runtime");
     let binary = std::env::temp_dir().join(format!("nava-runtime-test-{}", std::process::id()));
-    let status = Command::new("clang")
+    let mut command = Command::new("clang");
+    command
         .args(["-std=c11", "-Wall", "-Wextra", "-O0"])
-        .arg(&source)
+        .arg(&source);
+    // Compile every runtime source except the entry-point wrapper, which
+    // would conflict with this test's own main.
+    for (_, path, _) in nava_codegen::RUNTIME_FILES {
+        if path.ends_with(".c") && *path != "nava_runtime.c" {
+            command.arg(workdir.join(path));
+        }
+    }
+    let status = command
+        .arg("-I")
+        .arg(&workdir)
         .arg("-o")
         .arg(&binary)
         .status()

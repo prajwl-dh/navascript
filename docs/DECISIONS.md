@@ -253,6 +253,38 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0016 — Code splitting and removal of placeholder directories
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Several implementation files had grown past 600 lines
+  (`parser/src/lib.rs`, `ir/src/lower.rs`, `codegen/src/lib.rs`,
+  `typechecker/src/checker.rs`, `runtime/nava_runtime.c`) and the repository
+  carried empty `.gitkeep` directories for features not yet implemented.
+  This made navigation harder and blurred the seams described in
+  `DESIGN.md`.
+- **Decision:** Split each large module into private implementation files
+  behind its existing public seam (`parse`, `check`, `lower`, `generate`,
+  `tokenize`). Split the C runtime into `runtime/{memory,strings,arrays,objects,
+  console}/` sources plus a shared header, with `runtime/nava_runtime.c`
+  reduced to the process entry point. Remove empty placeholder directories
+  (`bootstrap/`, `stdlib/`, `benchmarks/`, `runtime/exceptions/`,
+  `tests/compatibility/`); recreate them when the corresponding phase begins.
+- **Consequences:** All compiler public seams (`parse`, `check`, `lower`,
+  `generate`) and every test target are unchanged; all 120 tests still pass.
+  Two incidental public items of the runtime bundle changed:
+  `nava_codegen::RUNTIME_C` became `RUNTIME_FILES` (the runtime is now multiple
+  sources), and `nava_driver::build::emit_native` takes that source list. Both
+  are build plumbing, not compiler interfaces, and their callers were updated
+  in the same change. Files are now typically 100–300 lines. Each crate keeps
+  one public façade and private internal modules, matching the deep-module
+  philosophy. Most files are now 100–300 lines; two orchestration files
+  (`ir/verify.rs`, `codegen/instructions.rs`) remain larger because splitting
+  them further would obscure a single algorithm rather than clarify it.
+  Future phases add directories only when they contain code.
+
+---
+
 ## Template for new decisions
 
 ```

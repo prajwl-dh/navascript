@@ -69,23 +69,23 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 ```
 nava/
-├── compiler/          # Rust compiler modules (Phase 0+)
+├── compiler/          # Rust compiler crates (one public façade per crate)
 │   ├── lexer/ parser/ ast/ symbol/ semantic/ typechecker/
 │   ├── ir/ optimizer/ codegen/ driver/
-├── runtime/           # memory/ strings/ arrays/ objects/ exceptions/
-├── bootstrap/         # stage0/ stage1/ stage2/
-├── stdlib/
-├── tests/             # lexer/ parser/ typechecker/ codegen/ runtime/ compatibility/
-├── benchmarks/
-├── docs/              # ROADMAP, ARCHITECTURE, LANGUAGE_SPEC,
-│                      # COMPATIBILITY, BOOTSTRAP, DECISIONS, PROGRESS
+├── runtime/           # nava_runtime.h/.c + memory/ strings/ arrays/
+│                      # objects/ console/ (one source per concern)
+├── tests/             # ast, diagnostics, lexer, parser, symbol, typechecker,
+│                      # ir, codegen, driver, runtime
+├── docs/              # ROADMAP, ARCHITECTURE, LANGUAGE_SPEC, COMPATIBILITY,
+│                      # BOOTSTRAP, DECISIONS, DESIGN, PROGRESS, BUILD
 ├── examples/
 ├── scripts/
 └── README.md
 ```
 
-- [x] Directory structure created
-- [x] `.gitkeep` placeholders added so empty dirs are tracked
+- [x] Directory structure created (placeholder-only dirs removed in ADR-0016)
+- [x] `.gitkeep` placeholders were used in Phase 0, then removed once the
+  corresponding features had real files
 - [x] `git init` completed on branch `main`
 - [x] `Cargo.toml` workspace + 10 member crates (CLI driver + 9 module crates)
 - [x] First commit — Phase 0
@@ -536,6 +536,31 @@ limitations for every milestone.
   - Documented the runtime ABI in `runtime/README.md`, aligned the arena to
     8 bytes, and keyed expression types by `Span` instead of a raw offset pair.
 - Suite grew from 117 to 120 tests; fmt and clippy clean.
+
+### 2026-11-21 — Codebase restructuring (ADR-0016)
+- Split the large implementation files along internal seams while keeping every
+  compiler public façade and test target unchanged (only the runtime build
+  plumbing `RUNTIME_C → RUNTIME_FILES` and `emit_native`'s parameter changed):
+  - `ast`: `span.rs`, `expr.rs`, `types.rs`, `item.rs`.
+  - `lexer`: `token.rs`, `scanner.rs`.
+  - `parser`: `parser.rs`, `items.rs`, `types.rs`, `statements.rs`,
+    `expressions.rs`.
+  - `typechecker`: `checker.rs`, `declarations.rs`, `statements.rs`,
+    `expressions.rs`, `types.rs`.
+  - `ir`: `ir.rs`, `lower.rs`, `builder.rs`, `statements.rs`, `expressions.rs`,
+    `verify.rs`, `checks.rs`, `print.rs`.
+  - `codegen`: `lib.rs`, `runtime.rs`, `module.rs`, `instructions.rs`,
+    `types.rs`.
+- Split `runtime/nava_runtime.c` into `runtime/nava_runtime.h`,
+  `runtime/nava_runtime.c` (entry point only) and the per-concern sources
+  `memory/memory.c`, `strings/strings.c`, `arrays/arrays.c`,
+  `objects/objects.c`, `console/console.c`. The driver compiles all of them.
+- Removed empty placeholder directories (`bootstrap/`, `stdlib/`,
+  `benchmarks/`, `runtime/exceptions/`, `tests/compatibility/`) and all stale
+  `.gitkeep` files; they will be recreated when their phases begin.
+- Updated `ARCHITECTURE.md`, `DESIGN.md`, `BUILD.md`, `README.md` and
+  `runtime/README.md`. All 120 tests, fmt and clippy still pass, and every
+  example executable was rerun successfully.
 
 ---
 

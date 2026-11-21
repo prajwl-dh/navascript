@@ -6,6 +6,9 @@
 //! involved.
 
 mod checker;
+mod declarations;
+mod expressions;
+mod statements;
 mod types;
 
 pub use checker::{CheckOutput, TypedProgram, check};

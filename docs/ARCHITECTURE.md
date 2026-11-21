@@ -116,13 +116,12 @@ hardcoded to ARM64. The driver owns tool discovery and build errors.
 ## 5. Repository layout
 
 ```
-compiler/     source modules + Cargo crates (workspace)
-runtime/      allocator, strings, arrays, objects, exceptions
-bootstrap/    stage0 (Rust), stage1 and stage2 (Nava compiler source + artifacts)
-stdlib/       Nava standard library source
+compiler/     source modules + Cargo crates (workspace); each crate has one
+              public façade (lib.rs) and private implementation modules
+runtime/      nava_runtime.h/.c plus memory/, strings/, arrays/, objects/,
+              console/ — one source directory per runtime concern
 tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-              driver; runtime/compatibility reserved for later phases
-benchmarks/   reproducible performance suite
+              driver, runtime; compatibility added in Phase 7
 docs/         this documentation set
 examples/     sample .ts programs, starting with fibonacci.ts
 scripts/      build/test/benchmark helper scripts

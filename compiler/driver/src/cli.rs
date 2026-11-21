@@ -193,7 +193,7 @@ fn dispatch(command: Command) -> i32 {
                 )
             });
             if let Err(error) =
-                super::build::emit_native(&llvm_ir, nava_codegen::RUNTIME_C, &output, release)
+                super::build::emit_native(&llvm_ir, nava_codegen::RUNTIME_FILES, &output, release)
             {
                 eprintln!("nava: native build failed: {error}");
                 return 1;
