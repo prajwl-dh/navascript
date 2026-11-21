@@ -57,11 +57,18 @@ Or:
 scripts/test.sh
 ```
 
-The workspace has:
-- **unit tests** in `compiler/driver/src/cli.rs` for exact pure parse results,
-  and
-- **integration tests** in `compiler/driver/tests/cli.rs` for the binary's
-  external interface (behaviour is asserted there, not duplicated in unit tests).
+The workspace has three test surfaces:
+
+- **Unit tests** beside implementation in each crate (`compiler/*/src/`), for
+  that crate's internal seams.
+- **Binary integration tests** in `compiler/driver/tests/cli.rs`, exercising the
+  `nava` executable.
+- **Cross-crate pipeline tests** in the top-level `tests/` tree:
+  `tests/parser/pipeline.rs` and `tests/typechecker/pipeline.rs`. They call only
+  the public `parse` and `check` seams. These are registered as explicit Cargo
+  test targets in `compiler/driver/Cargo.toml` (Cargo discovers `tests/` only
+  inside a package root). Remaining `tests/*` subdirectories are reserved for
+  codegen, runtime and `tsc`-compatibility suites in later phases.
 
 Each compiler module is its own crate so it can own tests as it is implemented.
 `.github/workflows/ci.yml` runs the same fmt, clippy and test checks on macOS.

@@ -18,3 +18,12 @@ path = "src/main.rs"
 [dependencies]
 nava-parser = { path = "../parser" }
 nava-typechecker = { path = "../typechecker" }
+
+# Cross-crate integration tests live in the repository's top-level tests/ tree.
+[[test]]
+name = "parser_pipeline"
+path = "../../tests/parser/pipeline.rs"
+
+[[test]]
+name = "typechecker_pipeline"
+path = "../../tests/typechecker/pipeline.rs"

@@ -58,7 +58,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 71 tests through Phase 2
+cargo test --workspace     # 77 tests through Phase 2
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts

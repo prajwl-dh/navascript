@@ -132,7 +132,7 @@ limitations for every milestone.
 - **Exit condition met:** the fibonacci program type-checks; negative tests
   fail as expected; `nava build` reports type errors and exits non-zero.
 - **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
-  `cargo test --workspace` (71 passed, 0 failed) succeed.
+  `cargo test --workspace` (77 passed, 0 failed) succeed.
 
 ### Phase 3 — IR
 - [ ] Nava IR design
@@ -339,6 +339,12 @@ limitations for every milestone.
   - Fixed the stale `COMPATIBILITY.md` header and scope row, and added the
     missing `cargo fmt` exit evidence above.
   - Added six regression tests; the suite grew from 65 to 71 tests.
+  - Populated the top-level `tests/` tree: `tests/parser/pipeline.rs` and
+    `tests/typechecker/pipeline.rs` exercise the public `parse`/`check` seams
+    from outside their crates, using the example fixtures. Registered as
+    explicit Cargo test targets in `compiler/driver/Cargo.toml`. Suite is now
+    77 tests. `docs/BUILD.md` documents the three test surfaces; module-local
+    unit tests remain beside their implementations by design.
 
 ---
 
