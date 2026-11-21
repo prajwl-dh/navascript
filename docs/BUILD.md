@@ -10,15 +10,18 @@
 | Clang | Apple clang 21 (Command Line Tools) | native toolchain integration |
 | Git | 2.54.0 | version control |
 | Python 3 | 3.14.6 | test and benchmark scripts |
+| CMake | 4.5.1 (Homebrew) | available for future CMake/C++ builds |
+| Ninja | 1.13.2 (Homebrew) | available as a CMake generator |
 
 Rust was installed via Homebrew, **not** rustup, so `rustup` commands are not
 available. LLVM's tools live in `/opt/homebrew/opt/llvm/bin` (`llc`, `opt`,
 `llvm-as`, `llvm-dis`, `llvm-link`, `llvm-config`) and are not on `PATH` by
 default.
 
-CMake and Ninja are **not required**: the Phase 4 backend emits textual LLVM IR
-and calls `llc`/`clang` directly (ADR-0004). Install them only if the project
-later adopts `llvm-sys` or C++ tooling.
+CMake 4.5.1 and Ninja 1.13.2 are installed via Homebrew as of 2026-11-21. They
+are **not required** by the current build: the Phase 4 backend emits textual
+LLVM IR and calls `llc`/`clang` directly (ADR-0004). They are available for a
+future `llvm-sys` integration or C++ tooling.
 
 Verify the environment at any time:
 
@@ -27,6 +30,7 @@ uname -m
 rustc --version && cargo --version
 /opt/homebrew/opt/llvm/bin/llvm-config --version --host-target
 clang --version
+cmake --version && ninja --version   # optional tooling, installed
 ```
 
 ## 2. Build
@@ -150,4 +154,5 @@ code 1.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.
-- CMake and Ninja are not required by the chosen LLVM integration.
+- CMake 4.5.1 and Ninja 1.13.2 are installed but not required by the chosen
+  LLVM integration.

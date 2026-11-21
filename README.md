@@ -37,7 +37,7 @@ Compile to a native macOS executable that prints `55` without Node.js.
 | Clang | Apple clang 21 | Command Line Tools |
 | Git | 2.54.0 | configured |
 | Python | 3.14.6 | for test/benchmark scripts |
-| CMake / Ninja | not required | the backend uses textual LLVM IR + `llc`/`clang` |
+| CMake / Ninja | 4.5.1 / 1.13.2 — installed via Homebrew | available for future C++/CMake work; the current backend uses textual LLVM IR + `llc`/`clang` |
 
 ## Repository layout
 

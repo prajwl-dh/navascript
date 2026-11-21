@@ -45,8 +45,9 @@ a new number and references the old one. Keep entries short and factual.
 - **Status:** Accepted
 - **Context:** LLVM can be linked in-process via `llvm-sys` or driven as an
   external tool emitting textual IR. The environment has Homebrew LLVM 23.1.6
-  with AArch64 and X86 targets, Apple Clang 21, but no `rustup`, `cmake` or
-  `ninja`. Phase 3 already produces a platform-independent IR and a textual
+  with AArch64 and X86 targets, Apple Clang 21, but no `rustup`; `cmake` and
+  `ninja` were absent at decision time (both were installed later on
+  2026-11-21). Phase 3 already produces a platform-independent IR and a textual
   printer.
 - **Options:**
   - A: `llvm-sys` crate with `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`.

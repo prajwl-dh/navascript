@@ -68,7 +68,8 @@ Before a phase is marked complete in `PROGRESS.md`:
 - LLVM was not linked in Phase 0; full integration landed in Phase 4. This was
   a documented deviation from the spec's Phase 0 "Integrate LLVM" bullet — see
   ADR-0008 and ADR-0004.
-- CMake/Ninja were not installed and are not required by the chosen LLVM path.
+- CMake/Ninja were not installed at the time and are not required by the chosen
+  LLVM path; both were installed on 2026-11-21 for future C++/CMake work.
 - CI workflow exists but has not been exercised outside this machine yet.
 
 ---

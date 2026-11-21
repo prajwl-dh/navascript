@@ -51,16 +51,17 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Clang | native toolchain | Apple clang 21.0.0 | OK | Command Line Tools at `/Library/Developer/CommandLineTools` |
 | Git | version control | 2.54.0 | OK | user.name / user.email configured |
 | Python 3 | test + benchmark scripts | 3.14.6 | OK | via mise at `~/.local/share/mise/installs/python/3` |
-| CMake | build infrastructure | — | [!] MISSING | Install before heavy LLVM/C++ interop |
-| Ninja | build infrastructure | — | [!] MISSING | Install alongside CMake |
+| CMake | build infrastructure | 4.5.1 (Homebrew) | OK | Installed 2026-11-21; not required by the current backend |
+| Ninja | build infrastructure | 1.13.2 (Homebrew) | OK | Installed 2026-11-21; not required by the current backend |
 
 **Environment notes (resolved):**
 - [x] LLVM integration method decided in Phase 4: textual `.ll` emitted by
   `nava-codegen`, assembled by `llc` and linked by `clang` (ADR-0004). The host
   triple comes from `llvm-config --host-target`; nothing is hardcoded to ARM64.
-- [x] CMake and Ninja are **not required** by the chosen integration path. They
-  would only be needed if the project later adopts `llvm-sys` or C++ tooling.
-- [ ] Install CMake + Ninja (`brew install cmake ninja`) only if that changes.
+- [x] CMake 4.5.1 and Ninja 1.13.2 are installed via Homebrew as of
+  2026-11-21. They are **not required** by the chosen textual-IR path, but are
+  now available if the project later adopts `llvm-sys`, C++ tooling, or CMake-
+  based builds.
 
 ---
 
@@ -482,6 +483,14 @@ limitations for every milestone.
   `brew --prefix llvm`, so the native path is actually exercised on the runner.
 - Verified both modes locally: with a bogus prefix the suite passes with native
   tests skipped; with LLVM present all 110 tests execute and pass.
+
+### 2026-11-21 — Toolchain update: CMake and Ninja installed
+- Installed CMake 4.5.1 and Ninja 1.13.2 via Homebrew.
+- Updated `PROGRESS.md` environment inventory (no longer marked MISSING),
+  `README.md`, `BUILD.md` (prerequisites, verify commands, current limitations),
+  `ROADMAP.md` and ADR-0004's historical context. They remain optional for the
+  current textual-LLVM pipeline.
+- No code changes; the 110-test suite, fmt and clippy remain green.
 
 ---
 
