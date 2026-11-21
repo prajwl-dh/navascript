@@ -194,6 +194,38 @@ fn loops_lower_to_verifiable_back_edges() {
 }
 
 #[test]
+fn continue_keeps_do_and_infinite_loop_targets_alive() {
+    for source in [
+        "function f(): number { let i = 0; do { i = i + 1; continue; } while (i < 3); return i; }",
+        "function f(): number { let i = 0; for (;;) { i = i + 1; continue; } return i; }",
+        "function f(): number { let i = 0; while (true) { i = i + 1; continue; } return i; }",
+    ] {
+        let (module, _) = lower_source(source);
+        assert!(nava_ir::verify(&module).is_empty(), "{source}");
+    }
+}
+
+#[test]
+fn break_and_continue_lower_to_loop_targets() {
+    let (module, _) = lower_source(
+        "function f(): number { let i = 0; while (i < 4) { i = i + 1; if (i == 2) continue; break; } return i; }",
+    );
+    assert!(nava_ir::verify(&module).is_empty());
+    let function = module.function("f").expect("function f");
+    let blocks = &function.blocks;
+    let has_back_edge = blocks.iter().any(|block| match block.terminator {
+        Some(Terminator::Br(target)) => target <= block.id,
+        Some(Terminator::CondBr {
+            then_block,
+            else_block,
+            ..
+        }) => then_block <= block.id || else_block <= block.id,
+        _ => false,
+    });
+    assert!(has_back_edge, "continue should create a back edge");
+}
+
+#[test]
 fn optional_access_lowers_to_a_null_check() {
     let source = "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name;";
     let (module, _) = lower_source(source);

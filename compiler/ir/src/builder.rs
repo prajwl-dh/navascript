@@ -8,6 +8,15 @@ use super::ir::{
 };
 use nava_ast::Ident;
 
+/// Targets for `break` and `continue` in the innermost active loop.
+#[derive(Debug, Clone)]
+pub(super) struct LoopContext {
+    pub(super) break_target: BlockId,
+    pub(super) continue_target: BlockId,
+    /// Whether a `break` or `continue` jumps out; keeps target blocks reachable.
+    pub(super) has_jump: bool,
+}
+
 pub(super) struct FunctionBuilder {
     pub(super) function: IrFunction,
     pub(super) current: Option<BlockId>,
@@ -15,6 +24,7 @@ pub(super) struct FunctionBuilder {
     pub(super) next_slot: SlotId,
     pub(super) next_block: BlockId,
     pub(super) scopes: Vec<HashMap<String, SlotId>>,
+    pub(super) loops: Vec<LoopContext>,
 }
 
 impl FunctionBuilder {
@@ -34,6 +44,7 @@ impl FunctionBuilder {
             next_slot: 0,
             next_block: 1,
             scopes: vec![HashMap::new()],
+            loops: Vec::new(),
         }
     }
 

@@ -207,6 +207,29 @@ fn rejects_for_of_over_a_number() {
 }
 
 #[test]
+fn rejects_break_and_continue_outside_loops() {
+    let (output, _) = check_source("break; continue;");
+    let messages = messages(&output);
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("break outside a loop"))
+    );
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("continue outside a loop"))
+    );
+}
+
+#[test]
+fn accepts_break_and_continue_inside_loops() {
+    let (output, _) =
+        check_source("for (let i = 0; i < 3; i = i + 1) { if (i == 1) continue; break; }");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
 fn checks_optional_access() {
     let (output, _) = check_source(
         "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name; let xs: string[] = [\"a\"]; let v = xs?.[0];",

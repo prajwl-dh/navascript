@@ -302,9 +302,10 @@ a new number and references the old one. Keep entries short and factual.
   `of` is recognised contextually in `for` headers only. Loop lowering lives in
   a private `ir/loops.rs` behind the existing `lower` seam.
 - **Consequences:** No IR verifier or codegen changes were needed. `for-of` is
-  limited to arrays and strings; `break`/`continue` are still unsupported, as
-  are arbitrary iterables. `while (true)` / `for (;;)` bodies that always return
-  are treated as non-fallthrough rather than producing a spurious diagnostic.
+  limited to arrays and strings, as are arbitrary iterables. `while (true)` /
+  `for (;;)` bodies that always return are treated as non-fallthrough rather
+  than producing a spurious diagnostic. `break`/`continue` were later added in
+  ADR-0021; this ADR's size guidance is still met.
 
 ---
 
@@ -370,6 +371,27 @@ a new number and references the old one. Keep entries short and factual.
   nullable object/array value can currently be constructed, the null branch is
   unobservable and results are typed `T` until union types land (ADR deferred to
   a later Phase 6 increment). Optional calls `a?.()` remain unsupported.
+
+---
+
+## ADR-0021 — Break and continue in loops
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Loops had no early-exit statements. `break` and `continue` need
+  different targets (`continue` must reach the `for` update expression, the
+  `do-while` condition block or the `while` header), and an always-abrupt loop
+  body must not cause a targeted block to be removed.
+- **Decision:** `FunctionBuilder` keeps a stack of `LoopContext` values with
+  `break_target`, `continue_target` and a `has_jump` flag. `with_loop` pushes the
+  context, lowers the body and pops it; `break`/`continue` branch to the chosen
+  target and mark `has_jump`. Loop lowering consults `has_jump` before deleting
+  otherwise-unreachable condition/update blocks. The type checker tracks
+  `loop_depth` and diagnoses jumps outside loops; the IR repeats the check as a
+  defence in depth.
+- **Consequences:** Nested loops resolve to the innermost context. Loop jumps
+  are ordinary `br` terminators, so no new LLVM instruction was needed. The
+  extra `for_of.rs` module keeps `loops.rs` within ADR-0016's size guidance.
 
 ---
 

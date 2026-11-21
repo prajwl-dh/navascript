@@ -86,11 +86,13 @@ fn handles_escapes_in_strings() {
 #[test]
 fn recognizes_loop_keywords() {
     assert_eq!(
-        kinds("while do for"),
+        kinds("while do for break continue"),
         vec![
             TokenKind::While,
             TokenKind::Do,
             TokenKind::For,
+            TokenKind::Break,
+            TokenKind::Continue,
             TokenKind::Eof,
         ]
     );

@@ -48,6 +48,7 @@ pub(super) struct Checker<'a> {
     pub(super) aliases: AliasTable,
     pub(super) diagnostics: Vec<Diagnostic>,
     pub(super) types: HashMap<Span, Type>,
+    pub(super) loop_depth: u32,
 }
 
 impl<'a> Checker<'a> {
@@ -59,6 +60,7 @@ impl<'a> Checker<'a> {
             aliases: AliasTable::new(),
             diagnostics: Vec::new(),
             types: HashMap::new(),
+            loop_depth: 0,
         }
     }
 

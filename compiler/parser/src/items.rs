@@ -15,7 +15,11 @@ impl<'a> Parser<'a> {
             TokenKind::Function => ItemKind::Function(self.parse_function()?),
             TokenKind::Type => ItemKind::TypeAlias(self.parse_type_alias()?),
             TokenKind::Interface => ItemKind::Interface(self.parse_interface()?),
-            TokenKind::While | TokenKind::Do | TokenKind::For => ItemKind::Stmt(self.parse_stmt()?),
+            TokenKind::While
+            | TokenKind::Do
+            | TokenKind::For
+            | TokenKind::Break
+            | TokenKind::Continue => ItemKind::Stmt(self.parse_stmt()?),
             _ => {
                 let expr = self.parse_expr(0)?;
                 self.expect_semicolon();

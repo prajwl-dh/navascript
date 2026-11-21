@@ -311,6 +311,25 @@ fn parses_c_style_for_and_for_of() {
 }
 
 #[test]
+fn parses_break_and_continue() {
+    let output = ok("function f() { while (true) { break; continue; } }");
+    let ItemKind::Function(decl) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    let StmtKind::While(while_stmt) = &decl.body.statements[0].kind else {
+        panic!("expected a while loop");
+    };
+    assert!(matches!(
+        while_stmt.body.statements[0].kind,
+        StmtKind::Break
+    ));
+    assert!(matches!(
+        while_stmt.body.statements[1].kind,
+        StmtKind::Continue
+    ));
+}
+
+#[test]
 fn parses_optional_member_and_index() {
     let output = ok("let v = a?.b; let w = a?.[0];");
     let ItemKind::Variable(first) = &output.program.items[0].kind else {

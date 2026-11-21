@@ -73,6 +73,8 @@ pub enum StmtKind {
     DoWhile(WhileStmt),
     For(ForStmt),
     ForOf(ForOfStmt),
+    Break,
+    Continue,
     Block(Block),
     Empty,
 }

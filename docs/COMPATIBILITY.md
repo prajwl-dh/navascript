@@ -24,7 +24,7 @@ Closures and exceptions are still pending (ADR-0015).
 | Expressions & operator precedence | [x] | `tests/parser/` | Phase 1 |
 | Blocks & lexical scope | [x] | `tests/parser/` + `tests/typechecker/` | AST blocks parsed; scopes and shadowing checked in Phase 2 |
 | `if`/`else` | [x] | `tests/parser/` | Phase 1 |
-| Loops (`while`, `do-while`, `for`, `for-of`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `for-of` over arrays/strings (both declaration and assignment forms); no `break`/`continue` yet |
+| Loops (`while`, `do-while`, `for`, `for-of`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `for-of` over arrays/strings (both forms); `break`/`continue` supported |
 | Compound operators (`+= -= *= /= %=`, `++`, `--`, `**`) | [x] | `tests/parser/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; string `+=` concatenates |
 | Ternary `?:` | [x] | `tests/parser/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6 |
 | Hex/binary/octal literals & `_` separators | [x] | `tests/lexer/`, `tests/parser/` | Phase 6; bigint still unsupported |
@@ -112,5 +112,4 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
 | Closures and first-class functions | no function values or captured environments in IR | Phase 6 |
 | `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 (pending) |
-| `break` / `continue` | loop statements are supported but these control-flow keywords are not lexed | Phase 6 (pending) |
 | `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | Phase 6 (pending) |

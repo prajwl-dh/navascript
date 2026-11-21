@@ -4,18 +4,87 @@
 //! stack slots allocated in the entry block (ADR-0013), so no phi nodes are
 //! needed when a value crosses a loop header.
 
-use nava_ast::{Expr, ExprKind, ForOfStmt, ForStmt, WhileStmt};
+use nava_ast::{Block, Expr, ExprKind, ForStmt, Stmt, WhileStmt};
 
-use super::builder::FunctionBuilder;
-use super::ir::{BinaryOp, BlockId, Instruction, IrType, Terminator, Value};
+use super::builder::{FunctionBuilder, LoopContext};
+use super::ir::{BlockId, Terminator, Value};
 use super::lower::Lowerer;
 
 impl FunctionBuilder {
     /// Connect a loop body's fall-through block back to the header, if any.
-    fn close_body(&mut self, body_end: Option<BlockId>, next: BlockId) {
+    pub(super) fn close_body(&mut self, body_end: Option<BlockId>, next: BlockId) {
         if let Some(end) = body_end {
             self.set_terminator(end, Terminator::Br(next));
         }
+    }
+
+    /// Lower a loop body inside a pushed loop context, returning its tail block
+    /// and whether a loop jump needs an exit/target block kept alive.
+    pub(super) fn with_loop(
+        &mut self,
+        break_target: BlockId,
+        continue_target: BlockId,
+        body: &Block,
+        body_start: BlockId,
+        lowerer: &mut Lowerer,
+    ) -> (Option<BlockId>, bool) {
+        self.loops.push(LoopContext {
+            break_target,
+            continue_target,
+            has_jump: false,
+        });
+        let body_end = self.lower_block(body, lowerer, body_start);
+        let has_jump = self.loops.last().is_some_and(|ctx| ctx.has_jump);
+        self.loops.pop();
+        (body_end, has_jump)
+    }
+
+    /// Emit the post-body condition of a `do` loop into `cond_block`.
+    fn emit_do_cond(
+        &mut self,
+        cond_block: BlockId,
+        body: BlockId,
+        exit: BlockId,
+        condition: &Expr,
+        lowerer: &mut Lowerer,
+    ) {
+        self.current = Some(cond_block);
+        let value = self.condition_value(condition, lowerer);
+        self.set_terminator(
+            cond_block,
+            Terminator::CondBr {
+                cond: value,
+                then_block: body,
+                else_block: exit,
+            },
+        );
+    }
+
+    pub(super) fn lower_break_or_continue(
+        &mut self,
+        statement: &Stmt,
+        lowerer: &mut Lowerer,
+        fallback: BlockId,
+    ) -> Option<BlockId> {
+        let block = self.current.unwrap_or(fallback);
+        let is_break = matches!(statement.kind, nava_ast::StmtKind::Break);
+        let target = self.loops.last().map(|ctx| {
+            if is_break {
+                ctx.break_target
+            } else {
+                ctx.continue_target
+            }
+        });
+        let Some(target) = target else {
+            let word: &'static str = if is_break { "break" } else { "continue" };
+            lowerer.error(format!("{word} outside a loop in IR"), statement.span);
+            return Some(block);
+        };
+        self.set_terminator(block, Terminator::Br(target));
+        if let Some(ctx) = self.loops.last_mut() {
+            ctx.has_jump = true;
+        }
+        None
     }
 
     pub(super) fn lower_while(
@@ -40,8 +109,8 @@ impl FunctionBuilder {
             },
         );
 
-        let body_end = self.lower_block(&stmt.body, lowerer, body);
-        if body_end.is_none() && matches!(stmt.condition.kind, ExprKind::Bool(true)) {
+        let (body_end, has_jumps) = self.with_loop(exit, header, &stmt.body, body, lowerer);
+        if body_end.is_none() && !has_jumps && matches!(stmt.condition.kind, ExprKind::Bool(true)) {
             // `while (true)` with a body that always returns cannot fall through.
             self.function.remove_block(exit);
             self.set_terminator(header, Terminator::Br(body));
@@ -62,24 +131,21 @@ impl FunctionBuilder {
         let exit = self.new_block("do.end");
         self.set_terminator(current, Terminator::Br(body));
 
-        let Some(body_end) = self.lower_block(&stmt.body, lowerer, body) else {
-            // The body always returns, so the loop can never repeat.
-            self.function.remove_block(cond);
-            self.function.remove_block(exit);
-            return None;
+        let (body_result, has_jumps) = self.with_loop(exit, cond, &stmt.body, body, lowerer);
+        let Some(body_end) = body_result else {
+            if !has_jumps {
+                // The body always returns, so the loop can never repeat.
+                self.function.remove_block(cond);
+                self.function.remove_block(exit);
+                return None;
+            }
+            // A `break` can still reach the exit, so keep both blocks alive.
+            self.emit_do_cond(cond, body, exit, &stmt.condition, lowerer);
+            return Some(exit);
         };
         self.set_terminator(body_end, Terminator::Br(cond));
 
-        self.current = Some(cond);
-        let condition = self.condition_value(&stmt.condition, lowerer);
-        self.set_terminator(
-            cond,
-            Terminator::CondBr {
-                cond: condition,
-                then_block: body,
-                else_block: exit,
-            },
-        );
+        self.emit_do_cond(cond, body, exit, &stmt.condition, lowerer);
         Some(exit)
     }
 
@@ -115,8 +181,8 @@ impl FunctionBuilder {
             },
         );
 
-        let body_end = self.lower_block(&stmt.body, lowerer, body);
-        if body_end.is_none() && stmt.condition.is_none() {
+        let (body_end, has_jumps) = self.with_loop(exit, update, &stmt.body, body, lowerer);
+        if body_end.is_none() && !has_jumps && stmt.condition.is_none() {
             // `for (;;)` with a body that always returns cannot fall through.
             self.function.remove_block(update);
             self.function.remove_block(exit);
@@ -129,120 +195,6 @@ impl FunctionBuilder {
         if let Some(expr) = &stmt.update {
             self.lower_expr(expr, lowerer);
         }
-        self.set_terminator(update, Terminator::Br(header));
-
-        self.leave_scope();
-        Some(exit)
-    }
-
-    /// Lower `for (let x of xs)` into an index-driven loop over a stack slot.
-    pub(super) fn lower_for_of(
-        &mut self,
-        stmt: &ForOfStmt,
-        lowerer: &mut Lowerer,
-        current: BlockId,
-    ) -> Option<BlockId> {
-        self.enter_scope();
-        self.current = Some(current);
-
-        let iterable_ty = lowerer.expr_ty(&stmt.iterable);
-        let (element_ty, is_string) = match &iterable_ty {
-            IrType::Array(inner) => ((**inner).clone(), false),
-            IrType::String => (IrType::String, true),
-            _ => {
-                lowerer.error(
-                    "for-of requires an array or string in IR",
-                    stmt.iterable.span,
-                );
-                (IrType::Opaque, false)
-            }
-        };
-
-        let iterable = self.lower_expr(&stmt.iterable, lowerer);
-        let length = self.fresh_value();
-        if is_string {
-            self.emit(Instruction::StringLength {
-                result: length,
-                value: iterable.clone(),
-            });
-        } else {
-            self.emit(Instruction::ArrayLength {
-                result: length,
-                array: iterable.clone(),
-            });
-        }
-
-        let index_slot = self.alloc(IrType::Number);
-        self.store(index_slot, IrType::Number, Value::Number(0.0));
-        let binding_slot = stmt.decl.then(|| {
-            let slot = self.alloc(element_ty.clone());
-            self.declare(&stmt.binding, slot);
-            slot
-        });
-
-        let header = self.new_block("forof.cond");
-        let body = self.new_block("forof.body");
-        let update = self.new_block("forof.update");
-        let exit = self.new_block("forof.end");
-        self.set_terminator(current, Terminator::Br(header));
-
-        self.current = Some(header);
-        let index = self.load(index_slot, IrType::Number);
-        let less = self.fresh_value();
-        self.emit(Instruction::Binary {
-            result: less,
-            op: BinaryOp::Lt,
-            lhs: index,
-            rhs: Value::Local(length),
-        });
-        self.set_terminator(
-            header,
-            Terminator::CondBr {
-                cond: Value::Local(less),
-                then_block: body,
-                else_block: exit,
-            },
-        );
-
-        self.current = Some(body);
-        let index = self.load(index_slot, IrType::Number);
-        let element = self.fresh_value();
-        if is_string {
-            self.emit(Instruction::StringCharAt {
-                result: element,
-                value: iterable,
-                index,
-            });
-        } else {
-            self.emit(Instruction::ArrayGet {
-                result: element,
-                array: iterable,
-                index,
-                element_ty: element_ty.clone(),
-            });
-        }
-        if let Some(slot) = binding_slot {
-            self.store(slot, element_ty, Value::Local(element));
-        } else {
-            let target = Expr {
-                kind: ExprKind::Ident(stmt.binding.name.clone()),
-                span: stmt.binding.span,
-            };
-            self.lower_assign(&target, &Value::Local(element), lowerer);
-        }
-        let body_end = self.lower_block(&stmt.body, lowerer, body);
-        self.close_body(body_end, update);
-
-        self.current = Some(update);
-        let index = self.load(index_slot, IrType::Number);
-        let next = self.fresh_value();
-        self.emit(Instruction::Binary {
-            result: next,
-            op: BinaryOp::Add,
-            lhs: index,
-            rhs: Value::Number(1.0),
-        });
-        self.store(index_slot, IrType::Number, Value::Local(next));
         self.set_terminator(update, Terminator::Br(header));
 
         self.leave_scope();

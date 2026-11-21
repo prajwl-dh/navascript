@@ -129,6 +129,16 @@ impl<'a> Checker<'a> {
             StmtKind::DoWhile(stmt) => self.check_while(stmt, expected_ret),
             StmtKind::For(stmt) => self.check_for(stmt, expected_ret),
             StmtKind::ForOf(stmt) => self.check_for_of(stmt, expected_ret),
+            StmtKind::Break | StmtKind::Continue => {
+                if self.loop_depth == 0 {
+                    let word = if matches!(statement.kind, StmtKind::Break) {
+                        "break"
+                    } else {
+                        "continue"
+                    };
+                    self.error(format!("{word} outside a loop"), statement.span);
+                }
+            }
             StmtKind::Block(block) => self.check_block(block, expected_ret),
             StmtKind::Expr(expr) => {
                 self.infer_expr(expr);
@@ -149,7 +159,9 @@ impl<'a> Checker<'a> {
 
     pub(super) fn check_while(&mut self, stmt: &WhileStmt, expected_ret: Option<&Type>) {
         self.infer_expr(&stmt.condition);
+        self.loop_depth += 1;
         self.check_block(&stmt.body, expected_ret);
+        self.loop_depth -= 1;
     }
 
     pub(super) fn check_for(&mut self, stmt: &ForStmt, expected_ret: Option<&Type>) {
@@ -163,7 +175,9 @@ impl<'a> Checker<'a> {
         if let Some(update) = &stmt.update {
             self.infer_expr(update);
         }
+        self.loop_depth += 1;
         self.check_block(&stmt.body, expected_ret);
+        self.loop_depth -= 1;
         self.symbols.leave_scope();
     }
 
@@ -205,7 +219,9 @@ impl<'a> Checker<'a> {
                 ),
             }
         }
+        self.loop_depth += 1;
         self.check_block(&stmt.body, expected_ret);
+        self.loop_depth -= 1;
         self.symbols.leave_scope();
     }
 }

@@ -64,6 +64,16 @@ impl<'a> Parser<'a> {
             TokenKind::While => StmtKind::While(self.parse_while()?),
             TokenKind::Do => StmtKind::DoWhile(self.parse_do_while()?),
             TokenKind::For => self.parse_for()?,
+            TokenKind::Break => {
+                self.bump();
+                self.expect_semicolon();
+                StmtKind::Break
+            }
+            TokenKind::Continue => {
+                self.bump();
+                self.expect_semicolon();
+                StmtKind::Continue
+            }
             TokenKind::LBrace => StmtKind::Block(self.parse_block()?),
             TokenKind::Let | TokenKind::Const | TokenKind::Var => {
                 StmtKind::Variable(self.parse_variable_decl()?)

@@ -103,8 +103,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] `return`
 - [x] `while`, `do-while`, C-style `for` (`init; condition; update`) and
   `for-of` over arrays and strings (Phase 6). Both `for (let x of xs)` and
-  `for (x of xs)` are accepted. Loop bodies are blocks or single statements;
-  `break`/`continue` and iteration over other iterables are not implemented.
+  `for (x of xs)` are accepted. `break` and `continue` exit/skip the innermost
+  loop; `continue` in a C-style `for` runs the update expression. Iteration over
+  other iterables is not implemented.
 - [ ] `throw` / `try` / `catch` / `finally` (Phase 6; ADR-0015)
 - [ ] `switch`
 

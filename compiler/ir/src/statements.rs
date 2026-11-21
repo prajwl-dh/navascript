@@ -54,6 +54,9 @@ impl FunctionBuilder {
             StmtKind::DoWhile(stmt) => self.lower_do_while(stmt, lowerer, current),
             StmtKind::For(stmt) => self.lower_for(stmt, lowerer, current),
             StmtKind::ForOf(stmt) => self.lower_for_of(stmt, lowerer, current),
+            StmtKind::Break | StmtKind::Continue => {
+                self.lower_break_or_continue(statement, lowerer, current)
+            }
             StmtKind::Block(block) => self.lower_block(block, lowerer, current),
             StmtKind::Empty => Some(current),
         }

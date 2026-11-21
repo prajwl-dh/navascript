@@ -22,6 +22,8 @@ pub enum TokenKind {
     While,
     Do,
     For,
+    Break,
+    Continue,
     LParen,
     RParen,
     LBrace,
@@ -119,6 +121,8 @@ pub(super) fn keyword(word: &str) -> TokenKind {
         "while" => TokenKind::While,
         "do" => TokenKind::Do,
         "for" => TokenKind::For,
+        "break" => TokenKind::Break,
+        "continue" => TokenKind::Continue,
         _ => TokenKind::Ident,
     }
 }

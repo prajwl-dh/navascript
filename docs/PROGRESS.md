@@ -181,7 +181,8 @@ limitations for every milestone.
 
 ### Phase 6 — Language expansion
 - [x] Loops (`while`, `do-while`, C-style `for`, `for-of` over arrays/strings,
-  both `let x of` and `x of` forms) — deferred from Phase 1; done 2026-11-21
+  both `let x of` and `x of` forms), with `break`/`continue` — deferred from
+  Phase 1; done 2026-11-21
 - [x] Additional literals/operators: compound assignment (`+= -= *= /= %=`),
   `++`/`--`, `**`, ternary, hex/binary/octal literals, `_` separators,
   non-ASCII identifiers, `\x`/`\u` escapes — done 2026-11-21
@@ -199,9 +200,10 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (163 passed, 0 failed) succeed;
-  `examples/loops.ts`, `examples/for_of.ts`, `examples/operators.ts`,
-  `examples/arrows.ts` and `examples/optional.ts` run natively.
+  `cargo test --workspace` (169 passed, 0 failed) succeed;
+  `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
+  `examples/operators.ts`, `examples/arrows.ts` and `examples/optional.ts` run
+  natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -695,6 +697,23 @@ limitations for every milestone.
 - **Known limitation:** the null branch is unobservable until nullable values
   exist; results are typed `T` until union types land. Optional calls and
   bigint remain pending.
+
+### 2026-11-21 — Phase 6 (fifth increment): break and continue
+- Added `break`/`continue` keywords, AST statements, parser support, a
+  `loop_depth` check in the type checker (diagnosing use outside loops), and IR
+  lowering through a `LoopContext` stack (`break` → exit, `continue` → header,
+  condition block or `for` update block).
+- Loop-context setup/teardown is shared by `FunctionBuilder::with_loop`; the
+  `for-of` lowering moved into a private `ir/for_of.rs` module to stay within
+  ADR-0016.
+- Two-axis review of `9f1e9cc...HEAD` was applied: a `has_jump` flag now keeps
+  target blocks alive for both `break` and `continue` (the original `has_break`
+  let `do { continue; } while (...)` and `for (;;) { continue; }` branch to a
+  deleted block); the duplicated push/lower/pop and `do.cond` emission were
+  factored into helpers.
+- Extended `examples/break_continue.ts` and tests for do-while, `for (;;)`,
+  `for-of`, nested loops and trailing `continue`. Suite grew from 163 to 169
+  tests; fmt and clippy clean.
 
 ---
 

@@ -159,8 +159,9 @@ code 1.
 - Closures, function values and exceptions are still pending Phase 6 work
   (ADR-0015; see `PROGRESS.md`); runtime bounds/field errors terminate the
   process with a diagnostic.
-- Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings;
-  `break`/`continue` and general iterables are not implemented.
+- Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings,
+  with `break`/`continue` for the innermost loop; general iterables are not
+  implemented.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.

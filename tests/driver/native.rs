@@ -183,6 +183,21 @@ fn for_of_runs_natively() {
 }
 
 #[test]
+fn break_and_continue_run_natively() {
+    let Some(binary) = compile("break_continue.ts", "break-continue", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run break/continue program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "4\n9\n3\n2\n4\n2\n3\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn optional_chaining_runs_natively() {
     let Some(binary) = compile("optional.ts", "optional", &[]) else {
         return;
