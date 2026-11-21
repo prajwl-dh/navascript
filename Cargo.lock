@@ -6,7 +6,11 @@ version = 4
 name = "nava"
 version = "0.1.0"
 dependencies = [
+ "nava-ast",
+ "nava-diagnostics",
+ "nava-lexer",
  "nava-parser",
+ "nava-symbol",
  "nava-typechecker",
 ]
 

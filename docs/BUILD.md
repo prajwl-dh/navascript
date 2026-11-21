@@ -57,21 +57,28 @@ Or:
 scripts/test.sh
 ```
 
-The workspace has three test surfaces:
+**All tests live in the top-level `tests/` tree** — no `#[cfg(test)]` modules
+remain in `compiler/`. Each test target calls only public interfaces:
 
-- **Unit tests** beside implementation in each crate (`compiler/*/src/`), for
-  that crate's internal seams.
-- **Binary integration tests** in `compiler/driver/tests/cli.rs`, exercising the
-  `nava` executable.
-- **Cross-crate pipeline tests** in the top-level `tests/` tree:
-  `tests/parser/pipeline.rs` and `tests/typechecker/pipeline.rs`. They call only
-  the public `parse` and `check` seams. These are registered as explicit Cargo
-  test targets in `compiler/driver/Cargo.toml` (Cargo discovers `tests/` only
-  inside a package root). Remaining `tests/*` subdirectories are reserved for
-  codegen, runtime and `tsc`-compatibility suites in later phases.
+| Directory | Tests |
+| --- | --- |
+| `tests/ast/` | span behaviour |
+| `tests/diagnostics/` | positions, dedup, ordering |
+| `tests/lexer/` | tokenization via `tokenize` |
+| `tests/parser/` | parsing via `parse`, plus `pipeline.rs` (parse seam from outside) |
+| `tests/symbol/` | scopes, shadowing, type display |
+| `tests/typechecker/` | type resolution, checking, plus `pipeline.rs` |
+| `tests/driver/` | CLI argument parsing and the real `nava` binary |
 
-Each compiler module is its own crate so it can own tests as it is implemented.
-`.github/workflows/ci.yml` runs the same fmt, clippy and test checks on macOS.
+`tests/codegen/`, `tests/runtime/` and `tests/compatibility/` are reserved for
+Phase 4, 5 and 7 suites.
+
+Cargo only discovers `tests/` inside a package root, so every file is
+registered as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`.
+Tests import the crates they exercise through `[dev-dependencies]`. Moving a
+test out of a crate means it can only use that crate's public interface — which
+is the intended contract. `.github/workflows/ci.yml` runs fmt, clippy and the
+full test suite on macOS.
 
 ## 4. CLI usage (Phase 0)
 

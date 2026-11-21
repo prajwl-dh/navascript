@@ -47,7 +47,8 @@ compiler/    lexer, parser, ast, symbol, semantic, typechecker, ir,
 runtime/     memory, strings, arrays, objects, exceptions
 bootstrap/   stage0 (Rust), stage1, stage2
 stdlib/      Nava standard library
-tests/       lexer, parser, typechecker, codegen, runtime, compatibility
+tests/       ast, diagnostics, lexer, parser, symbol, typechecker, driver,
+             plus codegen/runtime/compatibility reserved for later phases
 benchmarks/  performance suite
 docs/        planning and tracking documents
 examples/    sample programs

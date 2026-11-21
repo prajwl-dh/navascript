@@ -19,11 +19,54 @@ path = "src/main.rs"
 nava-parser = { path = "../parser" }
 nava-typechecker = { path = "../typechecker" }
 
-# Cross-crate integration tests live in the repository's top-level tests/ tree.
+# All tests live in the repository's top-level tests/ tree. They are registered
+# explicitly because Cargo only auto-discovers tests/ inside a package root.
+[dev-dependencies]
+nava-ast = { path = "../ast" }
+nava-diagnostics = { path = "../diagnostics" }
+nava-lexer = { path = "../lexer" }
+nava-symbol = { path = "../symbol" }
+
+[[test]]
+name = "ast_span"
+path = "../../tests/ast/span.rs"
+
+[[test]]
+name = "diagnostics"
+path = "../../tests/diagnostics/diagnostics.rs"
+
+[[test]]
+name = "lexer"
+path = "../../tests/lexer/lexer.rs"
+
+[[test]]
+name = "parser"
+path = "../../tests/parser/parser.rs"
+
 [[test]]
 name = "parser_pipeline"
 path = "../../tests/parser/pipeline.rs"
 
 [[test]]
+name = "symbol"
+path = "../../tests/symbol/symbol.rs"
+
+[[test]]
+name = "typechecker_types"
+path = "../../tests/typechecker/types.rs"
+
+[[test]]
+name = "typechecker_checker"
+path = "../../tests/typechecker/checker.rs"
+
+[[test]]
 name = "typechecker_pipeline"
 path = "../../tests/typechecker/pipeline.rs"
+
+[[test]]
+name = "driver_cli"
+path = "../../tests/driver/cli.rs"
+
+[[test]]
+name = "driver_binary"
+path = "../../tests/driver/binary.rs"

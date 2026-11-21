@@ -346,6 +346,19 @@ limitations for every milestone.
     77 tests. `docs/BUILD.md` documents the three test surfaces; module-local
     unit tests remain beside their implementations by design.
 
+### 2026-11-20 — All tests consolidated under tests/
+- Moved every `#[cfg(test)] mod tests` out of `compiler/*/src/` and the driver's
+  binary tests out of `compiler/driver/tests/` into the top-level `tests/`
+  tree: `tests/ast/`, `tests/diagnostics/`, `tests/lexer/`, `tests/parser/`,
+  `tests/symbol/`, `tests/typechecker/`, `tests/driver/`.
+- Each moved test now imports public items explicitly instead of `use super::*`.
+  `HELP` was made public so the CLI help-content test can live outside the
+  driver crate; no other interface needed widening.
+- Registered every file as an explicit `[[test]]` target in
+  `compiler/driver/Cargo.toml` and added crate dev-dependencies.
+- Verified no inline test modules remain and no test files remain under
+  `compiler/`. All 77 tests still pass; `docs/BUILD.md` documents the layout.
+
 ---
 
 ## 6. Next actions (in order)

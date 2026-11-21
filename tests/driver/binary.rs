@@ -1,7 +1,7 @@
 //! Integration tests that exercise the real `nava` binary.
 //!
 //! The binary is the driver's external interface, so behaviour is asserted
-//! there; only pure parse-result assertions stay in the driver's unit tests.
+//! here; only pure parse-result assertions stay in `tests/driver/cli.rs`.
 
 use std::process::{Command, Output};
 

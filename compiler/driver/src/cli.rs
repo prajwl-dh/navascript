@@ -7,7 +7,8 @@ use std::path::PathBuf;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const HELP: &str = "\
+/// Help text shown for `--help` and for an empty invocation.
+pub const HELP: &str = "\
 Nava — a TypeScript-compatible language compiled to native machine code
 
 Usage:
@@ -138,32 +139,5 @@ fn dispatch(command: Command) -> i32 {
             eprintln!("Run 'nava --help' for usage.");
             2
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn no_arguments_shows_help() {
-        assert_eq!(parse_args(std::iter::empty::<&str>()), Command::Help);
-    }
-
-    #[test]
-    fn parses_build_with_one_input() {
-        assert_eq!(
-            parse_args(["build", "examples/fibonacci.ts"]),
-            Command::Build {
-                input: PathBuf::from("examples/fibonacci.ts"),
-            }
-        );
-    }
-
-    #[test]
-    fn help_lists_the_build_command() {
-        assert!(HELP.contains("Usage:"));
-        assert!(HELP.contains("build"));
-        assert!(HELP.contains("--version"));
     }
 }
