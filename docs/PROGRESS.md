@@ -726,7 +726,7 @@ limitations for every milestone.
   `BUILD.md`'s native-test row omitted arrows, optional chaining and loop
   jumps.
 - Verified the current facts directly: 169 tests pass, 11 workspace members,
-  19 `.ts` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
+  18 `.ts` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
   `operators`). No compiler code changed.
 
 ---

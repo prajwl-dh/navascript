@@ -16,7 +16,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 ## 2. Lexical structure
 
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
-  `true`, `false`, `null`, `void`, `type`, `interface`, `while`, `do`, `for`.
+  `true`, `false`, `null`, `void`, `type`, `interface`, `while`, `do`, `for`,
+  `break`, `continue`.
 - [ ] Keywords `switch`, `class`, `import`, `export`, `async`, `await`, `throw`,
   `try`, `catch`, `finally` (their features are unimplemented; not yet
   recognized by the lexer). `of` in `for-of` is contextual, not a keyword.
