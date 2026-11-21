@@ -9,6 +9,7 @@ mod arrows;
 mod checker;
 mod declarations;
 mod expressions;
+mod optional;
 mod statements;
 mod types;
 

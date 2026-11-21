@@ -183,6 +183,18 @@ fn for_of_runs_natively() {
 }
 
 #[test]
+fn optional_chaining_runs_natively() {
+    let Some(binary) = compile("optional.ts", "optional", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run optional chaining program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "nava\nb\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn arrows_run_natively() {
     let Some(binary) = compile("arrows.ts", "arrows", &[]) else {
         return;

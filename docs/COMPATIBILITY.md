@@ -30,6 +30,7 @@ Closures and exceptions are still pending (ADR-0015).
 | Hex/binary/octal literals & `_` separators | [x] | `tests/lexer/`, `tests/parser/` | Phase 6; bigint still unsupported |
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
+| Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; null branch not observable yet (no nullable values); result typed `T` until unions land; no optional call `a?.()` |
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; variable initialisers with annotated parameters, no captures or first-class function values |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
@@ -104,7 +105,7 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | `eval` / dynamic code | incompatible with native model | not planned |
 | Arrow functions as values / with captures | arrows parse and type-check, but only variable initialisers lower; captured locals and passing functions as arguments need function values (ADR-0015) | Phase 6 (pending) |
 | Bigint literals (`123n`) | no BigInt type in the checker or runtime; the suffix is not parsed | Phase 6 (pending) |
-| Optional chaining (`?.`) | `?` and `.` are lexed, but the combined operator is not parsed | Phase 6 (pending) |
+| Optional call (`?.()`) | member/index optional access is supported, but calling an optional callable is not parsed | Phase 6 (pending) |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |

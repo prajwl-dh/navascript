@@ -5,8 +5,8 @@ compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
 **Status:** Phase 6 (Language expansion) in progress — loops, the additional
-literals/operators and arrow functions are complete; the remaining expansion
-items are pending.
+literals/operators, arrow functions and optional chaining are complete; the
+remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -59,7 +59,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 156 tests through Phase 6 (loops, operators, arrows)
+cargo test --workspace     # 163 tests through Phase 6 (loops, operators, arrows, optional chaining)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -83,7 +83,8 @@ remaining Phase 6 items — arrow functions, generics, classes, structural
 typing, unions, modules, closures and exceptions, and async/await — are still
 pending (closures and exceptions were deferred from Phase 5 by ADR-0015).
 Arrow functions work as variable initialisers with annotated parameters and no
-captured locals; optional chaining and bigint are still unsupported.
+captured locals; `?.` works for member/index access on reference-typed results.
+Optional calls (`a?.()`) and bigint are still unsupported.
 
 ## Documentation
 

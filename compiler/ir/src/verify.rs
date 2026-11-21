@@ -160,6 +160,7 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 }
                 Instruction::Binary { result, .. }
                 | Instruction::Unary { result, .. }
+                | Instruction::IsNull { result, .. }
                 | Instruction::ToBool { result, .. }
                 | Instruction::StringConcat { result, .. }
                 | Instruction::StringEquals { result, .. }
@@ -283,7 +284,8 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                         available_values.insert(*result);
                     }
                 }
-                Instruction::ToBool { result, value }
+                Instruction::IsNull { result, value }
+                | Instruction::ToBool { result, value }
                 | Instruction::StringLength { result, value }
                 | Instruction::NumberToString { result, value } => {
                     check_value(value, &available_values, function, block.id, errors);

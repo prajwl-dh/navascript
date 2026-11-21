@@ -7,7 +7,9 @@ use super::verify::{VerifyError, error};
 
 pub(super) fn values_in_instruction(instruction: &Instruction) -> Vec<&Value> {
     match instruction {
-        Instruction::Store { value, .. } | Instruction::ToBool { value, .. } => vec![value],
+        Instruction::Store { value, .. }
+        | Instruction::IsNull { value, .. }
+        | Instruction::ToBool { value, .. } => vec![value],
         Instruction::Binary { lhs, rhs, .. }
         | Instruction::StringConcat {
             left: lhs,
@@ -156,7 +158,9 @@ pub(super) fn instruction_type(instruction: &Instruction) -> IrType {
         },
         Instruction::Load { ty, .. } => ty.clone(),
         Instruction::Call { result_ty, .. } => result_ty.clone(),
-        Instruction::ToBool { .. } | Instruction::StringEquals { .. } => IrType::Boolean,
+        Instruction::ToBool { .. }
+        | Instruction::IsNull { .. }
+        | Instruction::StringEquals { .. } => IrType::Boolean,
         Instruction::StringLength { .. } | Instruction::ArrayLength { .. } => IrType::Number,
         Instruction::StringConcat { .. }
         | Instruction::StringCharAt { .. }

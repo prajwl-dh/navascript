@@ -1,6 +1,6 @@
 //! Lowering helpers for assignment, update and ternary operators.
 
-use nava_ast::{AssignOp, BinaryOp as AstBinaryOp, Expr, UpdateOp};
+use nava_ast::{AssignOp, BinaryOp as AstBinaryOp, Expr, Span, UpdateOp};
 
 use super::builder::FunctionBuilder;
 use super::ir::{BinaryOp, Instruction, IrType, Terminator, Value, ValueId};
@@ -129,6 +129,106 @@ impl FunctionBuilder {
         self.current = Some(join);
         self.load(slot, ty)
     }
+}
+
+impl FunctionBuilder {
+    /// Lower `a?.b` / `a?.[i]` with a null check and a result stack slot.
+    /// Only reference-typed results can represent `null` in the current ABI.
+    pub(super) fn lower_optional_access(
+        &mut self,
+        access: OptionalAccess<'_>,
+        lowerer: &mut Lowerer,
+    ) -> Value {
+        let OptionalAccess {
+            object,
+            target,
+            object_ty,
+            result_ty,
+            span,
+        } = access;
+        let slot = self.alloc(result_ty.clone());
+        let object_value = self.lower_expr(object, lowerer);
+        let is_null = self.fresh_value();
+        self.emit(Instruction::IsNull {
+            result: is_null,
+            value: object_value.clone(),
+        });
+        let null_block = self.new_block("optional.null");
+        let value_block = self.new_block("optional.value");
+        let join = self.new_block("optional.end");
+        let current = self.current.expect("optional access outside a block");
+        self.set_terminator(
+            current,
+            Terminator::CondBr {
+                cond: Value::Local(is_null),
+                then_block: null_block,
+                else_block: value_block,
+            },
+        );
+
+        self.current = Some(null_block);
+        self.store(slot, result_ty.clone(), Value::Null);
+        self.set_terminator(null_block, Terminator::Br(join));
+
+        self.current = Some(value_block);
+        let result = self.fresh_value();
+        let index_value = match &target {
+            OptionalTarget::Index(expr) => Some(self.lower_expr(expr, lowerer)),
+            OptionalTarget::Member(_) => None,
+        };
+        match (&target, index_value, &object_ty) {
+            (OptionalTarget::Index(_), Some(index), IrType::Array(element_ty)) => {
+                self.emit(Instruction::ArrayGet {
+                    result,
+                    array: object_value,
+                    index,
+                    element_ty: *element_ty.clone(),
+                });
+            }
+            (OptionalTarget::Index(_), Some(index), IrType::String) => {
+                self.emit(Instruction::StringCharAt {
+                    result,
+                    value: object_value,
+                    index,
+                });
+            }
+            (OptionalTarget::Member(property), None, IrType::Object(fields)) => {
+                if let Some((field_index, (_, field_ty))) = fields
+                    .iter()
+                    .enumerate()
+                    .find(|(_, (name, _))| name == property)
+                {
+                    self.emit(Instruction::ObjectGet {
+                        result,
+                        object: object_value,
+                        field_index: field_index as u32,
+                        field_ty: field_ty.clone(),
+                    });
+                } else {
+                    lowerer.error(format!("unknown field '{property}'"), span);
+                }
+            }
+            _ => lowerer.error("unsupported optional access target in IR", span),
+        }
+        self.store(slot, result_ty.clone(), Value::Local(result));
+        self.set_terminator(value_block, Terminator::Br(join));
+
+        self.current = Some(join);
+        self.load(slot, result_ty)
+    }
+}
+
+pub(super) enum OptionalTarget<'a> {
+    Member(&'a str),
+    Index(&'a Expr),
+}
+
+pub(super) struct OptionalAccess<'a> {
+    pub object: &'a Expr,
+    pub target: OptionalTarget<'a>,
+    pub object_ty: IrType,
+    pub result_ty: IrType,
+    pub span: Span,
 }
 
 pub(super) fn to_ir_binary(op: AstBinaryOp) -> BinaryOp {

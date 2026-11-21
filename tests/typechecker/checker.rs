@@ -207,6 +207,37 @@ fn rejects_for_of_over_a_number() {
 }
 
 #[test]
+fn checks_optional_access() {
+    let (output, _) = check_source(
+        "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name; let xs: string[] = [\"a\"]; let v = xs?.[0];",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_optional_access_with_a_scalar_result() {
+    let (output, _) =
+        check_source("interface Box { n: number; } let b: Box = { n: 1 }; let v = b?.n;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("optional chaining requires a reference-typed result"))
+    );
+}
+
+#[test]
+fn rejects_assignment_through_optional_chaining() {
+    let (output, _) = check_source(
+        "interface Box { name: string; } let b: Box = { name: \"x\" }; b?.name = \"y\";",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign through optional chaining"))
+    );
+}
+
+#[test]
 fn infers_arrow_function_types() {
     let (output, _) = check_source(
         "let add = (a: number, b: number): number => a + b; let sq = (x: number) => x * x; let n = add(1, 2);",

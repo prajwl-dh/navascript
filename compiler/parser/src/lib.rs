@@ -8,6 +8,7 @@ mod arrows;
 mod expressions;
 mod items;
 mod operators;
+mod optional;
 mod parser;
 mod statements;
 mod types;

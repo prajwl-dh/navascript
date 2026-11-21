@@ -133,7 +133,8 @@ pub(super) fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
                         },
                     );
                 }
-                Instruction::ToBool { result, .. }
+                Instruction::IsNull { result, .. }
+                | Instruction::ToBool { result, .. }
                 | Instruction::StringEquals { result, .. }
                 | Instruction::NumberToString { result, .. } => {
                     types.insert(*result, IrType::Boolean);

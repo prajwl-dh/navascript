@@ -311,6 +311,25 @@ fn parses_c_style_for_and_for_of() {
 }
 
 #[test]
+fn parses_optional_member_and_index() {
+    let output = ok("let v = a?.b; let w = a?.[0];");
+    let ItemKind::Variable(first) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &first.init.as_ref().unwrap().kind,
+        ExprKind::Member { optional: true, .. }
+    ));
+    let ItemKind::Variable(second) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &second.init.as_ref().unwrap().kind,
+        ExprKind::Index { optional: true, .. }
+    ));
+}
+
+#[test]
 fn parses_arrow_function_forms() {
     let output = ok(
         "let add = (a: number, b: number): number => a + b; let sq = x => x * x; let f = () => { return 1; };",

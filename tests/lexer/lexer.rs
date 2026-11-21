@@ -147,6 +147,23 @@ fn lexes_unicode_and_hex_escapes_in_strings() {
 }
 
 #[test]
+fn recognizes_optional_chaining() {
+    assert_eq!(
+        kinds("a?.b?.[0]"),
+        vec![
+            TokenKind::Ident,
+            TokenKind::QuestionDot,
+            TokenKind::Ident,
+            TokenKind::QuestionDot,
+            TokenKind::LBracket,
+            TokenKind::Number,
+            TokenKind::RBracket,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn reports_invalid_hex_and_unicode_escapes() {
     let lexed = tokenize("\"\\xGG\\uZZZZ\"");
     assert!(

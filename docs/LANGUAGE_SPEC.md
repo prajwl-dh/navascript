@@ -31,7 +31,11 @@ and the intent to grow toward broad compatibility. Status values mirror
   >= >`), logical (`&& ||`), unary (`! - + ++ --`), assignment (`=`), compound
   assignment (`+= -= *= /= %=`), ternary (`?:`), and `=>` in function *type
   annotations*.
-- [ ] Optional chaining (`?.`) and bigint literals.
+- [x] Optional chaining (`a?.b`, `a?.[i]`) — Phase 6; reference-typed results
+  only. No optional call `a?.()` yet, and the null branch is currently
+  unobservable because no null object/array can be constructed; the result is
+  typed as `T` until union types land.
+- [ ] Bigint literals.
 - [x] Comments: `//` and `/* */`.
 - [x] Every token carries byte offsets; diagnostics derive 1-based line and
   column from them.
@@ -77,6 +81,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Member access `obj.prop` (parsed, type-checked, lowered; native field
   layout works — Phase 5)
 - [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
+- [x] Optional member/index access `a?.b` / `a?.[i]` (Phase 6; reference-typed
+  results only)
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
 - [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
   `(a: T): R => { ... }`; supported as variable initialisers with annotated

@@ -138,6 +138,11 @@ pub enum Instruction {
         op: UnaryOp,
         operand: Value,
     },
+    /// Pointer null check used by optional chaining.
+    IsNull {
+        result: ValueId,
+        value: Value,
+    },
     /// JavaScript-style truthiness conversion for non-boolean conditions.
     ToBool {
         result: ValueId,

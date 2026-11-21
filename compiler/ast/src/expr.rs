@@ -55,12 +55,14 @@ pub enum ExprKind {
     Index {
         object: Box<Expr>,
         index: Box<Expr>,
+        optional: bool,
     },
     ArrayLit(Vec<Expr>),
     ObjectLit(Vec<ObjectField>),
     Member {
         object: Box<Expr>,
         property: String,
+        optional: bool,
     },
     Paren(Box<Expr>),
 }

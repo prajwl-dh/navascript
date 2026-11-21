@@ -145,6 +145,10 @@ impl<'a> Parser<'a> {
                 expr = updated;
                 continue;
             }
+            if let Some(optional) = self.parse_optional_postfix(&expr)? {
+                expr = optional;
+                continue;
+            }
             match self.kind() {
                 TokenKind::Dot => {
                     self.bump();
@@ -158,6 +162,7 @@ impl<'a> Parser<'a> {
                         kind: ExprKind::Member {
                             object: Box::new(expr),
                             property: property.name,
+                            optional: false,
                         },
                         span,
                     };
@@ -171,6 +176,7 @@ impl<'a> Parser<'a> {
                         kind: ExprKind::Index {
                             object: Box::new(expr),
                             index: Box::new(index),
+                            optional: false,
                         },
                         span,
                     };

@@ -101,6 +101,13 @@ pub(super) fn emit_instruction(
             };
             let _ = writeln!(out, "  %v{result} = {line}");
         }
+        Instruction::IsNull { result, value } => {
+            let _ = writeln!(
+                out,
+                "  %v{result} = icmp eq ptr {}, null",
+                llvm_value(value)
+            );
+        }
         Instruction::ToBool { result, value } => {
             let line = match value {
                 Value::Bool(_) => format!("copy i1 {}", llvm_value(value)),

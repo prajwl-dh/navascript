@@ -123,52 +123,25 @@ impl FunctionBuilder {
                 );
                 Value::Null
             }
-            ExprKind::Call { callee, args } => {
-                let callee_name = match &callee.kind {
-                    ExprKind::Ident(name) => name.clone(),
-                    ExprKind::Member { object, property } => match &object.kind {
-                        ExprKind::Ident(object) => format!("{object}.{property}"),
-                        _ => {
-                            lowerer.error("unsupported call target in IR", callee.span);
-                            "unknown".to_owned()
-                        }
-                    },
-                    _ => {
-                        lowerer.error("unsupported call target in IR", callee.span);
-                        "unknown".to_owned()
-                    }
-                };
-                let args: Vec<Value> = args
-                    .iter()
-                    .map(|arg| self.lower_expr(arg, lowerer))
-                    .collect();
-                if (callee_name.contains('.') || callee_name == "unknown")
-                    && !Lowerer::is_known_builtin(&callee_name)
-                {
-                    lowerer.error(
-                        format!("unsupported call target '{callee_name}' in IR"),
-                        callee.span,
+            ExprKind::Call { callee, args } => self.lower_call(callee, args, lowerer),
+            ExprKind::Index {
+                object,
+                index,
+                optional,
+            } => {
+                let object_ty = lowerer.expr_ty(object);
+                if *optional {
+                    return self.lower_optional_access(
+                        super::operators::OptionalAccess {
+                            object,
+                            target: super::operators::OptionalTarget::Index(index),
+                            object_ty,
+                            result_ty: lowerer.expr_ty(expr),
+                            span: expr.span,
+                        },
+                        lowerer,
                     );
                 }
-                let result_ty = if Lowerer::is_known_builtin(&callee_name) {
-                    IrType::Void
-                } else {
-                    lowerer.return_type_of(&callee_name)
-                };
-                let result = match result_ty {
-                    IrType::Void => None,
-                    _ => Some(self.fresh_value()),
-                };
-                self.emit(Instruction::Call {
-                    result,
-                    result_ty,
-                    callee: callee_name,
-                    args,
-                });
-                result.map_or(Value::Null, Value::Local)
-            }
-            ExprKind::Index { object, index } => {
-                let object_ty = lowerer.expr_ty(object);
                 let object = self.lower_expr(object, lowerer);
                 let index = self.lower_expr(index, lowerer);
                 let result = self.fresh_value();
@@ -194,8 +167,24 @@ impl FunctionBuilder {
                 }
                 Value::Local(result)
             }
-            ExprKind::Member { object, property } => {
+            ExprKind::Member {
+                object,
+                property,
+                optional,
+            } => {
                 let object_ty = lowerer.expr_ty(object);
+                if *optional {
+                    return self.lower_optional_access(
+                        super::operators::OptionalAccess {
+                            object,
+                            target: super::operators::OptionalTarget::Member(property),
+                            object_ty,
+                            result_ty: lowerer.expr_ty(expr),
+                            span: expr.span,
+                        },
+                        lowerer,
+                    );
+                }
                 let object = self.lower_expr(object, lowerer);
                 let result = self.fresh_value();
                 match object_ty {

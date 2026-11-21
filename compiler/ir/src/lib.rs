@@ -6,6 +6,7 @@
 //! verifier and textual debug output required by Phase 3.
 
 mod builder;
+mod calls;
 mod checks;
 mod expressions;
 mod ir;

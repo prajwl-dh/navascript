@@ -194,6 +194,19 @@ fn loops_lower_to_verifiable_back_edges() {
 }
 
 #[test]
+fn optional_access_lowers_to_a_null_check() {
+    let source = "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name;";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(
+        main.blocks
+            .iter()
+            .any(|block| block.label.starts_with("optional."))
+    );
+}
+
+#[test]
 fn arrow_captures_and_value_aliases_are_diagnosed() {
     let source = "let base = 10; let add = (x: number): number => x + base;";
     let parsed = parse(source);

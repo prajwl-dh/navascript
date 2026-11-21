@@ -168,7 +168,15 @@ impl FunctionBuilder {
                 Some((slot, ty)) => self.store(slot, ty, value.clone()),
                 None => lowerer.error(format!("unknown value '{name}' in IR"), target.span),
             },
-            ExprKind::Index { object, index } => {
+            ExprKind::Index {
+                object,
+                index,
+                optional,
+            } => {
+                if *optional {
+                    lowerer.error("cannot assign through optional chaining in IR", target.span);
+                    return;
+                }
                 let array = self.lower_expr(object, lowerer);
                 let index = self.lower_expr(index, lowerer);
                 let element_ty = match lowerer.expr_ty(object) {
@@ -189,7 +197,9 @@ impl FunctionBuilder {
                     element_ty,
                 });
             }
-            ExprKind::Member { object, property } => {
+            ExprKind::Member {
+                object, property, ..
+            } => {
                 let object_ty = lowerer.expr_ty(object);
                 match object_ty {
                     IrType::Object(fields) => {

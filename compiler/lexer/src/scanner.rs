@@ -137,7 +137,8 @@ impl<'a> Scanner<'a> {
     /// Consume digits in `radix`, allowing `_` only between two digits.
     fn lex_operator_or_unknown(&mut self) {
         let start = self.pos;
-        let operators: [(&str, TokenKind); 23] = [
+        let operators: [(&str, TokenKind); 24] = [
+            ("?.", TokenKind::QuestionDot),
             ("===", TokenKind::StrictEq),
             ("!==", TokenKind::StrictNotEq),
             ("==", TokenKind::EqEq),

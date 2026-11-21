@@ -187,7 +187,9 @@ limitations for every milestone.
   non-ASCII identifiers, `\x`/`\u` escapes — done 2026-11-21
 - [x] Arrow functions as variable initialisers (annotated parameters, no
   captures) — done 2026-11-21
-- [ ] Optional chaining and bigint (the remaining `COMPATIBILITY.md` §6 syntax rows)
+- [x] Optional chaining (`a?.b`, `a?.[i]`; reference-typed results) — done 2026-11-21
+- [ ] Optional call (`a?.()`) and bigint (the remaining `COMPATIBILITY.md` §6
+  syntax rows)
 - [ ] Generics, classes, inheritance
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
@@ -197,9 +199,9 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (156 passed, 0 failed) succeed;
-  `examples/loops.ts`, `examples/for_of.ts`, `examples/operators.ts` and
-  `examples/arrows.ts` run natively.
+  `cargo test --workspace` (163 passed, 0 failed) succeed;
+  `examples/loops.ts`, `examples/for_of.ts`, `examples/operators.ts`,
+  `examples/arrows.ts` and `examples/optional.ts` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -675,12 +677,31 @@ limitations for every milestone.
 - **Still pending:** optional chaining, bigint, function values/closures,
   exceptions, generics, classes, unions, modules and async/await.
 
+### 2026-11-21 — Phase 6 (fourth increment): optional chaining
+- Added `?.` as a longest-match lexer token, `a?.b` and `a?.[i]` parsing,
+  type-checking (reference-typed results only; scalar results diagnosed), and
+  IR lowering with a dedicated `IsNull` instruction, null/value blocks and a
+  result stack slot. Codegen emits `icmp eq ptr ..., null` for `IsNull`.
+- Rejected assignment through optional chaining in both the checker and IR.
+  `a?.()` produces a parse diagnostic, not a silent miscompile.
+- Added private `parser/optional.rs` and `typechecker/optional.rs`, plus
+  `ir/calls.rs`, keeping touched implementation files within ADR-0016.
+- Two-axis review of `5c5695c...HEAD` was applied: the global `==` change was
+  replaced by the explicit `IsNull` instruction, the optional-access data is
+  now an enum-backed struct (no invalid states), and the double `target.kind`
+  switch was folded into one match.
+- Added `examples/optional.ts` and lexer/parser/typechecker/IR/native tests.
+  Suite grew from 156 to 163 tests; fmt and clippy clean.
+- **Known limitation:** the null branch is unobservable until nullable values
+  exist; results are typed `T` until union types land. Optional calls and
+  bigint remain pending.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: optional chaining and bigint, then generics,
+   `ROADMAP.md`: optional calls and bigint, then generics,
    classes, structural typing, unions, modules, closures and exceptions
    (ADR-0015), async/await. Loops and the additional literals/operators are
    done; `break`/`continue` can be added later if a fixture needs them.

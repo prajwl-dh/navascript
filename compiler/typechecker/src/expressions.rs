@@ -95,46 +95,16 @@ impl<'a> Checker<'a> {
                 let callee_ty = self.infer_expr(callee);
                 self.infer_call(&callee_ty, args, expr.span)
             }
-            ExprKind::Index { object, index } => {
-                let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
-                let index_ty = self.infer_expr(index);
-                if !matches!(index_ty, Type::Number | Type::Unknown | Type::Error) {
-                    self.error("array index must be a number", index.span);
-                }
-                match object_ty {
-                    Type::Array(inner) => *inner,
-                    Type::String => Type::String,
-                    Type::Error | Type::Unknown => Type::Unknown,
-                    other => {
-                        self.error(
-                            format!("cannot index a value of type '{}'", other.display()),
-                            expr.span,
-                        );
-                        Type::Error
-                    }
-                }
-            }
-            ExprKind::Member { object, property } => {
-                let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
-                match object_ty {
-                    Type::Object(fields) => fields.get(property).cloned().unwrap_or_else(|| {
-                        self.error(format!("property '{property}' does not exist"), expr.span);
-                        Type::Error
-                    }),
-                    Type::String | Type::Array(_) if property == "length" => Type::Number,
-                    Type::Error | Type::Unknown => Type::Unknown,
-                    other => {
-                        self.error(
-                            format!(
-                                "property access requires an object, found '{}'",
-                                other.display()
-                            ),
-                            expr.span,
-                        );
-                        Type::Error
-                    }
-                }
-            }
+            ExprKind::Index {
+                object,
+                index,
+                optional,
+            } => self.infer_index(object, index, *optional, expr.span),
+            ExprKind::Member {
+                object,
+                property,
+                optional,
+            } => self.infer_member(object, property, *optional, expr.span),
             ExprKind::ArrayLit(items) => {
                 let element_types: Vec<Type> =
                     items.iter().map(|item| self.infer_expr(item)).collect();
@@ -171,7 +141,14 @@ impl<'a> Checker<'a> {
                     None => self.error(format!("unknown identifier '{name}'"), target.span),
                 }
             }
-            ExprKind::Member { object, property } => {
+            ExprKind::Member {
+                object,
+                property,
+                optional,
+            } => {
+                if self.reject_optional_target(*optional, target.span) {
+                    return;
+                }
                 let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
                 match object_ty {
                     Type::Object(fields) => match fields.get(property) {
@@ -187,7 +164,14 @@ impl<'a> Checker<'a> {
                     ),
                 }
             }
-            ExprKind::Index { object, index } => {
+            ExprKind::Index {
+                object,
+                index,
+                optional,
+            } => {
+                if self.reject_optional_target(*optional, target.span) {
+                    return;
+                }
                 let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
                 let index_ty = self.infer_expr(index);
                 if !matches!(index_ty, Type::Number | Type::Unknown | Type::Error) {

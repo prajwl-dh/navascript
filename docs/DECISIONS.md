@@ -352,6 +352,27 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0020 — Optional chaining lowering
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6 adds `a?.b` and `a?.[i]`. The existing `==` instruction
+  has no pointer-comparison semantics, and reusing it for null checks would
+  change comparison behaviour for every string expression.
+- **Decision:** Introduce a dedicated `IsNull` IR instruction that codegen emits
+  as `icmp eq ptr <value>, null`. Optional accesses allocate a result stack
+  slot, branch to a null block (storing `null`) or a value block (performing the
+  normal member/index access), then join. The checker allows only
+  reference-typed results; scalar results and assignment through `?.` are
+  diagnosed. The access descriptor is an enum-backed struct so member and
+  index forms cannot be confused.
+- **Consequences:** Existing `==`/`!=` semantics are untouched. Since no
+  nullable object/array value can currently be constructed, the null branch is
+  unobservable and results are typed `T` until union types land (ADR deferred to
+  a later Phase 6 increment). Optional calls `a?.()` remain unsupported.
+
+---
+
 ## Template for new decisions
 
 ```

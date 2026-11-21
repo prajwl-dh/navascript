@@ -264,11 +264,12 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 **Known limitations**
 - Decorators, namespaces, JSX/TSX deferred unless evidence demands otherwise.
 - Full `lib.d.ts` compatibility out of scope for this phase.
-- Loops landed first, then the additional literals/operators and arrow
-  functions (see `PROGRESS.md`). Arrows are limited to annotated variable
-  initialisers with no captures. `break`/`continue`, optional chaining, bigint
-  and function values are not implemented yet; iteration is limited to
-  arrays/strings.
+- Loops landed first, then the additional literals/operators, arrow functions
+  and optional member/index chaining (see `PROGRESS.md`). Arrows are limited to
+  annotated variable initialisers with no captures; optional chaining is limited
+  to reference-typed results and cannot be observed as null yet. `break`/
+  `continue`, optional calls, bigint and function values are not implemented;
+  iteration is limited to arrays/strings.
 
 ---
 

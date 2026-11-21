@@ -110,6 +110,9 @@ fn print_instruction(instruction: &Instruction) -> String {
                 None => format!("call {callee}({args})"),
             }
         }
+        Instruction::IsNull { result, value } => {
+            format!("%{result} = is_null {}", value_name(value))
+        }
         Instruction::ToBool { result, value } => {
             format!("%{result} = bool {}", value_name(value))
         }
