@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-20
-- **Current phase:** Planning complete — Phase 0 not yet started
+- **Current phase:** Phase 0 complete — ready for Phase 1 (Lexer and Parser)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -18,8 +18,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Project planning | [x] Done |
 | Tracking documents created | [x] Done |
 | Repository skeleton created | [x] Done |
-| Git repository initialized | [x] Done (no commit yet) |
-| Phase 0 — Foundation | [ ] Not started |
+| Git repository initialized | [x] Done (initial commit on `main`) |
+| Phase 0 — Foundation | [x] Complete |
 | Phase 1 — Lexer & Parser | [ ] Not started |
 | Phase 2 — Type system | [ ] Not started |
 | Phase 3 — IR | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 0 of 12 implementation phases complete.
+**Overall:** 1 of 12 implementation phases complete.
 
 ---
 
@@ -55,8 +55,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Ninja | build infrastructure | — | [!] MISSING | Install alongside CMake |
 
 **Environment blockers:**
-- [ ] Install CMake + Ninja (`brew install cmake ninja`) when Phase 0 needs them.
-- [ ] Decide how the Rust compiler links LLVM: `llvm-sys` crate (needs `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`) vs. emitting textual LLVM IR and calling `llc`/`clang`. Decision deferred to Phase 0/4; see `docs/DECISIONS.md`.
+- [ ] Install CMake + Ninja (`brew install cmake ninja`). Deferred in Phase 0 — not needed until deeper LLVM/C++ work in Phase 4+.
+- [ ] Decide how the Rust compiler links LLVM: `llvm-sys` crate (needs `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`) vs. emitting textual LLVM IR and calling `llc`/`clang`. Deferred to Phase 4; Phase 0 intentionally does not link LLVM. See `docs/DECISIONS.md` ADR-0004.
 
 ---
 
@@ -81,9 +81,9 @@ nava/
 
 - [x] Directory structure created
 - [x] `.gitkeep` placeholders added so empty dirs are tracked
-- [x] `git init` completed (first commit deferred to Phase 0)
-- [ ] `Cargo.toml` workspace + CLI crate — Phase 0
-- [ ] First commit — Phase 0
+- [x] `git init` completed on branch `main`
+- [x] `Cargo.toml` workspace + 10 member crates (CLI driver + 9 module crates)
+- [x] First commit — Phase 0
 
 ---
 
@@ -93,15 +93,18 @@ See `docs/ROADMAP.md` for objectives, tasks, tests, acceptance criteria and know
 limitations for every milestone.
 
 ### Phase 0 — Foundation
-- [ ] Verify toolchain (done — see §2)
-- [ ] Create `Cargo.toml` workspace and `nava` CLI crate
-- [ ] Implement `nava --version`
-- [ ] Implement `nava --help`
-- [ ] Implement `nava build` (may be a stub initially)
-- [ ] Set up unit + integration test harness
-- [ ] Document the build process
-- [ ] Make the initial git commit
-- **Exit condition:** a minimal compiler project builds and runs its own CLI.
+- [x] Verify toolchain (done — see §2)
+- [x] Create `Cargo.toml` workspace and `nava` CLI crate
+- [x] Implement `nava --version` (also `-V`)
+- [x] Implement `nava --help` (also `-h`, and no-argument default)
+- [x] Implement `nava build` (stub: validates input, reports Phase 4 TODO)
+- [x] Set up unit (12) + integration (8) test harness
+- [x] Document the build process (`docs/BUILD.md`)
+- [x] Make the initial git commit
+- **Exit condition met:** the workspace builds and the `nava` CLI runs its documented commands.
+- **Verification:** `cargo build --workspace`, `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets -- -D warnings`, and
+  `cargo test --workspace` (20 passed, 0 failed) all succeed.
 
 ### Phase 1 — Lexer and Parser
 - [ ] Tokens: keywords, identifiers, numbers, strings, operators, comments
@@ -195,14 +198,34 @@ limitations for every milestone.
 - Wrote `README.md` with quick-start and links.
 - **No compiler code written yet** — implementation begins with Phase 0 next.
 
+### 2026-11-20 — Phase 0 (Foundation) completed
+- Created a Cargo workspace with 10 member crates: the `nava` CLI driver
+  (`compiler/driver`, lib `nava_driver`) plus placeholder crates for `ast`,
+  `lexer`, `parser`, `symbol`, `semantic`, `typechecker`, `ir`, `optimizer`, and
+  `codegen`. Each placeholder records the phase in which it will be filled in.
+- Implemented dependency-free CLI argument parsing in `cli.rs` with unit tests,
+  and a thin `main.rs` that exits with the dispatcher's status code.
+- `nava --version` / `-V` print `nava 0.1.0`; `--help` / `-h` and no arguments
+  print usage; `build` validates arguments and input-file existence, then
+  reports that native code generation is not implemented yet.
+- Added 8 integration tests in `compiler/driver/tests/cli.rs` that invoke the
+  real binary via `CARGO_BIN_EXE_nava`.
+- Added `examples/fibonacci.ts` (the Phase 4 acceptance program), `scripts/build.sh`,
+  `scripts/test.sh`, `.gitignore`, and `docs/BUILD.md`.
+- Fixed a clippy `trim_split_whitespace` warning and formatted with rustfmt.
+- Verified: build OK, fmt check OK, clippy `-D warnings` OK, 20 tests passed.
+- Deferred CMake/Ninja installation and the LLVM-link decision (ADR-0004) to
+  Phase 4, since Phase 0 does not link LLVM.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 0: create the Rust workspace + CLI skeleton (`nava --version`,
-   `--help`, `build`), basic tests, and the first commit.
-2. Install CMake + Ninja if Phase 0/4 requires them.
-3. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004).
+1. Start Phase 1: implement the `nava-lexer` and `nava-ast` crates (tokens with
+   positions, AST node definitions, unit tests), then the parser.
+2. Install CMake + Ninja when Phase 4 needs them.
+3. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
+   start of Phase 4.
 4. Update this file after each completed task.
 
 ---

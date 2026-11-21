@@ -4,7 +4,7 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Planning complete. Implementation starts at Phase 0 (Foundation).
+**Status:** Phase 0 (Foundation) complete. Next: Phase 1 — Lexer and Parser.
 
 ## Goals (tracked independently)
 
@@ -54,9 +54,23 @@ examples/    sample programs
 scripts/     helper scripts
 ```
 
+## Build and test
+
+```bash
+cargo build --workspace
+cargo test --workspace     # 20 tests in Phase 0
+target/debug/nava --version
+target/debug/nava --help
+target/debug/nava build examples/fibonacci.ts
+```
+
+Helper scripts: `scripts/build.sh` and `scripts/test.sh`. Full instructions,
+including LLVM setup for later phases, are in `docs/BUILD.md`.
+
 ## Documentation
 
 - **Start here:** `docs/PROGRESS.md` — central progress tracker and work log.
+- `docs/BUILD.md` — prerequisites, build/test commands, CLI usage.
 - `docs/ROADMAP.md` — 12 milestones with tasks, tests, acceptance criteria.
 - `docs/ARCHITECTURE.md` — module boundaries and data flow.
 - `docs/LANGUAGE_SPEC.md` — supported language subset.

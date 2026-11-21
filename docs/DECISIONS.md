@@ -48,8 +48,9 @@ a new number and references the old one. Keep entries short and factual.
 - **Options:**
   - A: `llvm-sys` crate with `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`.
   - B: emit `.ll` and invoke `llc`/`clang` from the driver.
-- **Decision:** Deferred. Prototype both minimally in Phase 0/4; choose based on
-  build reliability on Homebrew macOS and debugging ergonomics.
+- **Decision:** Deferred. Phase 0 intentionally does not link LLVM, so no choice
+  was needed there. Prototype both minimally at the start of Phase 4; choose
+  based on build reliability on Homebrew macOS and debugging ergonomics.
 - **Consequences:** Do not let this decision leak into the front end.
 
 ## ADR-0005 — Memory management strategy
