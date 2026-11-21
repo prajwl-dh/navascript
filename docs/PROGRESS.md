@@ -217,6 +217,17 @@ limitations for every milestone.
 - Deferred CMake/Ninja installation and the LLVM-link decision (ADR-0004) to
   Phase 4, since Phase 0 does not link LLVM.
 
+### 2026-11-20 — Front-end module design
+- Applied the codebase-design skill: framed the front-end seam as a deepening
+  candidate (in-process pure computation), then compared three independently
+  designed interfaces (minimal, flexible, caller-optimized).
+- Chose a hybrid, recorded in `docs/DESIGN.md`: seam at
+  `nava_parser::parse(&str) -> ParseOutput`; `nava-lexer` private behind it;
+  `nava-ast` a public dependency-free leaf; no `DiagnosticSink` trait until a
+  second real adapter exists; multi-file support as a separate function when
+  Phase 6 needs it.
+- Linked the design from `docs/ARCHITECTURE.md`. No implementation code changed.
+
 ---
 
 ## 6. Next actions (in order)

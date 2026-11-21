@@ -73,6 +73,7 @@ including LLVM setup for later phases, are in `docs/BUILD.md`.
 - `docs/BUILD.md` — prerequisites, build/test commands, CLI usage.
 - `docs/ROADMAP.md` — 12 milestones with tasks, tests, acceptance criteria.
 - `docs/ARCHITECTURE.md` — module boundaries and data flow.
+- `docs/DESIGN.md` — deep-module interfaces and seams.
 - `docs/LANGUAGE_SPEC.md` — supported language subset.
 - `docs/COMPATIBILITY.md` — TypeScript compatibility matrix.
 - `docs/BOOTSTRAP.md` — three-stage self-hosting strategy.

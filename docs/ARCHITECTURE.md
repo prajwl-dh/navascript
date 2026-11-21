@@ -50,6 +50,12 @@ TypeScript source (.ts)
 **Critical boundary:** the parser, AST, semantic analysis, type checker, and IR
 must remain independent of LLVM. Only the `codegen` module may depend on LLVM.
 
+The deep-module design of the front-end seam (what the driver calls, what is
+hidden behind it, and which adapters are justified) is recorded in
+`docs/DESIGN.md`. In short: `nava_parser::parse(&str) -> ParseOutput` is the
+external seam; `nava-lexer` is a private internal seam; `nava-ast` is a public
+dependency-free leaf shared with the type checker and IR lowering.
+
 ## 2. Module responsibilities
 
 | Module | Location | Responsibility | Allowed deps |
