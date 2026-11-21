@@ -30,8 +30,9 @@ Stage 2  nova2 (Nava compiler)
   compilers. Comparing behavior and outputs across these stages verifies the
   bootstrap.
 
-Artifacts and sources live under `bootstrap/stage0`, `bootstrap/stage1`, and
-`bootstrap/stage2`.
+Artifacts and sources will live under `bootstrap/stage0`, `bootstrap/stage1`,
+and `bootstrap/stage2`. These directories do not exist yet — the empty
+placeholders were removed in ADR-0016 and will be recreated in Phase 10.
 
 ## 2. Why not write the first compiler in Nava?
 

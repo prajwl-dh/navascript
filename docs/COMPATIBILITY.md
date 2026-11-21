@@ -39,6 +39,7 @@ exceptions are deferred to Phase 6 (ADR-0015).
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
 | `number`, `string`, `boolean`, `void` | [x] | `tests/typechecker/` | Phase 2 |
+| `null` | [~] | manual check | type-checks; `console.log(null)` prints `null`, but an inferred `null` value cannot be lowered (opaque type) |
 | Arrays | [x] | `tests/typechecker/` | `T[]` and array literals |
 | Object types | [x] | `tests/typechecker/` | object literals and member access |
 | Function signatures | [x] | `tests/typechecker/` | `(a: T) => R`, arity and argument checks |
@@ -59,7 +60,7 @@ exceptions are deferred to Phase 6 (ADR-0015).
 | Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
 | Closures / function values | [ ] | — | Phase 6 (ADR-0015) |
 | Exceptions | [ ] | — | Phase 6 (ADR-0015); runtime errors are currently fatal |
-| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans and strings print natively; objects print as an opaque pointer until Phase 6 |
+| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans and strings print natively; object/array values are not meaningfully supported (raw bytes printed) until Phase 6 |
 | Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
 
 ## 4. Platform
@@ -99,8 +100,7 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
-| Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 5 |
-| Functions falling through without returning | lowering reports "may fall through without returning" instead of fabricating a value | Phase 5 |
+| Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
 | Closures and first-class functions | no function values or captured environments in IR | Phase 6 |
 | `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 |

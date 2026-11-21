@@ -30,7 +30,7 @@ TypeScript source (.ts)
                         │
                         ▼
                  ┌─────────────┐
-                 │ IR optimizer│   constant folding, DCE, inlining
+                 │ IR optimizer│   Phase 8 — not yet in the pipeline
                  └─────────────┘
                         │
                         ▼
@@ -64,14 +64,14 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Parser | `compiler/parser/` | Tokens → AST; syntax diagnostics | lexer, ast |
 | AST | `compiler/ast/` | Node definitions, spans, debug printing | none |
 | Symbol table | `compiler/symbol/` | Scopes, symbols, name resolution | ast |
-| Semantic | `compiler/semantic/` | Scope building, validity checks | ast, symbol |
-| Type checker | `compiler/typechecker/` | Types, inference, assignability | ast, symbol, semantic |
+| Semantic | `compiler/semantic/` | Reserved placeholder; scope building/validity checks live in the type checker (ADR-0010) | ast, symbol |
+| Type checker | `compiler/typechecker/` | Types, inference, assignability, semantic checks | ast, symbol, semantic |
 | IR | `compiler/ir/` | IR data model, lowering, verifier | typechecker, ast |
-| Optimizer | `compiler/optimizer/` | IR → IR transformation passes | ir |
+| Optimizer | `compiler/optimizer/` | Reserved placeholder; IR → IR passes arrive in Phase 8 | ir |
 | Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
-| Runtime | `runtime/` | Allocator, strings, arrays, objects, exceptions, closures | codegen ABI contract |
+| Runtime | `runtime/` | Allocator, strings, arrays, objects, console; closures/exceptions deferred to Phase 6 (ADR-0015) | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a
@@ -129,14 +129,19 @@ scripts/      build/test/benchmark helper scripts
 
 ## 6. Build profiles
 
-- **Debug:** minimal optimization, debug info, assertions and IR dumps enabled.
-- **Release:** LLVM optimization pipeline enabled, debug info optional.
+- **Debug (default):** LLVM IR is compiled with `llc -O0` and the C runtime with
+  `clang -O0`. Source-level debug info is not emitted yet (Phase 11). `--emit-ir`
+  prints the generated LLVM IR on demand; there are no always-on IR dumps.
+- **Release (`--release`):** `llc -O3` and `clang -O2` for the C runtime. There is
+  no separate `opt` pass pipeline or in-process LLVM pass manager (ADR-0004);
+  dedicated IR optimization passes arrive in Phase 8.
 
 ## 7. Testing strategy
 
 - All tests in `tests/`, one file per module's public interface; no inline
   test modules in `compiler/`. See `docs/BUILD.md` for the target list.
-- Golden tests for lexer/parser/IR output.
+- Interface tests for the lexer and parser; golden-style output assertions for
+  textual IR and generated LLVM IR.
 - End-to-end tests compile `.ts` → executable → run → assert stdout/exit code.
 - Compatibility corpus compares behavior against `tsc`/Node where applicable.
 - Every stage of bootstrap runs the same test suite (see `BOOTSTRAP.md`).

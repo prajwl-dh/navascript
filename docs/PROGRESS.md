@@ -177,12 +177,15 @@ limitations for every milestone.
   indices, string coercion and an out-of-bounds error path.
 
 ### Phase 6 — Language expansion
+- [ ] Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1
+- [ ] Arrow functions and the additional literals/operators in `COMPATIBILITY.md` §6
 - [ ] Generics, classes, inheritance
-- [ ] Interfaces / structural typing
+- [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
 - [ ] Modules, imports, exports
 - [ ] Closures, higher-order functions
 - [ ] Async/await, promises
+- [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Exit condition:** larger compatibility suite passes.
 
 ### Phase 7 — Compatibility
@@ -562,13 +565,32 @@ limitations for every milestone.
   `runtime/README.md`. All 120 tests, fmt and clippy still pass, and every
   example executable was rerun successfully.
 
+### 2026-11-21 — Documentation accuracy audit
+- Re-read every document and compared each claim with the code; fixed the
+  discrepancies found before Phase 6 starts:
+  - Phase 6 checklists now include loops, arrow functions/deferred literals and
+    operators, and exceptions (ADR-0015); the Phase 5 task/test lists in
+    `ROADMAP.md` no longer claim closures or exceptions, which are Phase 6 work.
+  - `ARCHITECTURE.md` build profiles now describe the real toolchain
+    (`llc -O0`/`-O3`, `clang -O0`/`-O2`; no debug info and no separate `opt`
+    pipeline yet) instead of claiming debug info and assertions are enabled.
+  - `LANGUAGE_SPEC.md` and `COMPATIBILITY.md` now reflect Phase 5 for strings,
+    arrays, objects, member/index access and `console.log`; `null` is marked
+    partial after verifying that an inferred `null` value fails codegen while
+    `console.log(null)` prints `null`.
+  - `BUILD.md`'s test-surface note, `BOOTSTRAP.md`'s future artifact paths and
+    the `Program` snippet in `DESIGN.md` were corrected.
+- Verified the environment versions and `cargo test --workspace` (120 passed).
+  No compiler code changed.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 6 (Language expansion): loops, classes, generics, modules,
-   closures/function values and exceptions (ADR-0015), then structural typing
-   and unions.
+1. Start Phase 6 (Language expansion) in the priority order defined in
+   `ROADMAP.md`: loops, arrow functions/deferred literals and operators,
+   generics, classes, structural typing, unions, modules, closures and
+   exceptions (ADR-0015), async/await.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

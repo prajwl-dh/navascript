@@ -17,8 +17,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
   `true`, `false`, `null`, `void`, `type`, `interface`.
-- [ ] Keywords `for`, `while`, `class`, `import`, `export`, `async`, `await`
-  (their features are unimplemented; not yet recognized by the lexer).
+- [ ] Keywords `for`, `while`, `do`, `switch`, `class`, `import`, `export`,
+  `async`, `await`, `throw`, `try`, `catch`, `finally` (their features are
+  unimplemented; not yet recognized by the lexer).
 - [x] Identifiers: ASCII letters, `_`, `$`, then alphanumeric/`_`/`$`.
   Unicode identifiers are not yet supported.
 - [x] Numeric literals: decimal integers and floats (including exponents).
@@ -38,17 +39,18 @@ and the intent to grow toward broad compatibility. Status values mirror
 ### Primitives (Phase 2, native values in Phase 4)
 - [x] `number` — 64-bit floating point (ADR-0006); emitted as LLVM `double`.
 - [x] `boolean` — emitted as LLVM `i1`; prints `true`/`false`.
-- [x] `string` — type-checked and carried in IR as a string global; runtime
-  representation and printing are Phase 5.
+- [x] `string` — NUL-terminated arena buffers (Phase 5); literals, `+`,
+  `length`, indexing and equality work natively.
 - [x] `void`
-- [x] `null` — represented in IR; runtime semantics are Phase 5.
+- [~] `null` — type-checks; `console.log(null)` prints `null`, but an inferred
+  `null` value cannot be lowered (its IR type is opaque). Full semantics TBD.
 - [ ] `undefined` — not yet implemented.
 
-### Composites (Phase 2; native layout deferred to Phase 5)
-- [x] Arrays `T[]` — type-checked and represented in IR; native indexing is
-  Phase 5.
+### Composites (Phase 2 type checking; native layout in Phase 5)
+- [x] Arrays `T[]` — type-checked; native literals, indexing, assignment and
+  `length` work (Phase 5).
 - [x] Object types `{ x: number }` — type-checked with structural field checks;
-  native layout is Phase 5.
+  native field layout works (Phase 5).
 - [x] Function signatures `(a: number) => string` — type-checked; arity and
   argument types checked at calls.
 - [x] Type aliases `type Foo = ...`, including chains and cycle diagnostics.
@@ -71,10 +73,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Binary/unary operators with TypeScript precedence
 - [x] Function calls (direct calls lower and link natively)
 - [x] Member access `obj.prop` (parsed, type-checked, lowered; native field
-  layout is Phase 5)
-- [x] Array indexing `arr[i]` (parsed and type-checked; native layout Phase 5)
-- [x] Object literals (parsed and type-checked; native layout Phase 5)
-- [ ] Arrow functions / closures (Phase 5/6)
+  layout works — Phase 5)
+- [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
+- [x] Object literals (parsed, type-checked; native layout works — Phase 5)
+- [ ] Arrow functions / closures (Phase 6; ADR-0015)
 - [ ] Template literals (Phase 6)
 - [ ] Ternary `cond ? a : b`
 
@@ -86,7 +88,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] `if` / `else`, including unbraced single-statement branches
 - [x] `return`
 - [ ] `for`, `while`, `do-while`, `for-of` (scheduled for Phase 6)
-- [ ] `throw` / `try` / `catch` / `finally` (Phase 5)
+- [ ] `throw` / `try` / `catch` / `finally` (Phase 6; ADR-0015)
 - [ ] `switch`
 
 ## 6. Functions
@@ -95,7 +97,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Parameters and return type annotations
 - [x] Inference for return types
 - [x] Recursion — the fibonacci acceptance program runs natively
-- [ ] Nested functions / closures (Phase 5/6)
+- [ ] Nested functions / closures (Phase 6; ADR-0015)
 - [ ] Higher-order functions (Phase 6)
 - [ ] Async functions and promises (Phase 6)
 
@@ -116,8 +118,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [ ] Closures (Phase 6, ADR-0015)
 - [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
   terminate the process with a diagnostic (Phase 6, ADR-0015).
-- [~] `console.log` — numbers, booleans and strings print natively; object
-  values print as an opaque pointer until Phase 6.
+- [~] `console.log` — numbers, booleans and strings print natively; object and
+  array values are not meaningfully supported (their raw bytes are printed)
+  until Phase 6.
 
 ## 9. First acceptance program
 

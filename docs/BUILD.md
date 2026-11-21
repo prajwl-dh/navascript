@@ -76,8 +76,9 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
-`tests/runtime/` and `tests/compatibility/` are reserved for Phase 5 and 7
-suites. `tests/codegen/` and `tests/driver/native.rs` landed in Phase 4.
+`tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`
+is reserved for the Phase 7 corpus. `tests/codegen/` and `tests/driver/native.rs`
+landed in Phase 4.
 
 Cargo only discovers `tests/` inside a package root, so every file is
 registered as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`.

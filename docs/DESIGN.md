@@ -33,7 +33,7 @@ source text into a program plus diagnostics.
 // nava-ast — dependency-free leaf crate (real second consumers: typechecker, IR)
 pub struct FileId(pub u32);
 pub struct Span { pub file: FileId, pub start: u32, pub end: u32 } // half-open byte offsets
-pub struct Program { pub items: Vec<Item> }
+pub struct Program { pub items: Vec<Item>, pub span: Span }
 
 // nava-parser — the external seam
 pub fn parse(source: &str) -> ParseOutput;

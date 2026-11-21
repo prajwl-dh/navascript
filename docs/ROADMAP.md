@@ -197,8 +197,8 @@ Before a phase is marked complete in `PROGRESS.md`:
 - `nava build` produces a native macOS executable that runs without Node.js.
 
 **Known limitations**
-- Strings, arrays, objects and runtime features are not yet supported; the C
-  runtime shim only prints numbers and booleans.
+- Strings, arrays, objects and runtime features were not supported in Phase 4;
+  they landed in Phase 5 (ADR-0015 defers only closures and exceptions).
 - x86-64 output not yet validated (targets exist in LLVM but path untested).
 - Debug mode is `-O0`; source-level debug information is Phase 11.
 
@@ -213,12 +213,14 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Memory allocation and a documented management strategy (see ADR-0005).
 - String representation and operations.
 - Arrays and objects.
-- Closures and function values.
-- Exceptions / runtime error reporting.
+- Fatal runtime error reporting for bounds/field errors (see ADR-0015).
 - Minimal `console.log` and core stdlib surface.
 
+Closures/function values and JavaScript-style exceptions are **Phase 6** work,
+deferred by ADR-0015; they are not Phase 5 tasks.
+
 **Tests**
-- Runtime unit tests for allocation, strings, arrays, objects, closures.
+- Runtime unit tests for allocation, strings, arrays, objects.
 - End-to-end tests using collections and error paths.
 
 **Acceptance criteria**
@@ -248,6 +250,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Union and intersection types.
 - Modules, imports, exports, module resolution.
 - Closures and higher-order functions (with runtime from Phase 5).
+- Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
 - Async/await and promises.
 
 **Tests**
