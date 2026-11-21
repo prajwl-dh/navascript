@@ -15,7 +15,9 @@ fn parses_build_with_one_input() {
         parse_args(["build", "examples/fibonacci.ts"]),
         Command::Build {
             input: PathBuf::from("examples/fibonacci.ts"),
+            output: None,
             emit_ir: false,
+            release: false,
         }
     );
 }

@@ -57,18 +57,18 @@ entries are implemented and tested; runtime entries remain unimplemented.
 | Arrays & objects | [ ] | — | Phase 5 |
 | Closures / function values | [ ] | — | Phase 5/6 |
 | Exceptions | [ ] | — | Phase 5; semantics will differ initially |
-| `console.log` | [~] | `tests/ir/` | typed + lowered as a call; runtime implementation Phase 5 |
+| `console.log` | [~] | `tests/driver/native.rs` | numbers and booleans print natively via a minimal C shim; strings and full semantics Phase 5 |
 | Memory management | [ ] | — | Strategy in ADR-0005 |
 
 ## 4. Platform
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| macOS ARM64 native executable | [ ] | — | Phase 4; host is arm64 |
-| x86-64 macOS | [ ] | — | Later; LLVM target available |
+| macOS ARM64 native executable | [x] | `tests/driver/native.rs` | host triple detected via llvm-config |
+| x86-64 macOS | [ ] | — | LLVM target available; not yet validated |
 | Linux / Windows | [-] | — | Phase 11 |
 | Debug info / debugger | [ ] | — | Phase 11 |
-| No Node.js dependency at runtime | [ ] | — | Core requirement |
+| No Node.js dependency at runtime | [x] | `tests/driver/native.rs` | native Mach-O, C runtime shim only |
 
 ## 5. Compatibility testing strategy (Phase 7)
 
@@ -100,3 +100,5 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Collection literals in IR | type-check but lowering reports "not supported in IR yet" | Phase 5 |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 5 |
 | Functions falling through without returning | lowering reports "may fall through without returning" instead of fabricating a value | Phase 5 |
+| Strings in native output | codegen reports "string globals are not supported"; strings arrive with the Phase 5 runtime | Phase 5 |
+| Field and element access in native output | codegen reports these as unsupported until the runtime defines their layout | Phase 5 |

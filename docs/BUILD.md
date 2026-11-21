@@ -70,6 +70,8 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/typechecker/` | type resolution, checking, plus `pipeline.rs` |
 | `tests/driver/` | CLI argument parsing and the real `nava` binary |
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
+| `tests/codegen/` | Nava IR → LLVM IR translation |
+| `tests/driver/native.rs` | end-to-end native compile + run (debug and release) |
 
 `tests/codegen/`, `tests/runtime/` and `tests/compatibility/` are reserved for
 Phase 4, 5 and 7 suites.
@@ -94,12 +96,20 @@ After `cargo build --workspace`, the binary is at `target/debug/nava`:
 ```bash
 target/debug/nava --version     # nava 0.1.0
 target/debug/nava --help
-target/debug/nava build examples/fibonacci.ts
+target/debug/nava build examples/fibonacci.ts -o fibonacci
+./fibonacci                     # prints 55
+target/debug/nava build --release examples/fibonacci.ts -o fibonacci
+target/debug/nava build --emit-ir examples/fibonacci.ts   # LLVM IR
 ```
 
-`nava build` parses, type-checks and lowers the source to Nava IR. Add
-`--emit-ir` to print the IR instead of the status line. Native compilation is
-Phase 4.
+`nava build` parses, type-checks, lowers and compiles the source to a native
+Mach-O executable. `-o` sets the output path (default: source file stem),
+`--release` enables `-O3`/`-O2` (debug uses `-O0`; source-level debug info is
+Phase 11), and `--emit-ir` prints LLVM IR instead of linking. The external
+toolchain is discovered from `LLVM_SYS_231_PREFIX` (or
+`/opt/homebrew/opt/llvm`): `llvm-config` supplies the host target triple,
+`llc` emits the object, and `clang` compiles the small C runtime and links.
+No CMake or Ninja is required.
 
 ## 5. Workspace layout
 

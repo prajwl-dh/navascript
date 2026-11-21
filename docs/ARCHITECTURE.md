@@ -68,7 +68,8 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Type checker | `compiler/typechecker/` | Types, inference, assignability | ast, symbol, semantic |
 | IR | `compiler/ir/` | IR data model, lowering, verifier | typechecker, ast |
 | Optimizer | `compiler/optimizer/` | IR → IR transformation passes | ir |
-| Codegen | `compiler/codegen/` | IR → LLVM IR / object; target query | ir, optimizer, LLVM |
+| Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
+| Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
 | Runtime | `runtime/` | Allocator, strings, arrays, objects, exceptions, closures | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
@@ -97,7 +98,8 @@ arrays, objects, exception handling). This contract is versioned in
 ## 4. LLVM strategy
 
 LLVM 23.1.6 is installed at `/opt/homebrew/opt/llvm` with AArch64 and X86
-targets built. Two integration options are under evaluation (see ADR-0004):
+targets built. ADR-0004 resolved the integration choice in Phase 4; the options
+considered were:
 
 - **Option A — `llvm-sys` crate:** link libLLVM from Homebrew via
   `LLVM_SYS_231_PREFIX`. Tight integration, in-process passes, but version-
@@ -106,8 +108,9 @@ targets built. Two integration options are under evaluation (see ADR-0004):
   the driver. Simpler build, easier debugging, slower compile, more process
   plumbing.
 
-Decision recorded in `docs/DECISIONS.md`. Do not hardcode ARM64: query the
-target triple from LLVM and let `-target` drive emission.
+**Decision:** Option B — emit `.ll`, run `llc -mtriple <host triple>`, link with
+`clang`. The host triple comes from `llvm-config --host-target`; it is never
+hardcoded to ARM64. The driver owns tool discovery and build errors.
 
 ## 5. Repository layout
 
@@ -116,8 +119,8 @@ compiler/     source modules + Cargo crates (workspace)
 runtime/      allocator, strings, arrays, objects, exceptions
 bootstrap/    stage0 (Rust), stage1 and stage2 (Nava compiler source + artifacts)
 stdlib/       Nava standard library source
-tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, driver;
-              codegen/runtime/compatibility reserved for later phases
+tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
+              driver; runtime/compatibility reserved for later phases
 benchmarks/   reproducible performance suite
 docs/         this documentation set
 examples/     sample .ts programs, starting with fibonacci.ts

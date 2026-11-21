@@ -169,6 +169,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 **Known limitations**
 - No optimization passes yet.
 - Memory model still backend-agnostic.
+- Target validation beyond the detected host (e.g. x86-64) is Phase 11.
 
 ---
 
@@ -192,8 +193,10 @@ Before a phase is marked complete in `PROGRESS.md`:
 - `nava build` produces a native macOS executable that runs without Node.js.
 
 **Known limitations**
-- Strings, arrays, objects and runtime features are not yet supported.
+- Strings, arrays, objects and runtime features are not yet supported; the C
+  runtime shim only prints numbers and booleans.
 - x86-64 output not yet validated (targets exist in LLVM but path untested).
+- Debug mode is `-O0`; source-level debug information is Phase 11.
 
 ---
 

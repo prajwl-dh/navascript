@@ -5,8 +5,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 [Work log](#work-log) explaining what is happening.
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
-- **Last updated:** 2026-11-20
-- **Current phase:** Phase 3 complete — ready for Phase 4 (Native Backend)
+- **Last updated:** 2026-11-21
+- **Current phase:** Phase 4 complete — ready for Phase 5 (Runtime)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -23,7 +23,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 1 — Lexer & Parser | [x] Complete |
 | Phase 2 — Type system | [x] Complete |
 | Phase 3 — IR | [x] Complete |
-| Phase 4 — Native backend | [ ] Not started |
+| Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [ ] Not started |
 | Phase 6 — Language expansion | [ ] Not started |
 | Phase 7 — Compatibility | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 4 of 12 implementation phases complete.
+**Overall:** 5 of 12 implementation phases complete.
 
 ---
 
@@ -146,11 +146,16 @@ limitations for every milestone.
   `cargo test --workspace` (93 passed, 0 failed) succeed.
 
 ### Phase 4 — Native backend
-- [ ] LLVM integration
-- [ ] ARM64 codegen for arithmetic, vars, functions, returns
-- [ ] Mach-O executable generation + linking
-- [ ] Debug and release modes
-- **Exit condition:** fibonacci(10) prints `55` natively, no Node.js.
+- [x] LLVM integration (textual IR + `llc` + `clang`, ADR-0004)
+- [x] ARM64 codegen for arithmetic, vars, functions, returns
+- [x] Mach-O executable generation + linking, with host target detection
+- [x] Debug (`-O0`) and release (`--release`, `-O3`) modes
+- [x] Minimal C runtime shim (`runtime/nava_runtime.c`) with a `main` bridge
+- **Exit condition met:** `fibonacci(10)` prints `55` from a native Mach-O
+  executable with no Node.js or JavaScript runtime.
+- **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
+  `cargo test --workspace` (110 passed, 0 failed) succeed. The end-to-end tests
+  run compiled binaries in both debug and release modes.
 
 ### Phase 5 — Runtime
 - [ ] Memory allocation + chosen management strategy
@@ -406,15 +411,53 @@ limitations for every milestone.
   - Reverted an unrelated CI `macos-14 → macos-15` change to keep the diff
     focused.
 
+### 2026-11-21 — Phase 4 (Native backend) implemented
+- Resolved ADR-0004 in favour of textual LLVM IR driven by `llc`/`clang`:
+  no extra build tooling, inspectable `.ll`, and the target triple is queried
+  from `llvm-config --host-target` rather than hardcoded to ARM64.
+- `nava-codegen` translates verified Nava IR to LLVM IR: typed functions,
+  floating-point arithmetic, comparisons, branches, stack slots, calls and a
+  synthetic `main`. It returns explicit errors for unsupported constructs
+  (string globals, field/element access, opaque types).
+- Driver pipeline is now parse → check → lower → generate → `llc` → `clang`
+  link. Added `-o/--output`, `--release`, and kept `--emit-ir` for LLVM IR
+  output. Added `runtime/nava_runtime.c` for the macOS `main` bridge and
+  numeric `console.log`.
+- **Major boundary crossed:** `nava build examples/fibonacci.ts -o fibonacci`
+  produces a native executable that prints `55` with no Node.js.
+- Added `tests/codegen/codegen.rs` and `tests/driver/native.rs` (8 new tests).
+  Suite grew from 99 to 107 tests; fmt and clippy clean.
+
+### 2026-11-21 — Phase 4 review fixes
+- Two-axis review found 3 hard standards items, several spec defects and a few
+  judgement smells. Applied before committing:
+  - Fixed a per-function `ValueId` collision in codegen: the value-type map is
+    now built per function, so multi-function programs with overlapping value
+    IDs compile with correct call argument types.
+  - `console.log` now has typed overloads: numbers call `nava_console_log_f64`,
+    booleans call `nava_console_log_bool`. Previously `console.log(1 == 2)`
+    silently printed `1` through an ill-typed call.
+  - Comparison and logical instructions are emitted with operand type checks
+    (`icmp` for booleans, `fcmp` for numbers); unsupported operand types are
+    reported as codegen errors instead of producing ill-typed LLVM IR.
+  - Unsupported call argument types no longer silently widen to `double`.
+  - Runtime number formatting no longer uses lossy `%g`; whole values, normal
+    decimals and very small/large magnitudes now match TypeScript closely.
+  - Build temp directories include an atomic counter to avoid PID collisions.
+  - Fixed the stale "Last updated" tracker header.
+- Added examples and tests for multi-function programs, boolean output and
+  numeric formatting. Suite grew from 107 to 110 tests; fmt and clippy clean.
+- Debug mode is `-O0` (unoptimized); source-level debug info remains Phase 11.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Review the Phase 3 diff and apply improvements before committing it.
-2. Start Phase 4 (Native backend): resolve ADR-0004, install CMake + Ninja if
-   needed, lower Nava IR → LLVM IR and emit an ARM64 Mach-O executable.
-3. Cross the first major boundary: `fibonacci(10)` prints `55` natively with no
-   Node.js.
+1. Review the Phase 4 diff and apply improvements before committing it.
+2. Start Phase 5 (Runtime): decide the memory-management strategy (ADR-0005),
+   then add strings, arrays, objects and richer `console.log` support, replacing
+   the minimal C shim.
+3. Add x86-64 target validation once LLVM targets beyond the host are needed.
 4. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.
 

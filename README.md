@@ -4,7 +4,7 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 3 (IR) complete. Next: Phase 4 — Native Backend.
+**Status:** Phase 4 (Native backend) complete. Next: Phase 5 — Runtime.
 
 ## Goals (tracked independently)
 
@@ -47,8 +47,8 @@ compiler/    lexer, parser, ast, symbol, semantic, typechecker, ir,
 runtime/     memory, strings, arrays, objects, exceptions
 bootstrap/   stage0 (Rust), stage1, stage2
 stdlib/      Nava standard library
-tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, driver,
-             plus codegen/runtime/compatibility reserved for later phases
+tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
+             driver, plus runtime/compatibility reserved for later phases
 benchmarks/  performance suite
 docs/        planning and tracking documents
 examples/    sample programs
@@ -59,11 +59,13 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 93 tests through Phase 3
+cargo test --workspace     # 110 tests through Phase 4
 target/debug/nava --version
 target/debug/nava --help
-target/debug/nava build examples/fibonacci.ts
-target/debug/nava build --emit-ir examples/fibonacci.ts   # print Nava IR
+target/debug/nava build examples/fibonacci.ts -o fibonacci
+./fibonacci                                             # prints 55
+target/debug/nava build --release examples/fibonacci.ts -o fibonacci
+target/debug/nava build --emit-ir examples/fibonacci.ts   # print LLVM IR
 ```
 
 Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same

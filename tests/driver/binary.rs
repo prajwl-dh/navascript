@@ -135,19 +135,22 @@ fn build_emits_ir_on_request() {
         .args(["build", source, "--emit-ir"])
         .output()
         .expect("run nava build --emit-ir"));
-    assert!(text.contains("fn fibonacci("), "{text}");
-    assert!(text.contains("fn main("), "{text}");
+    assert!(text.contains("define double @nava_fibonacci"), "{text}");
+    assert!(text.contains("define void @nava_main"), "{text}");
 }
 
 #[test]
-fn build_parses_a_valid_source_file() {
+fn build_produces_a_native_executable() {
     let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
+    let output = std::env::temp_dir().join(format!("nava-cli-{}", std::process::id()));
     let text = ok(nava()
-        .args(["build", source])
+        .args(["build", source, "-o"])
+        .arg(&output)
         .output()
         .expect("run nava build examples/fibonacci.ts"));
-    assert!(text.contains("lowered"), "{text}");
-    assert!(text.contains("fibonacci.ts"), "{text}");
+    assert!(text.contains("built"), "{text}");
+    assert!(output.is_file(), "expected a native executable");
+    let _ = std::fs::remove_file(output);
 }
 
 #[test]

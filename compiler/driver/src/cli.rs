@@ -15,18 +15,20 @@ Usage:
   nava [OPTIONS] <COMMAND>
 
 Commands:
-  build <FILE.ts>   Parse, type-check and lower a source file to Nava IR
-                    (native code generation arrives in Phase 4)
+  build <FILE.ts>   Compile a source file to a native macOS executable
 
 Options:
   -h, --help        Print this help message
   -V, --version     Print the compiler version
-      --emit-ir     With build, print the generated Nava IR
+  -o, --output PATH Output executable path (default: source file stem)
+      --release     Enable LLVM optimizations (default: debug)
+      --emit-ir     With build, print LLVM IR instead of compiling
 
 Examples:
   nava --version
   nava --help
-  nava build examples/fibonacci.ts
+  nava build examples/fibonacci.ts -o fibonacci
+  nava build --emit-ir examples/fibonacci.ts
 ";
 
 /// A successfully parsed invocation, or a description of an invalid one.
@@ -36,8 +38,13 @@ pub enum Command {
     Help,
     /// Print the compiler version.
     Version,
-    /// Lower a source file to Nava IR; optionally print it.
-    Build { input: PathBuf, emit_ir: bool },
+    /// Compile a source file to a native executable (or print LLVM IR).
+    Build {
+        input: PathBuf,
+        output: Option<PathBuf>,
+        emit_ir: bool,
+        release: bool,
+    },
     /// An invalid invocation, with a human-readable reason.
     Error(String),
 }
@@ -75,19 +82,34 @@ where
         "-V" | "--version" => no_arg_flag(args, "--version", Command::Version),
         "build" => {
             let rest: Vec<String> = args.map(|value| value.as_ref().to_owned()).collect();
-            let emit_ir = rest.iter().any(|arg| arg == "--emit-ir");
-            let inputs: Vec<&String> = rest
-                .iter()
-                .filter(|arg| arg.as_str() != "--emit-ir")
-                .collect();
+            let mut emit_ir = false;
+            let mut release = false;
+            let mut output = None;
+            let mut inputs = Vec::new();
+            let mut iter = rest.iter();
+            while let Some(arg) = iter.next() {
+                match arg.as_str() {
+                    "--emit-ir" => emit_ir = true,
+                    "--release" => release = true,
+                    "-o" | "--output" => match iter.next() {
+                        Some(path) => output = Some(PathBuf::from(path)),
+                        None => {
+                            return Command::Error(format!("nava build: {arg} needs a path"));
+                        }
+                    },
+                    other if other.starts_with('-') => {
+                        return Command::Error(format!("nava build: unknown option '{other}'"));
+                    }
+                    other => inputs.push(other.to_owned()),
+                }
+            }
             match inputs.as_slice() {
                 [] => Command::Error("nava build: missing input file".to_owned()),
-                [_] if inputs[0].starts_with('-') => {
-                    Command::Error(format!("nava build: unknown option '{}'", inputs[0]))
-                }
                 [input] => Command::Build {
                     input: PathBuf::from(input),
+                    output,
                     emit_ir,
+                    release,
                 },
                 _ => Command::Error("nava build: expected exactly one input file".to_owned()),
             }
@@ -115,7 +137,12 @@ fn dispatch(command: Command) -> i32 {
             println!("nava {VERSION}");
             0
         }
-        Command::Build { input, emit_ir } => {
+        Command::Build {
+            input,
+            output,
+            emit_ir,
+            release,
+        } => {
             let source = match std::fs::read_to_string(&input) {
                 Ok(source) => source,
                 Err(error) => {
@@ -138,15 +165,40 @@ fn dispatch(command: Command) -> i32 {
                 eprint!("{}", lowered.diagnostics.render(&source));
                 return 1;
             }
+            let triple = match super::build::host_triple() {
+                Ok(triple) => triple,
+                Err(error) => {
+                    eprintln!("nava: {error}");
+                    return 1;
+                }
+            };
+            let llvm_ir = match nava_codegen::generate(&lowered.module, &triple) {
+                Ok(ir) => ir,
+                Err(error) => {
+                    eprintln!("nava: code generation failed: {error}");
+                    return 1;
+                }
+            };
             if emit_ir {
-                print!("{}", nava_ir::print(&lowered.module));
-            } else {
-                println!(
-                    "nava: lowered '{}' to {} IR function(s); native code generation arrives in Phase 4.",
-                    input.display(),
-                    lowered.module.functions.len()
-                );
+                print!("{llvm_ir}");
+                return 0;
             }
+
+            let output = output.unwrap_or_else(|| {
+                PathBuf::from(
+                    input
+                        .file_stem()
+                        .and_then(|stem| stem.to_str())
+                        .unwrap_or("a.out"),
+                )
+            });
+            if let Err(error) =
+                super::build::emit_native(&llvm_ir, nava_codegen::RUNTIME_C, &output, release)
+            {
+                eprintln!("nava: native build failed: {error}");
+                return 1;
+            }
+            println!("nava: built {}", output.display());
             0
         }
         Command::Error(message) => {

@@ -41,17 +41,26 @@ a new number and references the old one. Keep entries short and factual.
 
 ## ADR-0004 — LLVM integration method
 
-- **Date:** 2026-11-20
-- **Status:** Proposed (decide at the start of Phase 4)
+- **Date:** 2026-11-20 (decision 2026-11-21)
+- **Status:** Accepted
 - **Context:** LLVM can be linked in-process via `llvm-sys` or driven as an
-  external tool emitting textual IR.
+  external tool emitting textual IR. The environment has Homebrew LLVM 23.1.6
+  with AArch64 and X86 targets, Apple Clang 21, but no `rustup`, `cmake` or
+  `ninja`. Phase 3 already produces a platform-independent IR and a textual
+  printer.
 - **Options:**
   - A: `llvm-sys` crate with `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`.
   - B: emit `.ll` and invoke `llc`/`clang` from the driver.
-- **Decision:** Deferred. Phase 0 intentionally does not link LLVM, so no choice
-  was needed there. Prototype both minimally at the start of Phase 4; choose
-  based on build reliability on Homebrew macOS and debugging ergonomics.
-- **Consequences:** Do not let this decision leak into the front end.
+- **Decision:** **Option B.** The compiler emits textual LLVM IR, then invokes
+  `llc` (from the detected LLVM prefix) to produce an object and `clang` to
+  link it with a tiny C runtime. Reasons: no additional build tooling is
+  required, the build stays reproducible on this machine, and the generated
+  `.ll` is directly inspectable for debugging. The target triple is queried
+  with `llvm-config --host-target`; it is never hardcoded to ARM64.
+- **Consequences:** The `codegen` crate depends only on `nava-ir` and the
+  standard library — no LLVM Rust bindings. Build reliability now depends on
+  the external toolchain being on `PATH`/at the LLVM prefix; the driver reports
+  a clear error if `llc`, `llvm-config` or `clang` is missing.
 
 ## ADR-0005 — Memory management strategy
 

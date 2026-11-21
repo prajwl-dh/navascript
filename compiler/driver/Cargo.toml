@@ -16,6 +16,7 @@ name = "nava"
 path = "src/main.rs"
 
 [dependencies]
+nava-codegen = { path = "../codegen" }
 nava-ir = { path = "../ir" }
 nava-parser = { path = "../parser" }
 nava-typechecker = { path = "../typechecker" }
@@ -24,6 +25,7 @@ nava-typechecker = { path = "../typechecker" }
 # explicitly because Cargo only auto-discovers tests/ inside a package root.
 [dev-dependencies]
 nava-ast = { path = "../ast" }
+nava-codegen = { path = "../codegen" }
 nava-diagnostics = { path = "../diagnostics" }
 nava-ir = { path = "../ir" }
 nava-lexer = { path = "../lexer" }
@@ -84,3 +86,11 @@ path = "../../tests/driver/cli.rs"
 [[test]]
 name = "driver_binary"
 path = "../../tests/driver/binary.rs"
+
+[[test]]
+name = "codegen"
+path = "../../tests/codegen/codegen.rs"
+
+[[test]]
+name = "driver_native"
+path = "../../tests/driver/native.rs"
