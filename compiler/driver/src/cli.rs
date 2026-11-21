@@ -14,8 +14,8 @@ Usage:
   nava [OPTIONS] <COMMAND>
 
 Commands:
-  build <FILE.ts>   Compile a TypeScript source file to a native executable
-                    (placeholder in Phase 0; code generation arrives in Phase 4)
+  build <FILE.ts>   Parse a TypeScript source file and report diagnostics
+                    (native code generation arrives in Phase 4)
 
 Options:
   -h, --help        Print this help message
@@ -110,12 +110,20 @@ fn dispatch(command: Command) -> i32 {
             0
         }
         Command::Build { input } => {
-            if !input.exists() {
-                eprintln!("nava: input file not found: {}", input.display());
+            let source = match std::fs::read_to_string(&input) {
+                Ok(source) => source,
+                Err(error) => {
+                    eprintln!("nava: could not read '{}': {error}", input.display());
+                    return 1;
+                }
+            };
+            let parsed = nava_parser::parse(&source);
+            if parsed.diagnostics.has_errors() {
+                eprint!("{}", parsed.diagnostics.render(&source));
                 return 1;
             }
             println!(
-                "nava: accepted '{}'; native code generation is not implemented yet (Phase 4).",
+                "nava: parsed '{}' successfully; native code generation arrives in Phase 4.",
                 input.display()
             );
             0

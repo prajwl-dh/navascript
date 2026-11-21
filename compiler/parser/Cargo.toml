@@ -6,3 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
+
+[dependencies]
+nava-ast = { path = "../ast" }
+nava-lexer = { path = "../lexer" }

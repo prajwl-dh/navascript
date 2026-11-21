@@ -129,13 +129,28 @@ fn build_rejects_option_as_input() {
 }
 
 #[test]
-fn build_accepts_a_source_file_without_generating_code() {
+fn build_parses_a_valid_source_file() {
     let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
     let text = ok(nava()
         .args(["build", source])
         .output()
         .expect("run nava build examples/fibonacci.ts"));
-    assert!(text.contains("not implemented yet"));
+    assert!(text.contains("parsed"), "{text}");
+    assert!(text.contains("fibonacci.ts"), "{text}");
+}
+
+#[test]
+fn build_reports_diagnostics_for_a_broken_file() {
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/bad_syntax.ts");
+    let text = failed(
+        nava()
+            .args(["build", source])
+            .output()
+            .expect("run nava build examples/bad_syntax.ts"),
+    );
+    assert!(text.contains("error:"), "{text}");
+    assert!(text.contains("1:14"), "{text}");
+    assert!(text.contains("^"), "{text}");
 }
 
 #[test]
@@ -145,5 +160,5 @@ fn build_rejects_a_missing_file() {
         .output()
         .expect("run nava build on missing file");
     assert_eq!(output.status.code(), Some(1));
-    assert!(stderr(&output).contains("input file not found"));
+    assert!(stderr(&output).contains("could not read"));
 }

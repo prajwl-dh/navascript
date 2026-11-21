@@ -14,3 +14,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "nava"
 path = "src/main.rs"
+
+[dependencies]
+nava-parser = { path = "../parser" }

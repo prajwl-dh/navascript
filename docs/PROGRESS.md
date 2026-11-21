@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-20
-- **Current phase:** Phase 0 complete — ready for Phase 1 (Lexer and Parser)
+- **Current phase:** Phase 1 complete — ready for Phase 2 (Type system)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -20,7 +20,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Repository skeleton created | [x] Done |
 | Git repository initialized | [x] Done (initial commit on `main`) |
 | Phase 0 — Foundation | [x] Complete |
-| Phase 1 — Lexer & Parser | [ ] Not started |
+| Phase 1 — Lexer & Parser | [x] Complete |
 | Phase 2 — Type system | [ ] Not started |
 | Phase 3 — IR | [ ] Not started |
 | Phase 4 — Native backend | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 1 of 12 implementation phases complete.
+**Overall:** 2 of 12 implementation phases complete.
 
 ---
 
@@ -108,11 +108,19 @@ limitations for every milestone.
   `cargo test --workspace` (16 passed, 0 failed) all succeed.
 
 ### Phase 1 — Lexer and Parser
-- [ ] Tokens: keywords, identifiers, numbers, strings, operators, comments
-- [ ] AST data structures
-- [ ] Variables, functions, expressions, blocks, `if`, loops
-- [ ] Diagnostics with line + column
-- **Exit condition:** parse a basic `.ts` file into a valid AST.
+- [x] Tokens: keywords, identifiers, numbers, strings, operators, comments
+- [x] AST data structures (`FileId`, `Span`, `Program`, items, statements, expressions)
+- [x] Variables, functions, expressions, blocks, `if`/`else`, top-level calls
+- [x] Diagnostics with line + column, dedup/sort, caret rendering
+- [x] Panic-mode recovery keeps later items after a syntax error
+- [x] Driver wires `build` to `nava_parser::parse` and reports diagnostics
+- **Exit condition met:** the fibonacci acceptance program parses; a broken
+  file produces positioned diagnostics; no front-end crate depends on LLVM.
+- **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
+  `cargo test --workspace` (40 passed, 0 failed) all succeed.
+- **Deferred with a recorded deviation:** loops (`for`/`while`) were in the
+  original Phase 1 spec; they are listed in `ROADMAP.md` Phase 1 limitations,
+  tracked as unsupported in `COMPATIBILITY.md`, and scheduled for Phase 6.
 
 ### Phase 2 — Type system
 - [ ] Primitives: number, string, boolean, void
@@ -249,16 +257,52 @@ limitations for every milestone.
   placeholder crates (tests arrive with each phase's implementation), and
   actual LLVM linking (Phase 4 by ADR-0008).
 
+### 2026-11-20 — Phase 1 (Lexer and Parser) implemented
+- `nava-ast`: dependency-free leaf with `FileId`, half-open byte `Span`, `Program`,
+  items, declarations, statements, expressions, operators and debug printing.
+  Added `ItemKind::Expr` so script-style top-level calls (e.g. `console.log`)
+  parse as valid programs.
+- `nava-lexer`: private internal seam — byte-spanned tokens for identifiers,
+  numbers, strings (with escapes), keywords, operators (longest match first),
+  punctuation, both comment styles, EOF, plus lexer errors for unterminated
+  strings/comments and unexpected characters.
+- `nava-parser`: external seam `parse(&str) -> ParseOutput`. Recursive-descent
+  parser with precedence, unary/postfix operators, calls, member access,
+  `if`/`else` chains, panic-mode recovery, owned AST, and `Diagnostics` that
+  are deduplicated, source-ordered and rendered with line/column and carets.
+- `nava-driver`: `build` reads the source, calls `parse`, renders diagnostics,
+  and exits non-zero on errors. Added `examples/bad_syntax.ts` for the error path.
+- Tests: 7 lexer, 11 parser (through the `parse` seam), 1 AST, 3 driver unit,
+  14 driver integration = 36, all passing; fmt and clippy clean. After the
+  review fixes this became 40 (4 new parser tests).
+
+### 2026-11-20 — Phase 1 review fixes
+- Two-axis review of the uncommitted Phase 1 diff found 3 hard standards items,
+  2 judgement calls, and several spec gaps. Applied before committing:
+  - `parse` now has a 128-level depth guard, so deeply nested parentheses,
+    unary chains and `if` chains produce a diagnostic instead of overflowing
+    the stack (the DESIGN.md infallibility contract is now actually tested).
+  - `if`/`else` accept a single unbraced statement as well as a block (wrapped
+    in a synthetic block so the AST shape is unchanged).
+  - Extracted the shared parse/recover/progress loop into `parse_until` and made
+    diagnostic rendering reuse the single line-start table.
+  - Removed the unused `Program::empty()` speculative API.
+  - Added tests for dedup/tie-breaking, the debug form, deep nesting and
+    unbraced branches; added the deferred syntax (arrows, hex/binary/bigint,
+    compound operators, optional chaining, non-ASCII identifiers, `\u`/`\x`)
+    to the unsupported-features register; scheduled loops in Phase 6.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 1 following `docs/DESIGN.md`: `nava-ast` leaf types, `nava-lexer`
-   internal seam, then the `nava-parser::parse` external seam and driver wiring.
-2. Install CMake + Ninja when Phase 4 needs them.
-3. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
+1. Review the Phase 1 diff and apply improvements before committing it.
+2. Start Phase 2 (Type system) in `nava-typechecker` and `nava-symbol`, keeping
+   the `parse` seam unchanged.
+3. Install CMake + Ninja when Phase 4 needs them.
+4. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
    start of Phase 4.
-4. Update this file after each completed task, using the phase exit protocol in
+5. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.
 
 ---

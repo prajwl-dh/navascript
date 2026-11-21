@@ -5,6 +5,9 @@ version = 4
 [[package]]
 name = "nava"
 version = "0.1.0"
+dependencies = [
+ "nava-parser",
+]
 
 [[package]]
 name = "nava-ast"
@@ -29,6 +32,10 @@ version = "0.1.0"
 [[package]]
 name = "nava-parser"
 version = "0.1.0"
+dependencies = [
+ "nava-ast",
+ "nava-lexer",
+]
 
 [[package]]
 name = "nava-semantic"

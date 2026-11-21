@@ -4,7 +4,7 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 0 (Foundation) complete. Next: Phase 1 — Lexer and Parser.
+**Status:** Phase 1 (Lexer and Parser) complete. Next: Phase 2 — Type system.
 
 ## Goals (tracked independently)
 
@@ -58,7 +58,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 20 tests in Phase 0
+cargo test --workspace     # 40 tests through Phase 1
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts

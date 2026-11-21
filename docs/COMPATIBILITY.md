@@ -6,21 +6,22 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-20 — all entries currently unimplemented (planning phase).
+Last updated: 2026-11-20 — Phase 1 syntax entries implemented and tested; all
+type-system and runtime entries remain unimplemented.
 
 ## 1. Syntax
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| Lexical keywords & tokens | [ ] | — | Phase 1 |
-| Variables (`let`/`const`/`var`) | [ ] | — | Phase 1 |
-| Functions & returns | [ ] | — | Phase 1 |
-| Expressions & operator precedence | [ ] | — | Phase 1 |
-| Blocks & lexical scope | [ ] | — | Phase 1 |
-| `if`/`else` | [ ] | — | Phase 1 |
-| Loops (`for`/`while`) | [ ] | — | Phase 1 |
-| Comments | [ ] | — | Phase 1 |
-| Diagnostics with line/column | [ ] | — | Phase 1 |
+| Lexical keywords & tokens | [x] | `nava-lexer` unit tests | Phase 1 |
+| Variables (`let`/`const`/`var`) | [x] | `nava-parser` tests | Phase 1 |
+| Functions & returns | [x] | `nava-parser` tests | Phase 1 |
+| Expressions & operator precedence | [x] | `nava-parser` tests | Phase 1 |
+| Blocks & lexical scope | [~] | `nava-parser` tests | AST blocks parsed; scope resolution is Phase 2 |
+| `if`/`else` | [x] | `nava-parser` tests | Phase 1 |
+| Loops (`for`/`while`) | [ ] | — | Phase 6 |
+| Comments | [x] | `nava-lexer` unit tests | Phase 1 |
+| Diagnostics with line/column | [x] | parser + driver tests | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
 | Generics | [ ] | — | Phase 6 |
 | Interfaces | [ ] | — | Phase 2/6 |
@@ -89,3 +90,8 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Full `lib.d.ts` | large surface | long-term |
 | Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
 | `eval` / dynamic code | incompatible with native model | not planned |
+| Arrow functions (`=>`) | lexed as `=` + `>`; not parsed | Phase 6 |
+| Hex / binary / octal / bigint literals | lexer accepts decimal digits only | Phase 6 |
+| Compound operators (`+=`, `++`, `**`) and optional chaining (`?.`) | lexed as separate tokens, not parsed | Phase 6 |
+| Non-ASCII identifiers | lexer accepts ASCII letters, `_`, `$` only | Phase 6 |
+| `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |

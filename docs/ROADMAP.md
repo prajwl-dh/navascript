@@ -229,6 +229,10 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Substantially broaden TypeScript compatibility.
 
 **Implementation tasks (priority order)**
+- Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1, see the
+  Phase 1 known limitations.
+- Arrow functions and the additional literals/operators listed in
+  `docs/COMPATIBILITY.md` §6.
 - Generics.
 - Classes and inheritance.
 - Interfaces and structural typing.
