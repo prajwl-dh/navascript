@@ -15,36 +15,44 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 2. Lexical structure
 
-- [x] (planned Phase 1) Keywords: `let`, `const`, `var`, `function`, `return`,
-  `if`, `else`, `for`, `while`, `type`, `interface`, `class`, `import`,
-  `export`, `async`, `await`, and type keywords.
-- [x] (planned Phase 1) Identifiers: Unicode-aware identifier start/continue
-  (initial subset: ASCII letters, `_`, `$`, digits after first char).
-- [x] (planned Phase 1) Numeric literals: decimal integers and floats initially;
-  hex/binary/octal and separators later.
-- [x] (planned Phase 1) String literals: double and single quotes; escaping;
-  template literals later.
-- [x] (planned Phase 1) Operators: arithmetic, comparison, logical, assignment,
-  unary, ternary.
-- [x] (planned Phase 1) Comments: `//` and `/* */`.
-- [x] (planned Phase 1) Every token carries (line, column, byte offset).
+- [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
+  `true`, `false`, `null`, `void`, `type`, `interface`.
+- [ ] Keywords `for`, `while`, `class`, `import`, `export`, `async`, `await`
+  (their features are unimplemented; not yet recognized by the lexer).
+- [x] Identifiers: ASCII letters, `_`, `$`, then alphanumeric/`_`/`$`.
+  Unicode identifiers are not yet supported.
+- [x] Numeric literals: decimal integers and floats (including exponents).
+  Hex/binary/octal, separators and bigint are not yet supported.
+- [x] String literals: single and double quotes with `\n`, `\t`, `\r`, `\0`,
+  `\\`, `\"`, `\'` escapes. `\u`/`\x` and template literals are not yet supported.
+- [x] Operators: arithmetic (`+ - * / %`), comparison (`== === != !== < <= >
+  >=`), logical (`&& ||`), unary (`! - +`), assignment (`=`), and `=>` in
+  function *type annotations*.
+- [ ] Compound operators (`+=`, `++`, `**`) and optional chaining (`?.`).
+- [x] Comments: `//` and `/* */`.
+- [x] Every token carries byte offsets; diagnostics derive 1-based line and
+  column from them.
 
 ## 3. Types
 
-### Primitives (Phase 2)
-- [ ] `number` — initially 64-bit floating point (JavaScript-like semantics).
-  An integer mode may be introduced later via optimization evidence.
-- [ ] `string` — immutable UTF-8/UTF-16 decision deferred to Phase 5.
-- [ ] `boolean`
-- [ ] `void`
-- [ ] `null` / `undefined` semantics TBD (document explicitly before impl).
+### Primitives (Phase 2, native values in Phase 4)
+- [x] `number` — 64-bit floating point (ADR-0006); emitted as LLVM `double`.
+- [x] `boolean` — emitted as LLVM `i1`; prints `true`/`false`.
+- [x] `string` — type-checked and carried in IR as a string global; runtime
+  representation and printing are Phase 5.
+- [x] `void`
+- [x] `null` — represented in IR; runtime semantics are Phase 5.
+- [ ] `undefined` — not yet implemented.
 
-### Composites (Phase 2+)
-- [ ] Arrays `T[]`
-- [ ] Object types `{ x: number }`
-- [ ] Function signatures `(a: number) => string`
-- [ ] Type aliases `type Foo = ...`
-- [ ] Interfaces `interface Foo { ... }`
+### Composites (Phase 2; native layout deferred to Phase 5)
+- [x] Arrays `T[]` — type-checked and represented in IR; native indexing is
+  Phase 5.
+- [x] Object types `{ x: number }` — type-checked with structural field checks;
+  native layout is Phase 5.
+- [x] Function signatures `(a: number) => string` — type-checked; arity and
+  argument types checked at calls.
+- [x] Type aliases `type Foo = ...`, including chains and cycle diagnostics.
+- [x] Interfaces `interface Foo { ... }`, with structural field checking.
 
 ### Advanced (Phase 6+)
 - [ ] Generics
@@ -59,51 +67,53 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 4. Expressions
 
-- [ ] Literals, identifiers
-- [ ] Binary/unary operators with TypeScript precedence
-- [ ] Function calls
-- [ ] Member access `obj.prop`
-- [ ] Array indexing `arr[i]`
-- [ ] Object literals
+- [x] Literals (number, string, boolean, null), identifiers
+- [x] Binary/unary operators with TypeScript precedence
+- [x] Function calls (direct calls lower and link natively)
+- [x] Member access `obj.prop` (parsed, type-checked, lowered; native field
+  layout is Phase 5)
+- [x] Array indexing `arr[i]` (parsed and type-checked; native layout Phase 5)
+- [x] Object literals (parsed and type-checked; native layout Phase 5)
 - [ ] Arrow functions / closures (Phase 5/6)
 - [ ] Template literals (Phase 6)
 - [ ] Ternary `cond ? a : b`
 
 ## 5. Statements
 
-- [ ] Variable declarations (`let`, `const`, `var`)
-- [ ] Expression statements
-- [ ] Blocks and lexical scope
-- [ ] `if` / `else`
-- [ ] `return`
-- [ ] `for`, `while`, `do-while`, `for-of`
+- [x] Variable declarations (`let`, `const`, `var`)
+- [x] Expression statements
+- [x] Blocks and lexical scope (checked by the type checker)
+- [x] `if` / `else`, including unbraced single-statement branches
+- [x] `return`
+- [ ] `for`, `while`, `do-while`, `for-of` (scheduled for Phase 6)
 - [ ] `throw` / `try` / `catch` / `finally` (Phase 5)
 - [ ] `switch`
 
 ## 6. Functions
 
-- [ ] Named function declarations
-- [ ] Parameters and return type annotations
-- [ ] Inference for return types
-- [ ] Nested functions / closures
-- [ ] Recursion (required for the fibonacci milestone)
+- [x] Named function declarations (emitted as native functions)
+- [x] Parameters and return type annotations
+- [x] Inference for return types
+- [x] Recursion — the fibonacci acceptance program runs natively
+- [ ] Nested functions / closures (Phase 5/6)
 - [ ] Higher-order functions (Phase 6)
 - [ ] Async functions and promises (Phase 6)
 
 ## 7. Modules
 
-- [ ] `import` / `export` syntax (parser Phase 1/6, resolution Phase 6/7)
+- [ ] `import` / `export` syntax (Phase 6/7)
 - [ ] Module resolution rules compatible with TypeScript where practical
 - [ ] JavaScript interop (Phase 7, best effort)
 
-## 8. Runtime semantics (Phase 5)
+## 8. Runtime semantics
 
-- [ ] Memory allocation strategy documented in ADR-0005
-- [ ] String representation and operations
-- [ ] Arrays and objects
-- [ ] Closures
-- [ ] Exceptions and runtime error reporting
-- [ ] `console.log` (required by fibonacci acceptance program)
+- [ ] Memory allocation strategy documented in ADR-0005 (Phase 5)
+- [ ] String representation and operations (Phase 5)
+- [ ] Arrays and objects at runtime (Phase 5)
+- [ ] Closures (Phase 5/6)
+- [ ] Exceptions and runtime error reporting (Phase 5)
+- [~] `console.log` — numbers and booleans print from a minimal C shim in
+  Phase 4; strings, objects and full semantics arrive in Phase 5
 
 ## 9. First acceptance program
 
@@ -118,8 +128,12 @@ function fibonacci(n: number): number {
 console.log(fibonacci(10)); // prints 55
 ```
 
-Required behavior: read `.ts` → parse → type-check → LLVM IR → native macOS
-executable → run → print `55`. No Node.js or JavaScript runtime.
+Required behavior: read `.ts` → parse → type-check → Nava IR → LLVM IR →
+native macOS executable → run → print `55`. No Node.js or JavaScript runtime.
+
+**Status (Phase 4):** achieved and covered by `tests/driver/native.rs`. The
+same fixture also parses (Phase 1), type-checks (Phase 2) and lowers to verified
+IR (Phase 3).
 
 ## 10. Explicit non-goals (initial phases)
 

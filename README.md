@@ -37,7 +37,7 @@ Compile to a native macOS executable that prints `55` without Node.js.
 | Clang | Apple clang 21 | Command Line Tools |
 | Git | 2.54.0 | configured |
 | Python | 3.14.6 | for test/benchmark scripts |
-| CMake / Ninja | missing | install with `brew install cmake ninja` when needed |
+| CMake / Ninja | not required | the backend uses textual LLVM IR + `llc`/`clang` |
 
 ## Repository layout
 
@@ -69,8 +69,12 @@ target/debug/nava build --emit-ir examples/fibonacci.ts   # print LLVM IR
 ```
 
 Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same
-fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full
-instructions, including LLVM setup for later phases, are in `docs/BUILD.md`.
+fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full build,
+test and LLVM toolchain instructions are in `docs/BUILD.md`.
+
+Phases 0–4 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
+LLVM IR, and links a native executable. The first major milestone — fibonacci
+printing `55` without Node.js — is verified by `tests/driver/native.rs`.
 
 ## Documentation
 

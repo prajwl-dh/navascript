@@ -78,12 +78,14 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0006 — Numeric model
 
 - **Date:** 2026-11-20
-- **Status:** Proposed (decide in Phase 2)
+- **Status:** Accepted (applied in Phases 2–4)
 - **Context:** TypeScript `number` is IEEE-754 double; native code may benefit
   from integer representations.
-- **Decision:** Deferred. Default to 64-bit floating point for JavaScript-like
-  semantics; consider integer specialization only with benchmark evidence and
-  explicit correctness rules.
+- **Decision:** Use 64-bit floating point for JavaScript-like semantics. The
+  type checker models `number` as `Type::Number`, IR as `IrType::Number`, and
+  codegen as LLVM `double` with `fadd`/`fsub`/`fmul`/`fdiv`/`frem` and `fcmp`.
+  Integer specialization would require benchmark evidence and explicit
+  correctness rules.
 - **Consequences:** Avoid silent semantic changes when optimizing.
 
 ## ADR-0007 — Keep three goals independent

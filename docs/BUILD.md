@@ -16,11 +16,9 @@ available. LLVM's tools live in `/opt/homebrew/opt/llvm/bin` (`llc`, `opt`,
 `llvm-as`, `llvm-dis`, `llvm-link`, `llvm-config`) and are not on `PATH` by
 default.
 
-Missing tools, install when a phase needs them:
-
-```bash
-brew install cmake ninja
-```
+CMake and Ninja are **not required**: the Phase 4 backend emits textual LLVM IR
+and calls `llc`/`clang` directly (ADR-0004). Install them only if the project
+later adopts `llvm-sys` or C++ tooling.
 
 Verify the environment at any time:
 
@@ -73,8 +71,8 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/codegen/` | Nava IR → LLVM IR translation |
 | `tests/driver/native.rs` | end-to-end native compile + run (debug and release) |
 
-`tests/codegen/`, `tests/runtime/` and `tests/compatibility/` are reserved for
-Phase 4, 5 and 7 suites.
+`tests/runtime/` and `tests/compatibility/` are reserved for Phase 5 and 7
+suites. `tests/codegen/` and `tests/driver/native.rs` landed in Phase 4.
 
 Cargo only discovers `tests/` inside a package root, so every file is
 registered as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`.
@@ -83,7 +81,7 @@ test out of a crate means it can only use that crate's public interface — whic
 is the intended contract. `.github/workflows/ci.yml` runs fmt, clippy and the
 full test suite on macOS.
 
-## 4. CLI usage (Phase 0)
+## 4. CLI usage
 
 ```bash
 cargo run -p nava -- --version
@@ -124,20 +122,26 @@ compiler/
 The front end (lexer → AST → type checker → IR) must not depend on LLVM. Only
 `compiler/codegen` may depend on it.
 
-## 6. LLVM integration (Phase 4+)
+## 6. LLVM integration (resolved in Phase 4)
 
-The integration method is recorded as **Proposed** in `docs/DECISIONS.md`
-(ADR-0004). If the `llvm-sys` route is chosen, set:
+ADR-0004 selected the textual-IR route: `nava-codegen` emits `.ll`, the driver
+runs `llc -filetype=obj -mtriple <triple>`, then `clang` compiles the runtime
+shim and links the executable. Override the tool location with:
 
 ```bash
 export LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm
 ```
 
-If the textual-IR route is chosen, add `/opt/homebrew/opt/llvm/bin` to `PATH`.
-Do not hardcode ARM64: query the target triple and let LLVM select the backend.
+The target triple is queried via `llvm-config --host-target`; ARM64 is never
+hardcoded. Errors from `llvm-config`, `llc` or `clang` are reported with exit
+code 1.
 
-## 7. Known Phase 0 limitations
+## 7. Current limitations
 
-- `nava build` does not parse, type-check, or generate code.
-- LLVM is not linked and no object files are produced.
-- CMake and Ninja are not installed (not needed until deeper LLVM/C++ work).
+- Strings, arrays, objects, closures and exceptions have no runtime layout yet
+  (Phase 5); the native backend reports these as unsupported rather than
+  miscompiling them.
+- Only the detected host target is validated; x86-64 and other targets are
+  Phase 11.
+- Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.
+- CMake and Ninja are not required by the chosen LLVM integration.

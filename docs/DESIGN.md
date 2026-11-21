@@ -10,8 +10,11 @@ the vocabulary of the codebase-design skill:
 - **Depth** — leverage at the interface: behaviour per unit of interface a caller learns.
 - **Leverage / Locality** — capability for callers; concentration of change, bugs and knowledge for maintainers.
 
-Status: **accepted design for Phase 1**, not yet implemented. Revisit when a
-second real adapter or consumer appears.
+Status: **accepted and implemented through Phase 4**. The front-end seam
+(`parse`), the shared diagnostics leaf, the type-checker seam (`check`), the IR
+seam (`lower`) and the backend seam (`generate`) are all in use by the driver
+pipeline and covered by tests in `tests/`. Revisit when a second real adapter
+or consumer appears.
 
 ## 1. The deepened module: the front-end seam
 

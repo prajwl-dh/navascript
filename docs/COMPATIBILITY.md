@@ -6,8 +6,9 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-21 — Phase 1 syntax, Phase 2 type-system and Phase 3 IR
-entries are implemented and tested; runtime entries remain unimplemented.
+Last updated: 2026-11-21 — Phases 0–4 are complete. Syntax, type-system, IR,
+codegen and native-execution entries are implemented and tested; the richer
+runtime (strings, arrays, objects, closures, exceptions) remains Phase 5.
 
 ## 1. Syntax
 
@@ -24,8 +25,8 @@ entries are implemented and tested; runtime entries remain unimplemented.
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
 | Generics | [ ] | — | Phase 6 |
-| Interfaces | [ ] | — | Phase 2/6 |
-| Type aliases | [ ] | — | Phase 2 |
+| Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing Phase 6 |
+| Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
 | Unions / intersections | [ ] | — | Phase 6 |
 | Modules (`import`/`export`) | [ ] | — | Phase 6/7 |
 | Async/await, promises | [ ] | — | Phase 6 |
@@ -51,8 +52,8 @@ entries are implemented and tested; runtime entries remain unimplemented.
 
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
-| Arithmetic / comparisons | [ ] | — | Phase 4 |
-| Recursion | [ ] | — | Required for fibonacci |
+| Arithmetic / comparisons | [x] | `tests/driver/native.rs`, `tests/codegen/` | native `fadd/fsub/fmul/fdiv/frem`, `fcmp`/`icmp`; boolean results print correctly |
+| Recursion | [x] | `tests/driver/native.rs` | fibonacci calls itself natively and prints `55` |
 | Strings | [ ] | — | Phase 5 |
 | Arrays & objects | [ ] | — | Phase 5 |
 | Closures / function values | [ ] | — | Phase 5/6 |

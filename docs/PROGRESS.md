@@ -36,7 +36,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 ---
 
-## 2. Environment inventory (verified 2026-11-20)
+## 2. Environment inventory (verified 2026-11-21)
 
 | Tool | Required | Found | Status | Notes |
 | --- | --- | --- | --- | --- |
@@ -54,9 +54,13 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | CMake | build infrastructure | — | [!] MISSING | Install before heavy LLVM/C++ interop |
 | Ninja | build infrastructure | — | [!] MISSING | Install alongside CMake |
 
-**Environment blockers:**
-- [ ] Install CMake + Ninja (`brew install cmake ninja`). Deferred in Phase 0 — not needed until deeper LLVM/C++ work in Phase 4+.
-- [ ] Decide how the Rust compiler links LLVM: `llvm-sys` crate (needs `LLVM_SYS_231_PREFIX=/opt/homebrew/opt/llvm`) vs. emitting textual LLVM IR and calling `llc`/`clang`. Deferred to Phase 4; Phase 0 intentionally does not link LLVM. See `docs/DECISIONS.md` ADR-0004.
+**Environment notes (resolved):**
+- [x] LLVM integration method decided in Phase 4: textual `.ll` emitted by
+  `nava-codegen`, assembled by `llc` and linked by `clang` (ADR-0004). The host
+  triple comes from `llvm-config --host-target`; nothing is hardcoded to ARM64.
+- [x] CMake and Ninja are **not required** by the chosen integration path. They
+  would only be needed if the project later adopts `llvm-sys` or C++ tooling.
+- [ ] Install CMake + Ninja (`brew install cmake ninja`) only if that changes.
 
 ---
 
@@ -448,17 +452,34 @@ limitations for every milestone.
 - Added examples and tests for multi-function programs, boolean output and
   numeric formatting. Suite grew from 107 to 110 tests; fmt and clippy clean.
 - Debug mode is `-O0` (unoptimized); source-level debug info remains Phase 11.
+- Added `/fibonacci` to `.gitignore` for the CLI's default output name.
+
+### 2026-11-21 — Documentation audit
+- Reconciled every tracking document with the code as of Phase 4:
+  - `PROGRESS.md`: environment notes now record the resolved LLVM integration
+    and that CMake/Ninja are not required; stale next-action removed.
+  - `COMPATIBILITY.md`: marked interfaces/type aliases, native arithmetic,
+    comparisons and recursion as implemented; updated the header.
+  - `LANGUAGE_SPEC.md`: replaced stale "planned" markers with the actual
+    supported subset, corrected the keyword list to what the lexer recognizes,
+    and recorded the acceptance program as achieved in Phase 4.
+  - `DESIGN.md`: status updated from "Phase 1, not implemented" to implemented
+    through Phase 4, including the backend seam.
+  - `BUILD.md`: removed the obsolete llvm-sys discussion and Phase 0
+    limitations; documented the resolved pipeline and current limitations.
+  - `DECISIONS.md`: ADR-0006 (numeric model) marked accepted with its decision.
+  - `README.md` and `ROADMAP.md`: removed stale CMake/Ninja and Phase 0/1 TODOs.
+- No compiler code changed; the 110-test suite, fmt and clippy still pass.
 
 ---
 
 ## 6. Next actions (in order)
 
-1. Review the Phase 4 diff and apply improvements before committing it.
-2. Start Phase 5 (Runtime): decide the memory-management strategy (ADR-0005),
+1. Start Phase 5 (Runtime): decide the memory-management strategy (ADR-0005),
    then add strings, arrays, objects and richer `console.log` support, replacing
    the minimal C shim.
-3. Add x86-64 target validation once LLVM targets beyond the host are needed.
-4. Update this file after each completed task, using the phase exit protocol in
+2. Add x86-64 target validation once LLVM targets beyond the host are needed.
+3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.
 
 ---

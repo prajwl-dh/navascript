@@ -63,11 +63,12 @@ Before a phase is marked complete in `PROGRESS.md`:
 **Acceptance criteria**
 - A fresh clone builds and runs the CLI with documented commands.
 
-**Known limitations**
-- `nava build` does not compile anything yet.
-- LLVM is not linked yet; full integration is Phase 4. This is a documented
-  deviation from the spec's Phase 0 "Integrate LLVM" bullet — see ADR-0008.
-- CMake/Ninja are not installed in the current environment (install needed).
+**Known limitations (at Phase 0; resolved later)**
+- `nava build` did not compile anything yet — resolved in Phases 2–4.
+- LLVM was not linked in Phase 0; full integration landed in Phase 4. This was
+  a documented deviation from the spec's Phase 0 "Integrate LLVM" bullet — see
+  ADR-0008 and ADR-0004.
+- CMake/Ninja were not installed and are not required by the chosen LLVM path.
 - CI workflow exists but has not been exercised outside this machine yet.
 
 ---
@@ -112,8 +113,10 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Front-end crates remain independent of LLVM (`cargo tree` shows no LLVM deps).
 
 **Known limitations**
-- No type checking yet (Phase 2).
-- No classes, generics, interfaces, modules, loops.
+- No type checking yet — resolved in Phase 2.
+- No classes, generics, interfaces, modules, loops — interfaces, type aliases
+  and type checking landed in Phase 2; loops are scheduled for Phase 6;
+  classes, generics and modules remain Phase 6/7.
 - `.tsx` not supported.
 - No `DiagnosticSink` trait yet: only one adapter exists (the returned value).
 - Multi-file parsing is deferred; `Span` carries `FileId(0)` for now.
