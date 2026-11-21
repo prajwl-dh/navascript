@@ -160,6 +160,29 @@ fn out_of_bounds_index_is_a_runtime_error() {
 }
 
 #[test]
+fn loops_run_natively() {
+    let Some(binary) = compile("loops.ts", "loops", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run loops program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "15\n24\n3\n7\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
+fn for_of_runs_natively() {
+    let Some(binary) = compile("for_of.ts", "for-of", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run for_of program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "60\nabc\n10\n20\n30\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn release_mode_prints_the_same_result() {
     let Some(binary) = compile("fibonacci.ts", "fib-release", &["--release"]) else {
         return;

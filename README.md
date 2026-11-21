@@ -4,7 +4,8 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 5 (Runtime) complete. Next: Phase 6 — Language expansion.
+**Status:** Phase 6 (Language expansion) in progress — loops complete; the
+remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -57,7 +58,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 120 tests through Phase 5
+cargo test --workspace     # 135 tests through Phase 6 (loops)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -74,8 +75,12 @@ Phases 0–5 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
 LLVM IR, and links a native executable. The runtime provides arena-allocated
 strings, arrays and objects with bounds checking. The first major milestone —
 fibonacci printing `55` without Node.js — is verified by
-`tests/driver/native.rs`. Closures and exceptions are deferred to Phase 6
-(ADR-0015).
+`tests/driver/native.rs`. Phase 6 is under way: `while`, `do-while`, C-style
+`for` and `for-of` loops now compile and run natively (`examples/loops.ts`,
+`examples/for_of.ts`); `break`/`continue` are not implemented yet. The remaining Phase 6 items — arrow functions, generics,
+classes, structural typing, unions, modules, closures and exceptions, and
+async/await — are still pending; closures and exceptions remain deferred by
+ADR-0015.
 
 ## Documentation
 

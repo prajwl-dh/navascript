@@ -24,6 +24,9 @@ pub enum ItemKind {
     TypeAlias(TypeAliasDecl),
     Interface(InterfaceDecl),
     Expr(Expr),
+    /// A statement at program scope (e.g. a loop or a block), lowered into the
+    /// synthetic `main` function alongside expression items.
+    Stmt(Stmt),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,6 +69,10 @@ pub enum StmtKind {
     Variable(VariableDecl),
     Return(Option<Expr>),
     If(IfStmt),
+    While(WhileStmt),
+    DoWhile(WhileStmt),
+    For(ForStmt),
+    ForOf(ForOfStmt),
     Block(Block),
     Empty,
 }
@@ -81,4 +88,31 @@ pub struct IfStmt {
 pub enum ElseBranch {
     If(Box<IfStmt>),
     Block(Block),
+}
+
+/// Shared shape for `while (c) b` and `do b while (c)`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhileStmt {
+    pub condition: Expr,
+    pub body: Block,
+}
+
+/// C-style `for (init; condition; update) body`. A missing condition means an
+/// unconditional loop.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ForStmt {
+    pub init: Option<Box<Stmt>>,
+    pub condition: Option<Expr>,
+    pub update: Option<Expr>,
+    pub body: Block,
+}
+
+/// `for (binding of iterable) body`. `of` is contextual, not a keyword.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ForOfStmt {
+    pub binding: Ident,
+    pub iterable: Expr,
+    pub body: Block,
+    /// True for `let x of ...` (new binding), false for `x of ...` (assignment).
+    pub decl: bool,
 }

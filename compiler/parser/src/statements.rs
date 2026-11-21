@@ -1,6 +1,9 @@
 //! Statement and control-flow parsing.
 
-use nava_ast::{Block, ElseBranch, IfStmt, Span, Stmt, StmtKind};
+use nava_ast::{
+    Block, ElseBranch, ExprKind, ForOfStmt, ForStmt, Ident, IfStmt, Span, Stmt, StmtKind,
+    VariableDecl, WhileStmt,
+};
 use nava_lexer::TokenKind;
 
 use super::parser::Parser;
@@ -58,6 +61,9 @@ impl<'a> Parser<'a> {
                 StmtKind::Return(value)
             }
             TokenKind::If => StmtKind::If(self.parse_if()?),
+            TokenKind::While => StmtKind::While(self.parse_while()?),
+            TokenKind::Do => StmtKind::DoWhile(self.parse_do_while()?),
+            TokenKind::For => self.parse_for()?,
             TokenKind::LBrace => StmtKind::Block(self.parse_block()?),
             TokenKind::Let | TokenKind::Const | TokenKind::Var => {
                 StmtKind::Variable(self.parse_variable_decl()?)
@@ -99,5 +105,127 @@ impl<'a> Parser<'a> {
             then_branch,
             else_branch,
         })
+    }
+
+    pub(super) fn parse_while(&mut self) -> Option<WhileStmt> {
+        self.bump(); // `while`
+        self.expect(TokenKind::LParen, "expected '(' after 'while'")?;
+        let condition = self.parse_expr(0)?;
+        self.expect(TokenKind::RParen, "expected ')' after condition")?;
+        let body = self.parse_branch()?;
+        Some(WhileStmt { condition, body })
+    }
+
+    pub(super) fn parse_do_while(&mut self) -> Option<WhileStmt> {
+        self.bump(); // `do`
+        let body = self.parse_branch()?;
+        self.expect(TokenKind::While, "expected 'while' after 'do' body")?;
+        self.expect(TokenKind::LParen, "expected '(' after 'while'")?;
+        let condition = self.parse_expr(0)?;
+        self.expect(TokenKind::RParen, "expected ')' after condition")?;
+        self.expect_semicolon();
+        Some(WhileStmt { condition, body })
+    }
+
+    /// `for (init; condition; update)` or `for (let x of iterable)`. `of` is
+    /// recognised contextually so it remains usable as an ordinary identifier.
+    pub(super) fn parse_for(&mut self) -> Option<StmtKind> {
+        let start = self.current().start as usize;
+        self.bump(); // `for`
+        self.expect(TokenKind::LParen, "expected '(' after 'for'")?;
+        let init = if self.eat(TokenKind::Semicolon) {
+            None
+        } else if matches!(
+            self.kind(),
+            TokenKind::Let | TokenKind::Const | TokenKind::Var
+        ) {
+            self.bump(); // declaration keyword
+            let name = self.parse_ident("expected a variable name")?;
+            if self.kind() == TokenKind::Ident && self.current().lexeme == "of" {
+                self.bump(); // contextual `of`
+                let iterable = self.parse_expr(0)?;
+                self.expect(TokenKind::RParen, "expected ')' after for-of header")?;
+                let body = self.parse_branch()?;
+                return Some(StmtKind::ForOf(ForOfStmt {
+                    binding: name,
+                    iterable,
+                    body,
+                    decl: true,
+                }));
+            }
+            let ty = if self.eat(TokenKind::Colon) {
+                Some(self.parse_type_annotation()?)
+            } else {
+                None
+            };
+            let value = if self.eat(TokenKind::Eq) {
+                Some(self.parse_expr(0)?)
+            } else {
+                None
+            };
+            self.expect_semicolon();
+            let end = self.previous_end(start);
+            Some(Box::new(Stmt {
+                kind: StmtKind::Variable(VariableDecl {
+                    name,
+                    ty,
+                    init: value,
+                }),
+                span: Span::new(self.file, start, end),
+            }))
+        } else {
+            let expr = self.parse_expr(0)?;
+            if self.kind() == TokenKind::Ident && self.current().lexeme == "of" {
+                let binding = match &expr.kind {
+                    ExprKind::Ident(name) => Ident {
+                        name: name.clone(),
+                        span: expr.span,
+                    },
+                    _ => {
+                        self.error("for-of binding must be an identifier", expr.span);
+                        Ident {
+                            name: String::new(),
+                            span: expr.span,
+                        }
+                    }
+                };
+                self.bump(); // contextual `of`
+                let iterable = self.parse_expr(0)?;
+                self.expect(TokenKind::RParen, "expected ')' after for-of header")?;
+                let body = self.parse_branch()?;
+                return Some(StmtKind::ForOf(ForOfStmt {
+                    binding,
+                    iterable,
+                    body,
+                    decl: false,
+                }));
+            }
+            self.expect_semicolon();
+            let span = expr.span;
+            Some(Box::new(Stmt {
+                kind: StmtKind::Expr(expr),
+                span,
+            }))
+        };
+
+        let condition = if self.kind() == TokenKind::Semicolon {
+            None
+        } else {
+            Some(self.parse_expr(0)?)
+        };
+        self.expect_semicolon();
+        let update = if self.kind() == TokenKind::RParen {
+            None
+        } else {
+            Some(self.parse_expr(0)?)
+        };
+        self.expect(TokenKind::RParen, "expected ')' after for header")?;
+        let body = self.parse_branch()?;
+        Some(StmtKind::For(ForStmt {
+            init,
+            condition,
+            update,
+            body,
+        }))
     }
 }

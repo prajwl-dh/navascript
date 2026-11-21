@@ -11,8 +11,8 @@ mod types;
 
 pub use expr::{BinaryOp, Expr, ExprKind, ObjectField, UnaryOp};
 pub use item::{
-    Block, ElseBranch, FunctionDecl, IfStmt, Item, ItemKind, Param, Program, Stmt, StmtKind,
-    VariableDecl,
+    Block, ElseBranch, ForOfStmt, ForStmt, FunctionDecl, IfStmt, Item, ItemKind, Param, Program,
+    Stmt, StmtKind, VariableDecl, WhileStmt,
 };
 pub use span::{FileId, Span};
 pub use types::{Ident, InterfaceDecl, TypeAliasDecl, TypeAnnotation, TypeExpr, TypeField};

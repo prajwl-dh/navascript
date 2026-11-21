@@ -19,6 +19,9 @@ pub enum TokenKind {
     Void,
     Type,
     Interface,
+    While,
+    Do,
+    For,
     LParen,
     RParen,
     LBrace,
@@ -87,6 +90,9 @@ pub(super) fn keyword(word: &str) -> TokenKind {
         "void" => TokenKind::Void,
         "type" => TokenKind::Type,
         "interface" => TokenKind::Interface,
+        "while" => TokenKind::While,
+        "do" => TokenKind::Do,
+        "for" => TokenKind::For,
         _ => TokenKind::Ident,
     }
 }

@@ -84,6 +84,19 @@ fn handles_escapes_in_strings() {
 }
 
 #[test]
+fn recognizes_loop_keywords() {
+    assert_eq!(
+        kinds("while do for"),
+        vec![
+            TokenKind::While,
+            TokenKind::Do,
+            TokenKind::For,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn reports_unknown_character() {
     let lexed = tokenize("let x = @;");
     assert_eq!(lexed.errors.len(), 1);

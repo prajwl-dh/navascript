@@ -9,6 +9,7 @@ mod builder;
 mod checks;
 mod expressions;
 mod ir;
+mod loops;
 mod lower;
 mod print;
 mod statements;

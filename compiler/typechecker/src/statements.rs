@@ -1,10 +1,12 @@
 //! Declaration checking, blocks and control-flow statements.
 
-use nava_ast::{Block, FunctionDecl, IfStmt, Stmt, StmtKind, VariableDecl};
+use nava_ast::{
+    Block, ForOfStmt, ForStmt, FunctionDecl, IfStmt, Stmt, StmtKind, VariableDecl, WhileStmt,
+};
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{is_assignable, resolve_type};
+use super::types::{is_assignable, resolve_named_type, resolve_type};
 
 impl<'a> Checker<'a> {
     pub(super) fn check_variable(&mut self, decl: &VariableDecl, top_level: bool) {
@@ -123,6 +125,10 @@ impl<'a> Checker<'a> {
             }
             StmtKind::Variable(decl) => self.check_variable(decl, false),
             StmtKind::If(if_stmt) => self.check_if(if_stmt, expected_ret),
+            StmtKind::While(stmt) => self.check_while(stmt, expected_ret),
+            StmtKind::DoWhile(stmt) => self.check_while(stmt, expected_ret),
+            StmtKind::For(stmt) => self.check_for(stmt, expected_ret),
+            StmtKind::ForOf(stmt) => self.check_for_of(stmt, expected_ret),
             StmtKind::Block(block) => self.check_block(block, expected_ret),
             StmtKind::Expr(expr) => {
                 self.infer_expr(expr);
@@ -139,5 +145,67 @@ impl<'a> Checker<'a> {
             Some(nava_ast::ElseBranch::Block(block)) => self.check_block(block, expected_ret),
             None => {}
         }
+    }
+
+    pub(super) fn check_while(&mut self, stmt: &WhileStmt, expected_ret: Option<&Type>) {
+        self.infer_expr(&stmt.condition);
+        self.check_block(&stmt.body, expected_ret);
+    }
+
+    pub(super) fn check_for(&mut self, stmt: &ForStmt, expected_ret: Option<&Type>) {
+        self.symbols.enter_scope();
+        if let Some(init) = &stmt.init {
+            self.check_stmt(init, expected_ret);
+        }
+        if let Some(condition) = &stmt.condition {
+            self.infer_expr(condition);
+        }
+        if let Some(update) = &stmt.update {
+            self.infer_expr(update);
+        }
+        self.check_block(&stmt.body, expected_ret);
+        self.symbols.leave_scope();
+    }
+
+    pub(super) fn check_for_of(&mut self, stmt: &ForOfStmt, expected_ret: Option<&Type>) {
+        self.symbols.enter_scope();
+        let iterable_ty = resolve_named_type(&self.infer_expr(&stmt.iterable), &self.aliases);
+        let element_ty = match iterable_ty {
+            Type::Array(inner) => *inner,
+            Type::String => Type::String,
+            Type::Error | Type::Unknown => Type::Unknown,
+            other => {
+                self.error(
+                    format!(
+                        "for-of requires an array or string, found '{}'",
+                        other.display()
+                    ),
+                    stmt.iterable.span,
+                );
+                Type::Error
+            }
+        };
+        if stmt.decl {
+            self.symbols.insert(Symbol {
+                name: stmt.binding.name.clone(),
+                kind: SymbolKind::Variable,
+                ty: element_ty,
+                span: stmt.binding.span,
+            });
+        } else {
+            match self
+                .symbols
+                .lookup(&stmt.binding.name)
+                .map(|symbol| symbol.ty.clone())
+            {
+                Some(expected) => self.check_assignment(&expected, &element_ty, stmt.binding.span),
+                None => self.error(
+                    format!("unknown identifier '{}'", stmt.binding.name),
+                    stmt.binding.span,
+                ),
+            }
+        }
+        self.check_block(&stmt.body, expected_ret);
+        self.symbols.leave_scope();
     }
 }

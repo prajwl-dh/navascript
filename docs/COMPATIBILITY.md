@@ -6,10 +6,11 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-21 — Phases 0–5 are complete. Syntax, type-system, IR,
-codegen and native-execution entries are implemented and tested. The runtime
-now provides strings, arrays, objects and fatal error reporting; closures and
-exceptions are deferred to Phase 6 (ADR-0015).
+Last updated: 2026-11-21 — Phases 0–5 are complete and Phase 6 is in progress.
+Syntax, type-system, IR, codegen and native-execution entries are implemented
+and tested. The runtime provides strings, arrays, objects and fatal error
+reporting; Phase 6 has delivered loops, with closures and exceptions still
+deferred (ADR-0015).
 
 ## 1. Syntax
 
@@ -21,7 +22,7 @@ exceptions are deferred to Phase 6 (ADR-0015).
 | Expressions & operator precedence | [x] | `tests/parser/` | Phase 1 |
 | Blocks & lexical scope | [x] | `tests/parser/` + `tests/typechecker/` | AST blocks parsed; scopes and shadowing checked in Phase 2 |
 | `if`/`else` | [x] | `tests/parser/` | Phase 1 |
-| Loops (`for`/`while`) | [ ] | — | Phase 6 |
+| Loops (`while`, `do-while`, `for`, `for-of`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `for-of` over arrays/strings (both declaration and assignment forms); no `break`/`continue` yet |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |

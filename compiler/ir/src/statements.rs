@@ -47,6 +47,10 @@ impl FunctionBuilder {
                 Some(current)
             }
             StmtKind::If(if_stmt) => self.lower_if(if_stmt, lowerer, current),
+            StmtKind::While(stmt) => self.lower_while(stmt, lowerer, current),
+            StmtKind::DoWhile(stmt) => self.lower_do_while(stmt, lowerer, current),
+            StmtKind::For(stmt) => self.lower_for(stmt, lowerer, current),
+            StmtKind::ForOf(stmt) => self.lower_for_of(stmt, lowerer, current),
             StmtKind::Block(block) => self.lower_block(block, lowerer, current),
             StmtKind::Empty => Some(current),
         }
@@ -79,21 +83,7 @@ impl FunctionBuilder {
         current: BlockId,
     ) -> Option<BlockId> {
         self.current = Some(current);
-        let mut cond = self.lower_expr(&if_stmt.condition, lowerer);
-        let cond_ty = lowerer
-            .typed
-            .types
-            .get(&if_stmt.condition.span)
-            .map(ir_type_from_symbol)
-            .unwrap_or(IrType::Opaque);
-        if cond_ty != IrType::Boolean && cond_ty != IrType::Opaque {
-            let result = self.fresh_value();
-            self.emit(Instruction::ToBool {
-                result,
-                value: cond,
-            });
-            cond = Value::Local(result);
-        }
+        let cond = self.condition_value(&if_stmt.condition, lowerer);
         let then_block = self.new_block("then");
         let else_block = self.new_block("else");
         let join_block = self.new_block("if.end");
@@ -134,6 +124,18 @@ impl FunctionBuilder {
                 Some(join_block)
             }
         }
+    }
+
+    /// Lower a condition, inserting a truthiness conversion for non-booleans.
+    pub(super) fn condition_value(&mut self, expr: &Expr, lowerer: &mut Lowerer) -> Value {
+        let value = self.lower_expr(expr, lowerer);
+        let ty = lowerer.expr_ty(expr);
+        if ty == IrType::Boolean || ty == IrType::Opaque {
+            return value;
+        }
+        let result = self.fresh_value();
+        self.emit(Instruction::ToBool { result, value });
+        Value::Local(result)
     }
 
     pub(super) fn number_to_string(&mut self, value: Value) -> Value {

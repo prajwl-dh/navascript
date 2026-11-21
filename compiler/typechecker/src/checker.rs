@@ -93,6 +93,7 @@ impl<'a> Checker<'a> {
             ItemKind::Expr(expr) => {
                 self.infer_expr(expr);
             }
+            ItemKind::Stmt(stmt) => self.check_stmt(stmt, None),
             ItemKind::TypeAlias(_) | ItemKind::Interface(_) => {}
         }
     }

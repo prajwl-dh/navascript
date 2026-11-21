@@ -84,6 +84,13 @@ fn emits_string_literals_as_llvm_globals() {
 }
 
 #[test]
+fn emits_back_edges_for_loops() {
+    let ir = generate_source("let i = 0; while (i < 3) { i = i + 1; }");
+    let back_edges = ir.matches("br label %bb1").count();
+    assert!(back_edges >= 2, "expected entry and back edge to bb1: {ir}");
+}
+
+#[test]
 fn emits_runtime_calls_for_collections() {
     let ir = generate_source(
         "let xs: number[] = [1, 2]; console.log(xs[0]); let p = { x: 1 }; console.log(p.x);",

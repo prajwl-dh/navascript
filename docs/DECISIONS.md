@@ -285,6 +285,29 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0017 — Phase 6 loop lowering
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6 adds `while`, `do-while`, C-style `for` and `for-of`.
+  TypeScript allows loops at program scope, and `for-of` has both a declaration
+  (`let x of xs`) and an assignment (`x of xs`) form. The `of` token is widely
+  used as an ordinary identifier, so making it a reserved keyword would break
+  existing programs.
+- **Decision:** Loops lower to basic-block back edges with no new instruction
+  kinds; `for-of` over arrays/strings is desugared to an index stack slot plus
+  `ArrayLength`/`StringLength` and `ArrayGet`/`StringCharAt`, so ADR-0013's slot
+  model still applies. Program-scope loops become `ItemKind::Stmt` items lowered
+  into the synthetic `main`; other statement kinds are not allowed at top level.
+  `of` is recognised contextually in `for` headers only. Loop lowering lives in
+  a private `ir/loops.rs` behind the existing `lower` seam.
+- **Consequences:** No IR verifier or codegen changes were needed. `for-of` is
+  limited to arrays and strings; `break`/`continue` are still unsupported, as
+  are arbitrary iterables. `while (true)` / `for (;;)` bodies that always return
+  are treated as non-fallthrough rather than producing a spurious diagnostic.
+
+---
+
 ## Template for new decisions
 
 ```

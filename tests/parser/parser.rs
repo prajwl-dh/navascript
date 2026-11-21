@@ -1,6 +1,6 @@
 //! Tests for the parser's public `parse` seam.
 
-use nava_ast::{BinaryOp, ElseBranch, ExprKind, FileId, ItemKind, Span, StmtKind, TypeExpr};
+use nava_ast::{BinaryOp, ElseBranch, ExprKind, FileId, ItemKind, Span, Stmt, StmtKind, TypeExpr};
 use nava_diagnostics::{Diagnostic, Diagnostics, Severity};
 use nava_parser::{ParseOutput, parse};
 
@@ -266,6 +266,59 @@ fn parses_array_and_object_types_and_literals() {
         third.init.as_ref().unwrap().kind,
         ExprKind::Index { .. }
     ));
+}
+
+#[test]
+fn parses_while_and_do_while() {
+    let output = ok(
+        "function f(n: number) { while (n > 0) { n = n - 1; } do { n = n + 1; } while (n < 2); }",
+    );
+    let ItemKind::Function(decl) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    assert_eq!(decl.body.statements.len(), 2);
+    assert!(matches!(decl.body.statements[0].kind, StmtKind::While(_)));
+    assert!(matches!(decl.body.statements[1].kind, StmtKind::DoWhile(_)));
+}
+
+#[test]
+fn parses_c_style_for_and_for_of() {
+    let output = ok(
+        "for (let i = 0; i < 3; i = i + 1) { console.log(i); } for (let x of xs) { console.log(x); }",
+    );
+    assert_eq!(output.program.items.len(), 2);
+    let ItemKind::Stmt(Stmt {
+        kind: StmtKind::For(stmt),
+        ..
+    }) = &output.program.items[0].kind
+    else {
+        panic!("expected a for loop");
+    };
+    assert!(stmt.init.is_some());
+    assert!(stmt.condition.is_some());
+    assert!(stmt.update.is_some());
+    let ItemKind::Stmt(Stmt {
+        kind: StmtKind::ForOf(stmt),
+        ..
+    }) = &output.program.items[1].kind
+    else {
+        panic!("expected a for-of loop");
+    };
+    assert_eq!(stmt.binding.name, "x");
+}
+
+#[test]
+fn parses_assignment_form_for_of() {
+    let output = ok("for (x of xs) { console.log(x); }");
+    let ItemKind::Stmt(Stmt {
+        kind: StmtKind::ForOf(stmt),
+        ..
+    }) = &output.program.items[0].kind
+    else {
+        panic!("expected a for-of loop");
+    };
+    assert!(!stmt.decl);
+    assert_eq!(stmt.binding.name, "x");
 }
 
 #[test]

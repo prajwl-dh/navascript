@@ -16,10 +16,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 ## 2. Lexical structure
 
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
-  `true`, `false`, `null`, `void`, `type`, `interface`.
-- [ ] Keywords `for`, `while`, `do`, `switch`, `class`, `import`, `export`,
-  `async`, `await`, `throw`, `try`, `catch`, `finally` (their features are
-  unimplemented; not yet recognized by the lexer).
+  `true`, `false`, `null`, `void`, `type`, `interface`, `while`, `do`, `for`.
+- [ ] Keywords `switch`, `class`, `import`, `export`, `async`, `await`, `throw`,
+  `try`, `catch`, `finally` (their features are unimplemented; not yet
+  recognized by the lexer). `of` in `for-of` is contextual, not a keyword.
 - [x] Identifiers: ASCII letters, `_`, `$`, then alphanumeric/`_`/`$`.
   Unicode identifiers are not yet supported.
 - [x] Numeric literals: decimal integers and floats (including exponents).
@@ -87,7 +87,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Blocks and lexical scope (checked by the type checker)
 - [x] `if` / `else`, including unbraced single-statement branches
 - [x] `return`
-- [ ] `for`, `while`, `do-while`, `for-of` (scheduled for Phase 6)
+- [x] `while`, `do-while`, C-style `for` (`init; condition; update`) and
+  `for-of` over arrays and strings (Phase 6). Both `for (let x of xs)` and
+  `for (x of xs)` are accepted. Loop bodies are blocks or single statements;
+  `break`/`continue` and iteration over other iterables are not implemented.
 - [ ] `throw` / `try` / `catch` / `finally` (Phase 6; ADR-0015)
 - [ ] `switch`
 

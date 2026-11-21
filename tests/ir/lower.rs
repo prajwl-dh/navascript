@@ -169,6 +169,58 @@ fn inferred_void_functions_have_no_call_result() {
 }
 
 #[test]
+fn loops_lower_to_verifiable_back_edges() {
+    let (module, _) = lower_source(
+        "function f(n: number): number { let i = 0; while (i < n) { i = i + 1; } return i; }",
+    );
+    assert!(nava_ir::verify(&module).is_empty());
+    let function = module.function("f").expect("function f");
+    let has_back_edge = function.blocks.iter().any(|block| match block.terminator {
+        Some(Terminator::Br(target)) => target <= block.id,
+        Some(Terminator::CondBr {
+            then_block,
+            else_block,
+            ..
+        }) => then_block <= block.id || else_block <= block.id,
+        _ => false,
+    });
+    assert!(has_back_edge, "expected a branch back to the loop header");
+    assert!(
+        function
+            .blocks
+            .iter()
+            .all(|block| block.terminator.is_some())
+    );
+}
+
+#[test]
+fn infinite_loops_that_always_return_do_not_need_a_fallthrough() {
+    for source in [
+        "function f(n: number): number { while (true) { return n; } }",
+        "function f(n: number): number { for (;;) { return n; } }",
+    ] {
+        let (module, _) = lower_source(source);
+        assert!(nava_ir::verify(&module).is_empty(), "{source}");
+    }
+}
+
+#[test]
+fn for_of_lowers_to_an_index_loop() {
+    let (module, _) = lower_source("let xs = [1, 2]; for (let x of xs) { console.log(x); }");
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(
+        |block| matches!(block.terminator, Some(Terminator::Br(target)) if target <= block.id)
+    ));
+    assert!(
+        main.blocks
+            .iter()
+            .flat_map(|block| block.instructions.iter())
+            .any(|instruction| matches!(instruction, Instruction::ArrayLength { .. }))
+    );
+}
+
+#[test]
 fn every_lowered_module_verifies() {
     let sources = [
         "let x = 1 + 2;",

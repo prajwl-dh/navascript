@@ -63,7 +63,9 @@ impl<'a> Lowerer<'a> {
         for item in &program.items {
             match &item.kind {
                 ItemKind::Function(decl) => self.lower_function(decl),
-                ItemKind::Variable(_) | ItemKind::Expr(_) => main_body.push(item),
+                ItemKind::Variable(_) | ItemKind::Expr(_) | ItemKind::Stmt(_) => {
+                    main_body.push(item)
+                }
                 ItemKind::TypeAlias(_) | ItemKind::Interface(_) => {}
             }
         }
@@ -79,6 +81,11 @@ impl<'a> Lowerer<'a> {
                 ItemKind::Variable(decl) => builder.lower_variable(decl, self),
                 ItemKind::Expr(expr) => {
                     builder.lower_expr(expr, self);
+                }
+                ItemKind::Stmt(stmt) => {
+                    if let Some(current) = builder.current {
+                        builder.current = builder.lower_stmt(stmt, self, current);
+                    }
                 }
                 _ => {}
             }

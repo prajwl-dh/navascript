@@ -140,6 +140,11 @@ impl<'a> Checker<'a> {
                         self.collect_returns(&block.statements, found);
                     }
                 }
+                StmtKind::While(stmt) | StmtKind::DoWhile(stmt) => {
+                    self.collect_returns(&stmt.body.statements, found)
+                }
+                StmtKind::For(stmt) => self.collect_returns(&stmt.body.statements, found),
+                StmtKind::ForOf(stmt) => self.collect_returns(&stmt.body.statements, found),
                 StmtKind::Block(block) => self.collect_returns(&block.statements, found),
                 _ => {}
             }

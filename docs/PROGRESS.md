@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
-- **Current phase:** Phase 5 complete — ready for Phase 6 (Language expansion)
+- **Current phase:** Phase 6 (Language expansion) in progress — loops complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -25,14 +25,15 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [ ] Not started |
+| Phase 6 — Language expansion | [~] In progress (loops done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 6 of 12 implementation phases complete.
+**Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
+(loops delivered, remaining expansion items pending).
 
 ---
 
@@ -177,7 +178,8 @@ limitations for every milestone.
   indices, string coercion and an out-of-bounds error path.
 
 ### Phase 6 — Language expansion
-- [ ] Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1
+- [x] Loops (`while`, `do-while`, C-style `for`, `for-of` over arrays/strings,
+  both `let x of` and `x of` forms) — deferred from Phase 1; done 2026-11-21
 - [ ] Arrow functions and the additional literals/operators in `COMPATIBILITY.md` §6
 - [ ] Generics, classes, inheritance
 - [ ] Interfaces / structural typing (full)
@@ -583,14 +585,35 @@ limitations for every milestone.
 - Verified the environment versions and `cargo test --workspace` (120 passed).
   No compiler code changed.
 
+### 2026-11-21 — Phase 6 (first increment): loops
+- Added `while`, `do-while`, C-style `for` and `for-of` (arrays and strings)
+  across every phase: lexer keywords, AST statement nodes, parser, type checker,
+  IR lowering into basic-block back edges, and native codegen (no backend changes
+  were needed). `for (let x of xs)` and `for (x of xs)` are both accepted; `of`
+  is contextual, not a reserved keyword.
+- Top-level loops are wrapped in `ItemKind::Stmt` and lowered into the synthetic
+  `main`, so script-style examples work.
+- `examples/loops.ts` and `examples/for_of.ts` compile and run natively. Added
+  tests for tokenization, parsing, checking, IR back edges, LLVM IR and
+  end-to-end output. Suite grew from 120 to 135 tests.
+- Two-axis code review of `cad267b...HEAD` was applied: loop lowering was split
+  into a private `ir/loops.rs` module (ADR-0016 file-size guidance), duplicated
+  iterable-type dispatch was collapsed, and the review's spec findings were
+  fixed as part of this change.
+- **Not done in this increment:** `break`/`continue`, iteration over arbitrary
+  iterables/objects, and the remaining Phase 6 items (arrow functions, generics,
+  classes, unions, modules, closures, exceptions, async/await). These remain
+  documented as unsupported.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: loops, arrow functions/deferred literals and operators,
-   generics, classes, structural typing, unions, modules, closures and
-   exceptions (ADR-0015), async/await.
+1. Continue Phase 6 (Language expansion) in the priority order defined in
+   `ROADMAP.md`: arrow functions/deferred literals and operators, generics,
+   classes, structural typing, unions, modules, closures and exceptions
+   (ADR-0015), async/await. Loops are done; `break`/`continue` can be added
+   later if a fixture needs them.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

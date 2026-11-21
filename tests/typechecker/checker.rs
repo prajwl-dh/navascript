@@ -189,6 +189,50 @@ fn supports_array_length_and_element_assignment() {
 }
 
 #[test]
+fn checks_loop_scopes_and_for_of_element_types() {
+    let (output, _) = check_source(
+        "let xs: number[] = [1]; for (let x of xs) { let y: number = x; } for (let i = 0; i < 3; i = i + 1) { let z = i; } while (true) { let w = 1; }",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_for_of_over_a_number() {
+    let (output, _) = check_source("for (let x of 1) { let y = x; }");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("for-of requires an array or string"))
+    );
+}
+
+#[test]
+fn checks_assignment_form_for_of() {
+    let (output, _) =
+        check_source("let x = 0; let xs: number[] = [1]; for (x of xs) { let y = x; }");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source("for (missing of xs) { let y = missing; }");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("unknown identifier 'missing'"))
+    );
+}
+
+#[test]
+fn accepts_an_infinite_loop_that_always_returns() {
+    let (output, _) = check_source("function f(n: number): number { while (true) { return n; } }");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn infers_returns_inside_loops() {
+    let (output, _) =
+        check_source("function f(n: number): number { while (n > 0) { return 1; } return 2; }");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
 fn rejects_comparisons_of_non_orderable_types() {
     let (output, _) = check_source("let x = true < false;");
     assert!(
