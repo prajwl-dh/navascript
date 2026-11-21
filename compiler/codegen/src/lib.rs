@@ -25,25 +25,105 @@ impl std::fmt::Display for CodegenError {
 /// The runtime shim compiled alongside every generated program.
 pub const RUNTIME_C: &str = include_str!("../../../runtime/nava_runtime.c");
 
+const RUNTIME_DECLS: &[&str] = &[
+    "declare void @nava_console_log_f64(double) nounwind",
+    "declare void @nava_console_log_bool(i1) nounwind",
+    "declare void @nava_console_log_str(ptr) nounwind",
+    "declare void @nava_runtime_error(ptr) nounwind",
+    "declare ptr @nava_string_concat(ptr, ptr) nounwind",
+    "declare ptr @nava_number_to_string(double) nounwind",
+    "declare i32 @nava_string_equals(ptr, ptr) nounwind",
+    "declare i64 @nava_string_length(ptr) nounwind",
+    "declare ptr @nava_string_char_at(ptr, i64) nounwind",
+    "declare ptr @nava_array_new(i64) nounwind",
+    "declare void @nava_array_set_f64(ptr, i64, double) nounwind",
+    "declare double @nava_array_get_f64(ptr, i64) nounwind",
+    "declare void @nava_array_set_bool(ptr, i64, i32) nounwind",
+    "declare i32 @nava_array_get_bool(ptr, i64) nounwind",
+    "declare void @nava_array_set_ptr(ptr, i64, ptr) nounwind",
+    "declare ptr @nava_array_get_ptr(ptr, i64) nounwind",
+    "declare i64 @nava_array_length(ptr) nounwind",
+    "declare ptr @nava_object_new(i64, ptr) nounwind",
+    "declare void @nava_object_set_f64(ptr, i64, double) nounwind",
+    "declare double @nava_object_get_f64(ptr, i64) nounwind",
+    "declare void @nava_object_set_bool(ptr, i64, i32) nounwind",
+    "declare i32 @nava_object_get_bool(ptr, i64) nounwind",
+    "declare void @nava_object_set_ptr(ptr, i64, ptr) nounwind",
+    "declare ptr @nava_object_get_ptr(ptr, i64) nounwind",
+];
+
+fn escape_llvm_string(text: &str) -> String {
+    let mut out = String::new();
+    for byte in text.bytes() {
+        match byte {
+            b'\\' => out.push_str("\\5C"),
+            b'"' => out.push_str("\\22"),
+            b'\n' => out.push_str("\\0A"),
+            b'\t' => out.push_str("\\09"),
+            b'\r' => out.push_str("\\0D"),
+            0x20..=0x7E => out.push(byte as char),
+            other => {
+                let _ = write!(out, "\\{other:02X}");
+            }
+        }
+    }
+    out
+}
+
 /// Generate textual LLVM IR for a verified Nava module.
 pub fn generate(module: &IrModule, target_triple: &str) -> Result<String, CodegenError> {
     let mut out = String::new();
     let _ = writeln!(out, "target triple = \"{target_triple}\"\n");
-    let _ = writeln!(out, "declare void @nava_console_log_f64(double) nounwind");
-    let _ = writeln!(out, "declare void @nava_console_log_bool(i1) nounwind\n");
+    for declaration in RUNTIME_DECLS {
+        let _ = writeln!(out, "{declaration}");
+    }
+    let _ = writeln!(out);
 
+    for global in &module.globals {
+        let text = escape_llvm_string(&global.value);
+        let length = global.value.len() + 1;
+        let _ = writeln!(
+            out,
+            "@g{} = private unnamed_addr constant [{length} x i8] c\"{text}\\00\"",
+            global.id
+        );
+    }
     if !module.globals.is_empty() {
-        return Err(CodegenError {
-            message: "string globals are not supported by the native backend yet (Phase 5)"
-                .to_owned(),
-        });
+        let _ = writeln!(out);
+    }
+
+    // Object field-name tables are module-level constants; collect them before
+    // emitting any function body.
+    let mut object_globals: HashMap<String, String> = HashMap::new();
+    for function in &module.functions {
+        for block in &function.blocks {
+            for instruction in &block.instructions {
+                if let Instruction::ObjectNew { fields, .. } = instruction {
+                    let encoded = encode_field_names(fields);
+                    if !object_globals.contains_key(&encoded) {
+                        let name = format!("@obj_names_{}", object_globals.len());
+                        object_globals.insert(encoded, name);
+                    }
+                }
+            }
+        }
+    }
+    for (encoded, name) in &object_globals {
+        let byte_len = llvm_string_bytes(encoded);
+        let _ = writeln!(
+            out,
+            "{name} = private unnamed_addr constant [{byte_len} x i8] c\"{encoded}\""
+        );
+    }
+    if !object_globals.is_empty() {
+        let _ = writeln!(out);
     }
 
     for function in &module.functions {
         // ValueIds are per-function: each function needs its own type map, or
         // ID collisions would give call arguments the wrong LLVM type.
         let types = value_types(function);
-        emit_function(function, &types, &mut out)?;
+        emit_function(function, &types, &object_globals, &mut out)?;
     }
     if module.function("main").is_none() {
         out.push_str("define void @nava_main() {\n  ret void\n}\n\n");
@@ -54,6 +134,7 @@ pub fn generate(module: &IrModule, target_triple: &str) -> Result<String, Codege
 fn emit_function(
     function: &IrFunction,
     types: &HashMap<ValueId, IrType>,
+    object_globals: &HashMap<String, String>,
     out: &mut String,
 ) -> Result<(), CodegenError> {
     let ret_ty = llvm_type(&function.return_ty).map_err(|message| CodegenError { message })?;
@@ -73,7 +154,7 @@ fn emit_function(
     for block in &function.blocks {
         let _ = writeln!(out, "bb{}:", block.id);
         for instruction in &block.instructions {
-            emit_instruction(instruction, types, out)?;
+            emit_instruction(instruction, types, object_globals, out)?;
         }
         match &block.terminator {
             Some(Terminator::Return(None)) => {
@@ -112,6 +193,7 @@ fn emit_function(
 fn emit_instruction(
     instruction: &Instruction,
     types: &HashMap<ValueId, IrType>,
+    object_globals: &HashMap<String, String>,
     out: &mut String,
 ) -> Result<(), CodegenError> {
     match instruction {
@@ -243,6 +325,9 @@ fn emit_instruction(
                 let arg_ty = arg_tys.first().cloned();
                 let name = match arg_ty {
                     Some(IrType::Boolean) => "nava_console_log_bool",
+                    Some(IrType::String) | Some(IrType::Array(_)) | Some(IrType::Object(_)) => {
+                        "nava_console_log_str"
+                    }
                     Some(IrType::Number) | None => "nava_console_log_f64",
                     Some(other) => {
                         return Err(CodegenError {
@@ -269,15 +354,262 @@ fn emit_instruction(
                 }
             }
         }
-        Instruction::Index { .. } | Instruction::Field { .. } => {
-            return Err(CodegenError {
-                message:
-                    "field and element access are not supported by the native backend yet (Phase 5)"
-                        .to_owned(),
-            });
+        Instruction::StringConcat {
+            result,
+            left,
+            right,
+        } => {
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @nava_string_concat(ptr {}, ptr {})",
+                llvm_value(left),
+                llvm_value(right)
+            );
+        }
+        Instruction::NumberToString { result, value } => {
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @nava_number_to_string(double {})",
+                llvm_value(value)
+            );
+        }
+        Instruction::StringEquals {
+            result,
+            left,
+            right,
+        } => {
+            let _ = writeln!(
+                out,
+                "  %raw{result} = call i32 @nava_string_equals(ptr {}, ptr {})",
+                llvm_value(left),
+                llvm_value(right)
+            );
+            let _ = writeln!(out, "  %v{result} = icmp ne i32 %raw{result}, 0");
+        }
+        Instruction::StringLength { result, value } => {
+            let _ = writeln!(
+                out,
+                "  %len{result} = call i64 @nava_string_length(ptr {})",
+                llvm_value(value)
+            );
+            let _ = writeln!(out, "  %v{result} = sitofp i64 %len{result} to double");
+        }
+        Instruction::StringCharAt {
+            result,
+            value,
+            index,
+        } => {
+            let index = index_arg(index, types, out)?;
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @nava_string_char_at(ptr {}, i64 {index})",
+                llvm_value(value)
+            );
+        }
+        Instruction::ArrayNew { result, length, .. } => {
+            let _ = writeln!(out, "  %v{result} = call ptr @nava_array_new(i64 {length})");
+        }
+        Instruction::ArrayGet {
+            result,
+            array,
+            index,
+            element_ty,
+        } => {
+            let suffix = slot_suffix(element_ty);
+            let llvm_ret = if *element_ty == IrType::Boolean {
+                "i32".to_owned()
+            } else {
+                llvm_type(element_ty).map_err(|message| CodegenError { message })?
+            };
+            let index = index_arg(index, types, out)?;
+            let _ = writeln!(
+                out,
+                "  %{}{} = call {} @nava_array_get_{}(ptr {}, i64 {index})",
+                if *element_ty == IrType::Boolean {
+                    "raw"
+                } else {
+                    "v"
+                },
+                result,
+                llvm_ret,
+                suffix,
+                llvm_value(array)
+            );
+            if *element_ty == IrType::Boolean {
+                let _ = writeln!(out, "  %v{result} = trunc i32 %raw{result} to i1");
+            }
+        }
+        Instruction::ArraySet {
+            array,
+            index,
+            value,
+            element_ty,
+        } => {
+            let suffix = slot_suffix(element_ty);
+            let (arg_ty, arg) = if *element_ty == IrType::Boolean {
+                ("i32".to_owned(), bool_to_i32(&llvm_value(value), out))
+            } else {
+                (
+                    llvm_type(element_ty).map_err(|message| CodegenError { message })?,
+                    llvm_value(value),
+                )
+            };
+            let index = index_arg(index, types, out)?;
+            let _ = writeln!(
+                out,
+                "  call void @nava_array_set_{}(ptr {}, i64 {index}, {} {arg})",
+                suffix,
+                llvm_value(array),
+                arg_ty
+            );
+        }
+        Instruction::ArrayLength { result, array } => {
+            let _ = writeln!(
+                out,
+                "  %len{result} = call i64 @nava_array_length(ptr {})",
+                llvm_value(array)
+            );
+            let _ = writeln!(out, "  %v{result} = sitofp i64 %len{result} to double");
+        }
+        Instruction::ObjectNew { result, fields } => {
+            let encoded = encode_field_names(fields);
+            let names_global = object_globals.get(&encoded).ok_or_else(|| CodegenError {
+                message: "missing object field-name global".to_owned(),
+            })?;
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @nava_object_new(i64 {}, ptr {names_global})",
+                fields.len()
+            );
+        }
+        Instruction::ObjectGet {
+            result,
+            object,
+            field_index,
+            field_ty,
+        } => {
+            let suffix = slot_suffix(field_ty);
+            let llvm_ret = if *field_ty == IrType::Boolean {
+                "i32".to_owned()
+            } else {
+                llvm_type(field_ty).map_err(|message| CodegenError { message })?
+            };
+            let _ = writeln!(
+                out,
+                "  %{}{} = call {} @nava_object_get_{}(ptr {}, i64 {})",
+                if *field_ty == IrType::Boolean {
+                    "raw"
+                } else {
+                    "v"
+                },
+                result,
+                llvm_ret,
+                suffix,
+                llvm_value(object),
+                field_index
+            );
+            if *field_ty == IrType::Boolean {
+                let _ = writeln!(out, "  %v{result} = trunc i32 %raw{result} to i1");
+            }
+        }
+        Instruction::ObjectSet {
+            object,
+            field_index,
+            value,
+            field_ty,
+        } => {
+            let suffix = slot_suffix(field_ty);
+            let (arg_ty, arg) = if *field_ty == IrType::Boolean {
+                ("i32".to_owned(), bool_to_i32(&llvm_value(value), out))
+            } else {
+                (
+                    llvm_type(field_ty).map_err(|message| CodegenError { message })?,
+                    llvm_value(value),
+                )
+            };
+            let _ = writeln!(
+                out,
+                "  call void @nava_object_set_{}(ptr {}, i64 {}, {} {})",
+                suffix,
+                llvm_value(object),
+                field_index,
+                arg_ty,
+                arg
+            );
         }
     }
     Ok(())
+}
+
+fn llvm_string_bytes(encoded: &str) -> usize {
+    let chars: Vec<char> = encoded.chars().collect();
+    let mut index = 0;
+    let mut bytes = 0;
+    while index < chars.len() {
+        if chars[index] == '\\' && index + 2 < chars.len() {
+            index += 3;
+        } else {
+            index += 1;
+        }
+        bytes += 1;
+    }
+    bytes
+}
+
+fn encode_field_names(fields: &[(String, IrType)]) -> String {
+    let mut encoded = String::new();
+    for (name, _) in fields {
+        encoded.push_str(&escape_llvm_string(name));
+        encoded.push_str("\\00");
+    }
+    encoded
+}
+
+fn slot_suffix(ty: &IrType) -> &'static str {
+    match ty {
+        IrType::Number => "f64",
+        IrType::Boolean => "bool",
+        _ => "ptr",
+    }
+}
+
+fn index_arg(
+    value: &Value,
+    types: &HashMap<ValueId, IrType>,
+    out: &mut String,
+) -> Result<String, CodegenError> {
+    match value {
+        Value::Number(index) if index.fract() == 0.0 => Ok(format!("{}", *index as i64)),
+        Value::Number(_) => Err(CodegenError {
+            message: "array/string index must be an integer".to_owned(),
+        }),
+        Value::Local(id) | Value::Param(id) => match types.get(id) {
+            Some(IrType::Number) => {
+                let temp = format!("idx{}", out.len());
+                let _ = writeln!(
+                    out,
+                    "  %{temp} = fptosi double {} to i64",
+                    llvm_value(value)
+                );
+                Ok(format!("%{temp}"))
+            }
+            Some(IrType::Boolean) => Err(CodegenError {
+                message: "array/string index must be an integer".to_owned(),
+            }),
+            _ => Ok(llvm_value(value)),
+        },
+        _ => Err(CodegenError {
+            message: "unsupported array/string index".to_owned(),
+        }),
+    }
+}
+
+fn bool_to_i32(value: &str, out: &mut String) -> String {
+    let bool_temp = format!("bool{}", out.len());
+    let int_temp = format!("int{}", out.len() + 1);
+    let _ = writeln!(out, "  %{bool_temp} = add i1 {value}, false");
+    let _ = writeln!(out, "  %{int_temp} = select i1 %{bool_temp}, i32 1, i32 0");
+    format!("%{int_temp}")
 }
 
 fn require_type(actual: &IrType, expected: IrType, context: &str) -> Result<(), CodegenError> {
@@ -298,9 +630,7 @@ fn llvm_type(ty: &IrType) -> Result<String, String> {
         IrType::Number => Ok("double".to_owned()),
         IrType::Boolean => Ok("i1".to_owned()),
         IrType::Void => Ok("void".to_owned()),
-        IrType::String => {
-            Err("strings are not supported by the native backend yet (Phase 5)".to_owned())
-        }
+        IrType::String | IrType::Array(_) | IrType::Object(_) => Ok("ptr".to_owned()),
         IrType::Opaque => Err("cannot lower an opaque type to LLVM".to_owned()),
     }
 }
@@ -311,7 +641,8 @@ fn llvm_value(value: &Value) -> String {
         Value::Local(index) => format!("%v{index}"),
         Value::Number(value) => format!("{value:?}"),
         Value::Bool(value) => value.to_string(),
-        Value::String(_) | Value::Null => "null".to_owned(),
+        Value::String(id) => format!("@g{id}"),
+        Value::Null => "null".to_owned(),
     }
 }
 
@@ -356,8 +687,36 @@ fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
                         },
                     );
                 }
-                Instruction::ToBool { result, .. } => {
+                Instruction::ToBool { result, .. }
+                | Instruction::StringEquals { result, .. }
+                | Instruction::NumberToString { result, .. } => {
                     types.insert(*result, IrType::Boolean);
+                }
+                Instruction::StringConcat { result, .. }
+                | Instruction::StringCharAt { result, .. } => {
+                    types.insert(*result, IrType::String);
+                }
+                Instruction::StringLength { result, .. }
+                | Instruction::ArrayLength { result, .. } => {
+                    types.insert(*result, IrType::Number);
+                }
+                Instruction::ArrayNew {
+                    result, element_ty, ..
+                } => {
+                    types.insert(*result, IrType::Array(Box::new(element_ty.clone())));
+                }
+                Instruction::ArrayGet {
+                    result, element_ty, ..
+                }
+                | Instruction::ObjectGet {
+                    result,
+                    field_ty: element_ty,
+                    ..
+                } => {
+                    types.insert(*result, element_ty.clone());
+                }
+                Instruction::ObjectNew { result, fields } => {
+                    types.insert(*result, IrType::Object(fields.clone()));
                 }
                 Instruction::Call {
                     result: Some(result),
@@ -365,9 +724,6 @@ fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
                     ..
                 } => {
                     types.insert(*result, result_ty.clone());
-                }
-                Instruction::Index { result, .. } | Instruction::Field { result, .. } => {
-                    types.insert(*result, IrType::Opaque);
                 }
                 _ => {}
             }

@@ -174,6 +174,21 @@ fn follows_alias_chains_and_reports_cycles() {
 }
 
 #[test]
+fn supports_string_length_and_indexing() {
+    let (output, _) =
+        check_source("let s = \"abc\"; let n = s.length; let c = s[0]; let same = s == \"abc\";");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let typed_string = output.typed.types.values().any(|ty| *ty == Type::String);
+    assert!(typed_string);
+}
+
+#[test]
+fn supports_array_length_and_element_assignment() {
+    let (output, _) = check_source("let xs: number[] = [1]; let n = xs.length; xs[0] = 2;");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
 fn rejects_comparisons_of_non_orderable_types() {
     let (output, _) = check_source("let x = true < false;");
     assert!(

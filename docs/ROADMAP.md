@@ -225,8 +225,10 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Nontrivial applications run natively without Node.js.
 
 **Known limitations**
-- GC strategy may start simple (e.g. arena/Bump allocator) and be upgraded.
-- Exception semantics will initially differ from JavaScript.
+- The arena allocator never reclaims memory during execution; a tracing
+  collector or reference counting is a later upgrade (ADR-0005).
+- Closures, function values and `throw`/`try` are deferred to Phase 6
+  (ADR-0015). Runtime errors terminate the process with a diagnostic.
 
 ---
 

@@ -107,13 +107,17 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 8. Runtime semantics
 
-- [ ] Memory allocation strategy documented in ADR-0005 (Phase 5)
-- [ ] String representation and operations (Phase 5)
-- [ ] Arrays and objects at runtime (Phase 5)
-- [ ] Closures (Phase 5/6)
-- [ ] Exceptions and runtime error reporting (Phase 5)
-- [~] `console.log` — numbers and booleans print from a minimal C shim in
-  Phase 4; strings, objects and full semantics arrive in Phase 5
+- [x] Memory allocation: program-lifetime bump arena (ADR-0005); no
+  reclamation during execution (documented divergence from JS GC).
+- [x] Strings: NUL-terminated arena buffers; literals, concatenation, `length`,
+  indexing and equality work natively.
+- [x] Arrays and objects at runtime: typed slot accessors with bounds and field
+  validation; fatal diagnostics on invalid access.
+- [ ] Closures (Phase 6, ADR-0015)
+- [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
+  terminate the process with a diagnostic (Phase 6, ADR-0015).
+- [~] `console.log` — numbers, booleans and strings print natively; object
+  values print as an opaque pointer until Phase 6.
 
 ## 9. First acceptance program
 

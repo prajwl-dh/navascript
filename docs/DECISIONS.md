@@ -65,16 +65,21 @@ a new number and references the old one. Keep entries short and factual.
 
 ## ADR-0005 — Memory management strategy
 
-- **Date:** 2026-11-20
-- **Status:** Proposed (decide before Phase 5)
+- **Date:** 2026-11-20 (decision 2026-11-21)
+- **Status:** Accepted
 - **Context:** Need a documented strategy for allocation and reclamation; a
   tracing GC is a large undertaking early on.
-- **Decision:** Deferred. Likely start with a simple, well-defined strategy
-  (e.g. arena/bump allocation with explicit lifetimes or reference counting for
-  strings/arrays) and record the exact choice, ownership rules, and known
-  limitations here before implementing Phase 5.
-- **Consequences:** Runtime ABI must be designed with the chosen strategy in
-  mind; document divergence from JavaScript GC semantics.
+- **Decision:** Use a **program-lifetime bump arena** in the C runtime. Every
+  runtime object (strings, arrays, objects) is allocated from one fixed arena,
+  8-byte aligned, and is never individually freed. The arena is released when
+  the process exits. Out-of-memory is a fatal runtime error with a clear
+  message, not undefined behavior.
+- **Consequences:** No reclamation happens during program execution, so long-
+  running programs that allocate in loops will grow until the arena is
+  exhausted. This is a deliberate, documented divergence from JavaScript's GC
+  semantics. The compact ABI keeps the backend simple; a tracing collector or
+  reference counting can replace `nava_alloc` later without changing the IR or
+  front end.
 
 ## ADR-0006 — Numeric model
 
@@ -225,6 +230,26 @@ a new number and references the old one. Keep entries short and factual.
 - **Consequences:** IR depends only on `nava-ast`, `nava-diagnostics` and
   `nava-symbol` — never LLVM. The driver calls parse → check → lower and
   renders diagnostics from all three uniformly.
+
+---
+
+## ADR-0015 — Phase 5 scope: closures and exceptions deferred
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** The Phase 5 roadmap lists closures/function values and
+  exceptions alongside strings, arrays and objects. Closures require first-
+  class function values, captured environments and an indirect-call ABI;
+  JavaScript-style exceptions require unwinding support across generated
+  frames. Neither exists in the IR or the LLVM backend yet.
+- **Decision:** Implement strings, arrays, objects, arena allocation and fatal
+  runtime error reporting in Phase 5. Defer closures and exceptions to Phase 6,
+  recording them in `COMPATIBILITY.md`. Runtime bounds/field errors terminate
+  the process with a diagnostic; this is a documented divergence from JS
+  exceptions.
+- **Consequences:** No claim of exception support is made. `throw`/`try` are
+  still unparsed, so there is no silent miscompilation. Adding them later will
+  extend the IR and backend behind the existing `lower`/`generate` seams.
 
 ---
 

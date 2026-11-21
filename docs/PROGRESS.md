@@ -6,7 +6,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
-- **Current phase:** Phase 4 complete — ready for Phase 5 (Runtime)
+- **Current phase:** Phase 5 complete — ready for Phase 6 (Language expansion)
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -24,7 +24,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 2 — Type system | [x] Complete |
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
-| Phase 5 — Runtime | [ ] Not started |
+| Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
 | Phase 6 — Language expansion | [ ] Not started |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
@@ -32,7 +32,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 5 of 12 implementation phases complete.
+**Overall:** 6 of 12 implementation phases complete.
 
 ---
 
@@ -163,11 +163,18 @@ limitations for every milestone.
   run compiled binaries in both debug and release modes.
 
 ### Phase 5 — Runtime
-- [ ] Memory allocation + chosen management strategy
-- [ ] Strings, arrays, objects
-- [ ] Closures
-- [ ] Exceptions + runtime error reporting
-- **Exit condition:** nontrivial apps run without Node.js.
+- [x] Memory allocation with a documented program-lifetime arena (ADR-0005)
+- [x] Strings: literals, concatenation, `length`, indexing, equality, `console.log`
+- [x] Arrays: literals, indexing, assignment, `length` (numbers, booleans, refs)
+- [x] Objects: literals, field get/set with runtime field validation
+- [x] Runtime error reporting (fatal bounds/field errors with clear messages)
+- [ ] Closures / function values — deferred to Phase 6 (ADR-0015)
+- [ ] Exceptions (`throw`/`try`) — deferred to Phase 6 (ADR-0015)
+- **Exit condition met:** nontrivial programs using strings, collections and
+  objects run natively without Node.js; runtime errors are reported.
+- **Verification:** `cargo test --workspace` (120 passed, 0 failed), fmt and
+  clippy clean; end-to-end tests exercise strings, arrays, objects, dynamic
+  indices, string coercion and an out-of-bounds error path.
 
 ### Phase 6 — Language expansion
 - [ ] Generics, classes, inheritance
@@ -492,13 +499,51 @@ limitations for every milestone.
   current textual-LLVM pipeline.
 - No code changes; the 110-test suite, fmt and clippy remain green.
 
+### 2026-11-21 — Phase 5 (Runtime) implemented
+- Resolved ADR-0005 with a program-lifetime bump arena (16 MiB, 8-byte aligned,
+  fatal error on exhaustion) and ADR-0015 deferring closures and exceptions.
+- `runtime/nava_runtime.c` grew from a numeric shim into a real runtime:
+  strings (NUL-terminated arena buffers), arrays and objects with typed slot
+  accessors, field-name tables, bounds checks and fatal error reporting.
+- IR gained typed collection instructions (`ArrayNew/Get/Set/Length`,
+  `ObjectNew/Get/Set`, `StringConcat/Equals/Length/CharAt`); `IrType` now models
+  arrays and objects, and codegen emits the corresponding runtime calls.
+- Fixed a latent type-map bug: expression types are now keyed by the full
+  source span, because an identifier and its member expression share a start
+  offset (`s.length`).
+- Typechecker recognizes `string.length`, `array.length`, string indexing and
+  string equality; lowering and codegen handle all of them natively.
+- Added examples (`strings.ts`, `arrays.ts`, `objects.ts`, `runtime_error.ts`)
+  and end-to-end tests. Suite grew from 110 to 117 tests; fmt and clippy clean.
+
+### 2026-11-21 — Phase 5 review fixes
+- Two-axis review found 5 hard standards items and several spec defects. All
+  substantive findings were fixed before committing:
+  - Object field order is now taken from the inferred type consistently for
+    `ObjectNew`, `ObjectSet` and `ObjectGet` (previously source order mixed
+    with the sorted field map, corrupting non-alphabetical literals).
+  - Dynamic (non-constant) indices are converted `double → i64` in codegen;
+    fractional indices are diagnosed instead of silently truncated.
+  - Boolean array/object slots now use the correct 8-byte stride; a stray byte
+    write had corrupted neighbouring numeric slots.
+  - String coercion is implemented with a runtime `nava_number_to_string`;
+    `"a" + 1` and `1 == "1"` now produce well-typed IR and correct output.
+  - Mixed coercion is no longer listed as unsupported; the stale "collection
+    literals unsupported in IR" entry was removed.
+  - Added C runtime unit tests (`tests/runtime/runtime_test.c`) covering arena
+    alignment, strings, coercion, typed slots and cross-slot isolation, plus
+    end-to-end tests for dynamic indices and non-alphabetical object fields.
+  - Documented the runtime ABI in `runtime/README.md`, aligned the arena to
+    8 bytes, and keyed expression types by `Span` instead of a raw offset pair.
+- Suite grew from 117 to 120 tests; fmt and clippy clean.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 5 (Runtime): decide the memory-management strategy (ADR-0005),
-   then add strings, arrays, objects and richer `console.log` support, replacing
-   the minimal C shim.
+1. Start Phase 6 (Language expansion): loops, classes, generics, modules,
+   closures/function values and exceptions (ADR-0015), then structural typing
+   and unions.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

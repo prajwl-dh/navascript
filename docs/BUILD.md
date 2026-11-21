@@ -73,7 +73,8 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/driver/` | CLI argument parsing and the real `nava` binary |
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 | `tests/codegen/` | Nava IR → LLVM IR translation |
-| `tests/driver/native.rs` | end-to-end native compile + run (debug and release) |
+| `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, dynamic indices, runtime errors, debug/release) |
+| `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
 `tests/runtime/` and `tests/compatibility/` are reserved for Phase 5 and 7
 suites. `tests/codegen/` and `tests/driver/native.rs` landed in Phase 4.
@@ -148,9 +149,10 @@ code 1.
 
 ## 7. Current limitations
 
-- Strings, arrays, objects, closures and exceptions have no runtime layout yet
-  (Phase 5); the native backend reports these as unsupported rather than
-  miscompiling them.
+- Runtime memory is a program-lifetime bump arena; nothing is reclaimed until
+  process exit (ADR-0005).
+- Closures, function values and exceptions are deferred to Phase 6 (ADR-0015);
+  runtime bounds/field errors terminate the process with a diagnostic.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.

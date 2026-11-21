@@ -102,17 +102,20 @@ fn lowers_string_literals_as_module_globals() {
 }
 
 #[test]
-fn lower_reports_unsupported_collection_literals() {
-    let source = "let xs = [1, 2];";
-    let parsed = parse(source);
-    let typed = check(&parsed.program, source);
-    let lowered = lower(&parsed.program, &typed.typed, source);
-    assert!(lowered.diagnostics.has_errors());
-    let rendered = lowered.diagnostics.render(source);
-    assert!(
-        rendered.contains("collection literals are not supported"),
-        "{rendered}"
-    );
+fn lower_supports_collection_literals() {
+    let (module, _) = lower_source("let xs = [1, 2]; let p = { x: 1 };");
+    assert!(module.functions[0].blocks.iter().any(|block| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, nava_ir::Instruction::ArrayNew { .. }))
+    }));
+    assert!(module.functions[0].blocks.iter().any(|block| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, nava_ir::Instruction::ObjectNew { .. }))
+    }));
 }
 
 #[test]

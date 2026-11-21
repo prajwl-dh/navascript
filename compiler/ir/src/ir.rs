@@ -14,19 +14,23 @@ pub enum IrType {
     Number,
     Boolean,
     String,
+    Array(Box<IrType>),
+    Object(Vec<(String, IrType)>),
     Void,
     /// A type whose layout is not fixed until the runtime phase.
     Opaque,
 }
 
 impl IrType {
-    pub fn display(&self) -> &'static str {
+    pub fn display(&self) -> String {
         match self {
-            IrType::Number => "number",
-            IrType::Boolean => "boolean",
-            IrType::String => "string",
-            IrType::Void => "void",
-            IrType::Opaque => "opaque",
+            IrType::Number => "number".to_owned(),
+            IrType::Boolean => "boolean".to_owned(),
+            IrType::String => "string".to_owned(),
+            IrType::Array(inner) => format!("{}[]", inner.display()),
+            IrType::Object(_) => "object".to_owned(),
+            IrType::Void => "void".to_owned(),
+            IrType::Opaque => "opaque".to_owned(),
         }
     }
 }
@@ -102,7 +106,10 @@ pub enum UnaryOp {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Instruction {
     /// Reserve a typed stack slot. Allocations live in the entry block.
-    Alloc { slot: SlotId, ty: IrType },
+    Alloc {
+        slot: SlotId,
+        ty: IrType,
+    },
     Store {
         slot: SlotId,
         ty: IrType,
@@ -125,7 +132,10 @@ pub enum Instruction {
         operand: Value,
     },
     /// JavaScript-style truthiness conversion for non-boolean conditions.
-    ToBool { result: ValueId, value: Value },
+    ToBool {
+        result: ValueId,
+        value: Value,
+    },
     /// Direct call. Indirect calls are not supported in Phase 3.
     Call {
         result: Option<ValueId>,
@@ -133,15 +143,69 @@ pub enum Instruction {
         callee: String,
         args: Vec<Value>,
     },
-    Index {
+    /// Concatenate two runtime strings.
+    StringConcat {
         result: ValueId,
-        object: Value,
+        left: Value,
+        right: Value,
+    },
+    /// Convert a number to its string representation for concatenation.
+    NumberToString {
+        result: ValueId,
+        value: Value,
+    },
+    StringEquals {
+        result: ValueId,
+        left: Value,
+        right: Value,
+    },
+    StringLength {
+        result: ValueId,
+        value: Value,
+    },
+    StringCharAt {
+        result: ValueId,
+        value: Value,
         index: Value,
     },
-    Field {
+    /// Allocate an array whose slots are all of `element_ty`.
+    ArrayNew {
+        result: ValueId,
+        element_ty: IrType,
+        length: u32,
+    },
+    ArrayGet {
+        result: ValueId,
+        array: Value,
+        index: Value,
+        element_ty: IrType,
+    },
+    ArraySet {
+        array: Value,
+        index: Value,
+        value: Value,
+        element_ty: IrType,
+    },
+    ArrayLength {
+        result: ValueId,
+        array: Value,
+    },
+    /// Allocate an object with the given field names and types.
+    ObjectNew {
+        result: ValueId,
+        fields: Vec<(String, IrType)>,
+    },
+    ObjectGet {
         result: ValueId,
         object: Value,
-        name: String,
+        field_index: u32,
+        field_ty: IrType,
+    },
+    ObjectSet {
+        object: Value,
+        field_index: u32,
+        value: Value,
+        field_ty: IrType,
     },
 }
 

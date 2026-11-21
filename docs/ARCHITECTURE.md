@@ -93,7 +93,8 @@ interface. A change to a module must be accompanied by its tests passing
 
 The runtime defines an ABI contract that codegen must honor (layout of strings,
 arrays, objects, exception handling). This contract is versioned in
-`runtime/README` when implemented and referenced from codegen tests.
+`runtime/README.md`, and exercised by `tests/runtime/runtime_test.c` plus the
+end-to-end collection tests.
 
 ## 4. LLVM strategy
 

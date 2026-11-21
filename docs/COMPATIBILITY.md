@@ -6,9 +6,10 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-21 — Phases 0–4 are complete. Syntax, type-system, IR,
-codegen and native-execution entries are implemented and tested; the richer
-runtime (strings, arrays, objects, closures, exceptions) remains Phase 5.
+Last updated: 2026-11-21 — Phases 0–5 are complete. Syntax, type-system, IR,
+codegen and native-execution entries are implemented and tested. The runtime
+now provides strings, arrays, objects and fatal error reporting; closures and
+exceptions are deferred to Phase 6 (ADR-0015).
 
 ## 1. Syntax
 
@@ -54,12 +55,12 @@ runtime (strings, arrays, objects, closures, exceptions) remains Phase 5.
 | --- | --- | --- | --- |
 | Arithmetic / comparisons | [x] | `tests/driver/native.rs`, `tests/codegen/` | native `fadd/fsub/fmul/fdiv/frem`, `fcmp`/`icmp`; boolean results print correctly |
 | Recursion | [x] | `tests/driver/native.rs` | fibonacci calls itself natively and prints `55` |
-| Strings | [ ] | — | Phase 5 |
-| Arrays & objects | [ ] | — | Phase 5 |
-| Closures / function values | [ ] | — | Phase 5/6 |
-| Exceptions | [ ] | — | Phase 5; semantics will differ initially |
-| `console.log` | [~] | `tests/driver/native.rs` | numbers and booleans print natively via a minimal C shim; strings and full semantics Phase 5 |
-| Memory management | [ ] | — | Strategy in ADR-0005 |
+| Strings | [x] | `tests/driver/native.rs` | literal, `+`, `length`, indexing, `==`, `console.log` |
+| Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
+| Closures / function values | [ ] | — | Phase 6 (ADR-0015) |
+| Exceptions | [ ] | — | Phase 6 (ADR-0015); runtime errors are currently fatal |
+| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans and strings print natively; objects print as an opaque pointer until Phase 6 |
+| Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
 
 ## 4. Platform
 
@@ -97,9 +98,9 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Non-ASCII identifiers | lexer accepts ASCII letters, `_`, `$` only | Phase 6 |
 | `\u` / `\x` string escapes | only `\n`, `\t`, `\r`, `\0`, `\\`, `\"`, `\'` decoded | Phase 6 |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
-| Mixed string/number `+` coercion | accepted as JavaScript-style concatenation (`"a" + 1` is `string`); documented difference, not a TypeScript parity claim | Phase 7 |
-| Collection literals in IR | type-check but lowering reports "not supported in IR yet" | Phase 5 |
+| Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 5 |
 | Functions falling through without returning | lowering reports "may fall through without returning" instead of fabricating a value | Phase 5 |
-| Strings in native output | codegen reports "string globals are not supported"; strings arrive with the Phase 5 runtime | Phase 5 |
-| Field and element access in native output | codegen reports these as unsupported until the runtime defines their layout | Phase 5 |
+| Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
+| Closures and first-class functions | no function values or captured environments in IR | Phase 6 |
+| `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 |

@@ -4,7 +4,7 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 4 (Native backend) complete. Next: Phase 5 — Runtime.
+**Status:** Phase 5 (Runtime) complete. Next: Phase 6 — Language expansion.
 
 ## Goals (tracked independently)
 
@@ -59,7 +59,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 110 tests through Phase 4
+cargo test --workspace     # 120 tests through Phase 5
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -72,9 +72,12 @@ Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same
 fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full build,
 test and LLVM toolchain instructions are in `docs/BUILD.md`.
 
-Phases 0–4 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
-LLVM IR, and links a native executable. The first major milestone — fibonacci
-printing `55` without Node.js — is verified by `tests/driver/native.rs`.
+Phases 0–5 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
+LLVM IR, and links a native executable. The runtime provides arena-allocated
+strings, arrays and objects with bounds checking. The first major milestone —
+fibonacci printing `55` without Node.js — is verified by
+`tests/driver/native.rs`. Closures and exceptions are deferred to Phase 6
+(ADR-0015).
 
 ## Documentation
 

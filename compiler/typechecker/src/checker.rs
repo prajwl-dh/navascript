@@ -20,8 +20,9 @@ pub struct CheckOutput {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypedProgram {
-    /// Expression types keyed by the start byte of the expression's span.
-    pub types: HashMap<u32, Type>,
+    /// Expression types keyed by the full source span. The start byte alone is
+    /// ambiguous: an identifier and a member expression can share it.
+    pub types: HashMap<Span, Type>,
     pub symbols: SymbolTable,
 }
 
@@ -49,7 +50,7 @@ struct Checker<'a> {
     symbols: SymbolTable,
     aliases: AliasTable,
     diagnostics: Vec<Diagnostic>,
-    types: HashMap<u32, Type>,
+    types: HashMap<Span, Type>,
 }
 
 impl<'a> Checker<'a> {
@@ -418,6 +419,7 @@ impl<'a> Checker<'a> {
                 }
                 match object_ty {
                     Type::Array(inner) => *inner,
+                    Type::String => Type::String,
                     Type::Error | Type::Unknown => Type::Unknown,
                     other => {
                         self.error(
@@ -435,6 +437,7 @@ impl<'a> Checker<'a> {
                         self.error(format!("property '{property}' does not exist"), expr.span);
                         Type::Error
                     }),
+                    Type::String | Type::Array(_) if property == "length" => Type::Number,
                     Type::Error | Type::Unknown => Type::Unknown,
                     other => {
                         self.error(
@@ -471,7 +474,7 @@ impl<'a> Checker<'a> {
             }
             ExprKind::Paren(inner) => self.infer_expr(inner),
         };
-        self.types.insert(expr.span.start, ty.clone());
+        self.types.insert(expr.span, ty.clone());
         ty
     }
 

@@ -167,6 +167,14 @@ impl<'a> Lowerer<'a> {
     fn is_known_builtin(name: &str) -> bool {
         matches!(name, "console.log")
     }
+
+    fn expr_ty(&self, expr: &Expr) -> IrType {
+        self.typed
+            .types
+            .get(&expr.span)
+            .map(ir_type_from_symbol)
+            .unwrap_or(IrType::Opaque)
+    }
 }
 
 fn ir_type(annotation: &Option<TypeAnnotation>) -> IrType {
@@ -199,6 +207,13 @@ fn ir_type_from_symbol(ty: &Type) -> IrType {
         Type::String => IrType::String,
         Type::Boolean => IrType::Boolean,
         Type::Void => IrType::Void,
+        Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner))),
+        Type::Object(fields) => IrType::Object(
+            fields
+                .iter()
+                .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty)))
+                .collect(),
+        ),
         _ => IrType::Opaque,
     }
 }
@@ -379,7 +394,7 @@ impl FunctionBuilder {
                 ty = lowerer
                     .typed
                     .types
-                    .get(&init.span.start)
+                    .get(&init.span)
                     .map(ir_type_from_symbol)
                     .unwrap_or(IrType::Opaque);
             }
@@ -403,7 +418,7 @@ impl FunctionBuilder {
         let cond_ty = lowerer
             .typed
             .types
-            .get(&if_stmt.condition.span.start)
+            .get(&if_stmt.condition.span)
             .map(ir_type_from_symbol)
             .unwrap_or(IrType::Opaque);
         if cond_ty != IrType::Boolean && cond_ty != IrType::Opaque {
@@ -456,6 +471,66 @@ impl FunctionBuilder {
         }
     }
 
+    fn number_to_string(&mut self, value: Value) -> Value {
+        let result = self.fresh_value();
+        self.emit(Instruction::NumberToString { result, value });
+        Value::Local(result)
+    }
+
+    fn lower_assign(&mut self, target: &Expr, value: &Value, lowerer: &mut Lowerer) {
+        match &target.kind {
+            ExprKind::Ident(name) => match self.lookup(name) {
+                Some((slot, ty)) => self.store(slot, ty, value.clone()),
+                None => lowerer.error(format!("unknown value '{name}' in IR"), target.span),
+            },
+            ExprKind::Index { object, index } => {
+                let array = self.lower_expr(object, lowerer);
+                let index = self.lower_expr(index, lowerer);
+                let element_ty = match lowerer.expr_ty(object) {
+                    IrType::Array(inner) => *inner,
+                    IrType::String => {
+                        lowerer.error("cannot assign to a string index", target.span);
+                        IrType::String
+                    }
+                    _ => {
+                        lowerer.error("assignment requires an array", target.span);
+                        IrType::Opaque
+                    }
+                };
+                self.emit(Instruction::ArraySet {
+                    array,
+                    index,
+                    value: value.clone(),
+                    element_ty,
+                });
+            }
+            ExprKind::Member { object, property } => {
+                let object_ty = lowerer.expr_ty(object);
+                match object_ty {
+                    IrType::Object(fields) => {
+                        if let Some((field_index, (_, field_ty))) = fields
+                            .iter()
+                            .enumerate()
+                            .find(|(_, (name, _))| name == property)
+                        {
+                            let object = self.lower_expr(object, lowerer);
+                            self.emit(Instruction::ObjectSet {
+                                object,
+                                field_index: field_index as u32,
+                                value: value.clone(),
+                                field_ty: field_ty.clone(),
+                            });
+                        } else {
+                            lowerer.error(format!("unknown field '{property}'"), target.span);
+                        }
+                    }
+                    _ => lowerer.error("assignment requires an object", target.span),
+                }
+            }
+            _ => lowerer.error("unsupported assignment target in IR", target.span),
+        }
+    }
+
     fn lower_expr(&mut self, expr: &Expr, lowerer: &mut Lowerer) -> Value {
         match &expr.kind {
             ExprKind::Number(value) => Value::Number(*value),
@@ -473,15 +548,63 @@ impl FunctionBuilder {
                 }
             },
             ExprKind::Binary { op, left, right } => {
+                let lhs_ty = lowerer.expr_ty(left);
+                let rhs_ty = lowerer.expr_ty(right);
                 let lhs = self.lower_expr(left, lowerer);
                 let rhs = self.lower_expr(right, lowerer);
                 let result = self.fresh_value();
-                self.emit(Instruction::Binary {
-                    result,
-                    op: binary_op(*op),
-                    lhs,
-                    rhs,
-                });
+                if lhs_ty == IrType::String || rhs_ty == IrType::String {
+                    // Coerce a numeric operand to a string so both runtime
+                    // calls receive `ptr` values (JavaScript-style `+`).
+                    let lhs = if lhs_ty == IrType::String {
+                        lhs
+                    } else {
+                        self.number_to_string(lhs)
+                    };
+                    let rhs = if rhs_ty == IrType::String {
+                        rhs
+                    } else {
+                        self.number_to_string(rhs)
+                    };
+                    match op {
+                        AstBinaryOp::Add => {
+                            self.emit(Instruction::StringConcat {
+                                result,
+                                left: lhs,
+                                right: rhs,
+                            });
+                        }
+                        AstBinaryOp::Eq
+                        | AstBinaryOp::StrictEq
+                        | AstBinaryOp::NotEq
+                        | AstBinaryOp::StrictNotEq => {
+                            self.emit(Instruction::StringEquals {
+                                result,
+                                left: lhs,
+                                right: rhs,
+                            });
+                            if matches!(op, AstBinaryOp::NotEq | AstBinaryOp::StrictNotEq) {
+                                let negated = self.fresh_value();
+                                self.emit(Instruction::Unary {
+                                    result: negated,
+                                    op: UnaryOp::Not,
+                                    operand: Value::Local(result),
+                                });
+                                return Value::Local(negated);
+                            }
+                        }
+                        _ => {
+                            lowerer.error("unsupported string operator", expr.span);
+                        }
+                    }
+                } else {
+                    self.emit(Instruction::Binary {
+                        result,
+                        op: binary_op(*op),
+                        lhs,
+                        rhs,
+                    });
+                }
                 Value::Local(result)
             }
             ExprKind::Unary { op, operand } => {
@@ -504,15 +627,7 @@ impl FunctionBuilder {
             }
             ExprKind::Assign { target, value } => {
                 let value = self.lower_expr(value, lowerer);
-                if let ExprKind::Ident(name) = &target.kind {
-                    if let Some((slot, ty)) = self.lookup(name) {
-                        self.store(slot, ty, value.clone());
-                    } else {
-                        lowerer.error(format!("unknown value '{name}' in IR"), target.span);
-                    }
-                } else {
-                    lowerer.error("unsupported assignment target in IR", target.span);
-                }
+                self.lower_assign(target, &value, lowerer);
                 value
             }
             ExprKind::Call { callee, args } => {
@@ -560,29 +675,121 @@ impl FunctionBuilder {
                 result.map_or(Value::Null, Value::Local)
             }
             ExprKind::Index { object, index } => {
+                let object_ty = lowerer.expr_ty(object);
                 let object = self.lower_expr(object, lowerer);
                 let index = self.lower_expr(index, lowerer);
                 let result = self.fresh_value();
-                self.emit(Instruction::Index {
-                    result,
-                    object,
-                    index,
-                });
+                match object_ty {
+                    IrType::Array(element_ty) => {
+                        self.emit(Instruction::ArrayGet {
+                            result,
+                            array: object,
+                            index,
+                            element_ty: *element_ty,
+                        });
+                    }
+                    IrType::String => {
+                        self.emit(Instruction::StringCharAt {
+                            result,
+                            value: object,
+                            index,
+                        });
+                    }
+                    _ => {
+                        lowerer.error("indexing requires an array or string", expr.span);
+                    }
+                }
                 Value::Local(result)
             }
             ExprKind::Member { object, property } => {
+                let object_ty = lowerer.expr_ty(object);
                 let object = self.lower_expr(object, lowerer);
                 let result = self.fresh_value();
-                self.emit(Instruction::Field {
-                    result,
-                    object,
-                    name: property.clone(),
-                });
+                match object_ty {
+                    IrType::String if property == "length" => {
+                        self.emit(Instruction::StringLength {
+                            result,
+                            value: object,
+                        });
+                    }
+                    IrType::Array(_) if property == "length" => {
+                        self.emit(Instruction::ArrayLength {
+                            result,
+                            array: object,
+                        });
+                    }
+                    IrType::Object(fields) => {
+                        if let Some((field_index, (_, field_ty))) = fields
+                            .iter()
+                            .enumerate()
+                            .find(|(_, (name, _))| name == property)
+                        {
+                            self.emit(Instruction::ObjectGet {
+                                result,
+                                object,
+                                field_index: field_index as u32,
+                                field_ty: field_ty.clone(),
+                            });
+                        } else {
+                            lowerer.error(format!("unknown field '{property}'"), expr.span);
+                        }
+                    }
+                    _ => lowerer.error("member access requires an object", expr.span),
+                }
                 Value::Local(result)
             }
-            ExprKind::ArrayLit(_) | ExprKind::ObjectLit(_) => {
-                lowerer.error("collection literals are not supported in IR yet", expr.span);
-                Value::Null
+            ExprKind::ArrayLit(items) => {
+                let element_ty = match lowerer.expr_ty(expr) {
+                    IrType::Array(inner) => *inner,
+                    _ => IrType::Opaque,
+                };
+                let array = self.fresh_value();
+                self.emit(Instruction::ArrayNew {
+                    result: array,
+                    element_ty: element_ty.clone(),
+                    length: items.len() as u32,
+                });
+                for (index, item) in items.iter().enumerate() {
+                    let value = self.lower_expr(item, lowerer);
+                    self.emit(Instruction::ArraySet {
+                        array: Value::Local(array),
+                        index: Value::Number(index as f64),
+                        value,
+                        element_ty: element_ty.clone(),
+                    });
+                }
+                Value::Local(array)
+            }
+            ExprKind::ObjectLit(fields) => {
+                let field_types = match lowerer.expr_ty(expr) {
+                    IrType::Object(fields) => fields,
+                    _ => Vec::new(),
+                };
+                let object = self.fresh_value();
+                self.emit(Instruction::ObjectNew {
+                    result: object,
+                    fields: field_types.clone(),
+                });
+                // Field order comes from the inferred object type (a sorted
+                // map), not from source order; find each field's real index.
+                for field in fields {
+                    let value = self.lower_expr(&field.value, lowerer);
+                    if let Some((index, (_, field_ty))) = field_types
+                        .iter()
+                        .enumerate()
+                        .find(|(_, (name, _))| name == &field.name)
+                    {
+                        self.emit(Instruction::ObjectSet {
+                            object: Value::Local(object),
+                            field_index: index as u32,
+                            value,
+                            field_ty: field_ty.clone(),
+                        });
+                    } else {
+                        lowerer.error(format!("unknown field '{}'", field.name), field.span);
+                    }
+                }
+                Value::Local(object)
             }
             ExprKind::Paren(inner) => self.lower_expr(inner, lowerer),
         }

@@ -94,3 +94,7 @@ path = "../../tests/codegen/codegen.rs"
 [[test]]
 name = "driver_native"
 path = "../../tests/driver/native.rs"
+
+[[test]]
+name = "runtime_unit"
+path = "../../tests/runtime/runtime.rs"

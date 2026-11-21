@@ -113,22 +113,95 @@ fn print_instruction(instruction: &Instruction) -> String {
         Instruction::ToBool { result, value } => {
             format!("%{result} = bool {}", value_name(value))
         }
-        Instruction::Index {
+        Instruction::StringConcat {
             result,
-            object,
+            left,
+            right,
+        } => format!(
+            "%{result} = string_concat {}, {}",
+            value_name(left),
+            value_name(right)
+        ),
+        Instruction::StringEquals {
+            result,
+            left,
+            right,
+        } => format!(
+            "%{result} = string_eq {}, {}",
+            value_name(left),
+            value_name(right)
+        ),
+        Instruction::NumberToString { result, value } => {
+            format!("%{result} = string {}", value_name(value))
+        }
+        Instruction::StringLength { result, value } => {
+            format!("%{result} = string_length {}", value_name(value))
+        }
+        Instruction::StringCharAt {
+            result,
+            value,
             index,
         } => format!(
-            "%{result} = index {} [{}]",
-            value_name(object),
+            "%{result} = string_char_at {}, {}",
+            value_name(value),
             value_name(index)
         ),
-        Instruction::Field {
+        Instruction::ArrayNew {
+            result,
+            element_ty,
+            length,
+        } => format!("%{result} = array_new {} x {length}", element_ty.display()),
+        Instruction::ArrayGet {
+            result,
+            array,
+            index,
+            ..
+        } => format!(
+            "%{result} = array_get {} [{}]",
+            value_name(array),
+            value_name(index)
+        ),
+        Instruction::ArraySet {
+            array,
+            index,
+            value,
+            ..
+        } => format!(
+            "array_set {} [{}] = {}",
+            value_name(array),
+            value_name(index),
+            value_name(value)
+        ),
+        Instruction::ArrayLength { result, array } => {
+            format!("%{result} = array_length {}", value_name(array))
+        }
+        Instruction::ObjectNew { result, fields } => format!(
+            "%{result} = object_new {}",
+            fields
+                .iter()
+                .map(|(name, ty)| format!("{name}: {}", ty.display()))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        Instruction::ObjectGet {
             result,
             object,
-            name,
-        } => {
-            format!("%{result} = field {} .{name}", value_name(object))
-        }
+            field_index,
+            ..
+        } => format!(
+            "%{result} = object_get {} #{field_index}",
+            value_name(object)
+        ),
+        Instruction::ObjectSet {
+            object,
+            field_index,
+            value,
+            ..
+        } => format!(
+            "object_set {} #{field_index} = {}",
+            value_name(object),
+            value_name(value)
+        ),
     }
 }
 

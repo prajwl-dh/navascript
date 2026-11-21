@@ -79,12 +79,36 @@ pub fn verify(module: &IrModule) -> Vec<VerifyError> {
 fn values_in_instruction(instruction: &Instruction) -> Vec<&Value> {
     match instruction {
         Instruction::Store { value, .. } | Instruction::ToBool { value, .. } => vec![value],
-        Instruction::Binary { lhs, rhs, .. } => vec![lhs, rhs],
-        Instruction::Unary { operand, .. } => vec![operand],
+        Instruction::Binary { lhs, rhs, .. }
+        | Instruction::StringConcat {
+            left: lhs,
+            right: rhs,
+            ..
+        }
+        | Instruction::StringEquals {
+            left: lhs,
+            right: rhs,
+            ..
+        } => vec![lhs, rhs],
+        Instruction::Unary { operand, .. }
+        | Instruction::StringLength { value: operand, .. }
+        | Instruction::NumberToString { value: operand, .. } => vec![operand],
+        Instruction::StringCharAt { value, index, .. } => vec![value, index],
         Instruction::Call { args, .. } => args.iter().collect(),
-        Instruction::Index { object, index, .. } => vec![object, index],
-        Instruction::Field { object, .. } => vec![object],
-        Instruction::Alloc { .. } | Instruction::Load { .. } => Vec::new(),
+        Instruction::ArrayGet { array, index, .. } => vec![array, index],
+        Instruction::ArraySet {
+            array,
+            index,
+            value,
+            ..
+        } => vec![array, index, value],
+        Instruction::ArrayLength { array, .. } => vec![array],
+        Instruction::ObjectGet { object, .. } => vec![object],
+        Instruction::ObjectSet { object, value, .. } => vec![object, value],
+        Instruction::Alloc { .. }
+        | Instruction::Load { .. }
+        | Instruction::ArrayNew { .. }
+        | Instruction::ObjectNew { .. } => Vec::new(),
     }
 }
 
@@ -173,8 +197,16 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 Instruction::Binary { result, .. }
                 | Instruction::Unary { result, .. }
                 | Instruction::ToBool { result, .. }
-                | Instruction::Index { result, .. }
-                | Instruction::Field { result, .. } => {
+                | Instruction::StringConcat { result, .. }
+                | Instruction::StringEquals { result, .. }
+                | Instruction::StringLength { result, .. }
+                | Instruction::NumberToString { result, .. }
+                | Instruction::StringCharAt { result, .. }
+                | Instruction::ArrayNew { result, .. }
+                | Instruction::ArrayGet { result, .. }
+                | Instruction::ArrayLength { result, .. }
+                | Instruction::ObjectNew { result, .. }
+                | Instruction::ObjectGet { result, .. } => {
                     if defs
                         .insert(*result, (instruction_type(instruction), block.id))
                         .is_some()
@@ -287,29 +319,65 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                         available_values.insert(*result);
                     }
                 }
-                Instruction::ToBool { result, value } => {
+                Instruction::ToBool { result, value }
+                | Instruction::StringLength { result, value }
+                | Instruction::NumberToString { result, value } => {
                     check_value(value, &available_values, function, block.id, errors);
                     available_values.insert(*result);
                 }
-                Instruction::Index {
+                Instruction::StringConcat {
                     result,
-                    object,
-                    index,
+                    left,
+                    right,
+                }
+                | Instruction::StringEquals {
+                    result,
+                    left,
+                    right,
                 } => {
-                    check_value(object, &available_values, function, block.id, errors);
-                    check_value(index, &available_values, function, block.id, errors);
-                    require(
-                        &value_type(index, &defs),
-                        IrType::Number,
-                        function,
-                        block.id,
-                        errors,
-                    );
+                    check_value(left, &available_values, function, block.id, errors);
+                    check_value(right, &available_values, function, block.id, errors);
                     available_values.insert(*result);
                 }
-                Instruction::Field { result, object, .. } => {
+                Instruction::StringCharAt {
+                    result,
+                    value,
+                    index,
+                }
+                | Instruction::ArrayGet {
+                    result,
+                    array: value,
+                    index,
+                    ..
+                } => {
+                    check_value(value, &available_values, function, block.id, errors);
+                    check_value(index, &available_values, function, block.id, errors);
+                    available_values.insert(*result);
+                }
+                Instruction::ArrayNew { result, .. } | Instruction::ObjectNew { result, .. } => {
+                    available_values.insert(*result);
+                }
+                Instruction::ArraySet {
+                    array,
+                    index,
+                    value,
+                    ..
+                } => {
+                    check_value(array, &available_values, function, block.id, errors);
+                    check_value(index, &available_values, function, block.id, errors);
+                    check_value(value, &available_values, function, block.id, errors);
+                }
+                Instruction::ArrayLength { result, array } => {
+                    check_value(array, &available_values, function, block.id, errors);
+                    available_values.insert(*result);
+                }
+                Instruction::ObjectGet { result, object, .. } => {
                     check_value(object, &available_values, function, block.id, errors);
                     available_values.insert(*result);
+                }
+                Instruction::ObjectSet { object, value, .. } => {
+                    check_value(object, &available_values, function, block.id, errors);
+                    check_value(value, &available_values, function, block.id, errors);
                 }
             }
         }
@@ -465,7 +533,15 @@ fn instruction_type(instruction: &Instruction) -> IrType {
         },
         Instruction::Load { ty, .. } => ty.clone(),
         Instruction::Call { result_ty, .. } => result_ty.clone(),
-        Instruction::ToBool { .. } => IrType::Boolean,
+        Instruction::ToBool { .. } | Instruction::StringEquals { .. } => IrType::Boolean,
+        Instruction::StringLength { .. } | Instruction::ArrayLength { .. } => IrType::Number,
+        Instruction::StringConcat { .. }
+        | Instruction::StringCharAt { .. }
+        | Instruction::NumberToString { .. } => IrType::String,
+        Instruction::ArrayNew { element_ty, .. } => IrType::Array(Box::new(element_ty.clone())),
+        Instruction::ArrayGet { element_ty, .. } => element_ty.clone(),
+        Instruction::ObjectNew { fields, .. } => IrType::Object(fields.clone()),
+        Instruction::ObjectGet { field_ty, .. } => field_ty.clone(),
         _ => IrType::Opaque,
     }
 }
