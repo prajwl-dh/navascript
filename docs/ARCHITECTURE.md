@@ -71,7 +71,7 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
-| Runtime | `runtime/` | Allocator, strings, arrays, objects, console; closures/exceptions deferred to Phase 6 (ADR-0015) | codegen ABI contract |
+| Runtime | `runtime/` | Allocator, strings, arrays, objects, console; closures/exceptions still pending in Phase 6 (ADR-0015) | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a
@@ -92,9 +92,9 @@ interface. A change to a module must be accompanied by its tests passing
 6. **LLVM → object → executable:** target-specific emission + system linker.
 
 The runtime defines an ABI contract that codegen must honor (layout of strings,
-arrays, objects, exception handling). This contract is versioned in
-`runtime/README.md`, and exercised by `tests/runtime/runtime_test.c` plus the
-end-to-end collection tests.
+arrays and objects; runtime errors are fatal, so there is no exception ABI). This
+contract is versioned in `runtime/README.md`, and exercised by
+`tests/runtime/runtime_test.c` plus the end-to-end collection tests.
 
 ## 4. LLVM strategy
 

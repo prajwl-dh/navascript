@@ -17,11 +17,12 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 `runtime.rs`. Internal seams stay private; only the façade is tested from
 `tests/` (ADR-0012).
 
-Status: **accepted and implemented through Phase 5**. The front-end seam
+Status: **accepted and implemented through Phase 6 (loops)**. The front-end seam
 (`parse`), the shared diagnostics leaf, the type-checker seam (`check`), the IR
 seam (`lower`) and the backend seam (`generate`) are all in use by the driver
-pipeline and covered by tests in `tests/`. Revisit when a second real adapter
-or consumer appears.
+pipeline and covered by tests in `tests/`. Loop lowering is a private
+implementation module (`ir/loops.rs`) behind the unchanged `lower` seam.
+Revisit when a second real adapter or consumer appears.
 
 ## 1. The deepened module: the front-end seam
 

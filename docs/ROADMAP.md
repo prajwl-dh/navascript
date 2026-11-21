@@ -116,7 +116,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 **Known limitations**
 - No type checking yet — resolved in Phase 2.
 - No classes, generics, interfaces, modules, loops — interfaces, type aliases
-  and type checking landed in Phase 2; loops are scheduled for Phase 6;
+  and type checking landed in Phase 2; loops were delivered in Phase 6;
   classes, generics and modules remain Phase 6/7.
 - `.tsx` not supported.
 - No `DiagnosticSink` trait yet: only one adapter exists (the returned value).
@@ -229,8 +229,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 **Known limitations**
 - The arena allocator never reclaims memory during execution; a tracing
   collector or reference counting is a later upgrade (ADR-0005).
-- Closures, function values and `throw`/`try` are deferred to Phase 6
-  (ADR-0015). Runtime errors terminate the process with a diagnostic.
+- Closures, function values and `throw`/`try` were deferred from Phase 5 to
+  Phase 6 (ADR-0015) and are still pending there. Runtime errors terminate the
+  process with a diagnostic.
 
 ---
 
@@ -241,7 +242,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 
 **Implementation tasks (priority order)**
 - Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1, see the
-  Phase 1 known limitations.
+  Phase 1 known limitations. **Delivered 2026-11-21** (status in `PROGRESS.md`).
 - Arrow functions and the additional literals/operators listed in
   `docs/COMPATIBILITY.md` §6.
 - Generics.

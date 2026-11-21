@@ -122,8 +122,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
   terminate the process with a diagnostic (Phase 6, ADR-0015).
 - [~] `console.log` — numbers, booleans and strings print natively; object and
-  array values are not meaningfully supported (their raw bytes are printed)
-  until Phase 6.
+  array values are not meaningfully supported (their raw bytes are printed).
+  No fix is scheduled in the current Phase 6 increment.
 
 ## 9. First acceptance program
 

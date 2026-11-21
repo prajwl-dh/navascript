@@ -88,7 +88,8 @@ nava/
 - [x] `.gitkeep` placeholders were used in Phase 0, then removed once the
   corresponding features had real files
 - [x] `git init` completed on branch `main`
-- [x] `Cargo.toml` workspace + 10 member crates (CLI driver + 9 module crates)
+- [x] `Cargo.toml` workspace + 11 member crates (CLI driver + 10 module crates,
+  including `nava-diagnostics` added in Phase 2)
 - [x] First commit — Phase 0
 
 ---
@@ -125,8 +126,8 @@ limitations for every milestone.
 - **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
   `cargo test --workspace` (40 passed, 0 failed) all succeed.
 - **Deferred with a recorded deviation:** loops (`for`/`while`) were in the
-  original Phase 1 spec; they are listed in `ROADMAP.md` Phase 1 limitations,
-  tracked as unsupported in `COMPATIBILITY.md`, and scheduled for Phase 6.
+  original Phase 1 spec; they stayed unsupported through Phase 5 and were
+  delivered in Phase 6 (see the Phase 6 section below and `COMPATIBILITY.md`).
 
 ### Phase 2 — Type system
 - [x] Primitives: number, string, boolean, void, null
@@ -169,8 +170,8 @@ limitations for every milestone.
 - [x] Arrays: literals, indexing, assignment, `length` (numbers, booleans, refs)
 - [x] Objects: literals, field get/set with runtime field validation
 - [x] Runtime error reporting (fatal bounds/field errors with clear messages)
-- [ ] Closures / function values — deferred to Phase 6 (ADR-0015)
-- [ ] Exceptions (`throw`/`try`) — deferred to Phase 6 (ADR-0015)
+- [ ] Closures / function values — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
+- [ ] Exceptions (`throw`/`try`) — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
 - **Exit condition met:** nontrivial programs using strings, collections and
   objects run natively without Node.js; runtime errors are reported.
 - **Verification:** `cargo test --workspace` (120 passed, 0 failed), fmt and
@@ -188,7 +189,12 @@ limitations for every milestone.
 - [ ] Closures, higher-order functions
 - [ ] Async/await, promises
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
-- **Exit condition:** larger compatibility suite passes.
+- **Current evidence (loops):** `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets -- -D warnings` and
+  `cargo test --workspace` (135 passed, 0 failed) succeed;
+  `examples/loops.ts` and `examples/for_of.ts` run natively.
+- **Exit condition:** larger compatibility suite passes (still pending — Phase 6
+  is incomplete).
 
 ### Phase 7 — Compatibility
 - [ ] Harness against official `tsc`
@@ -243,6 +249,7 @@ limitations for every milestone.
   (`compiler/driver`, lib `nava_driver`) plus placeholder crates for `ast`,
   `lexer`, `parser`, `symbol`, `semantic`, `typechecker`, `ir`, `optimizer`, and
   `codegen`. Each placeholder records the phase in which it will be filled in.
+  (`nava-diagnostics` was added in Phase 2, bringing the total to 11.)
 - Implemented dependency-free CLI argument parsing in `cli.rs` with unit tests,
   and a thin `main.rs` that exits with the dispatcher's status code.
 - `nava --version` / `-V` print `nava 0.1.0`; `--help` / `-h` and no arguments
@@ -434,8 +441,9 @@ limitations for every milestone.
   from `llvm-config --host-target` rather than hardcoded to ARM64.
 - `nava-codegen` translates verified Nava IR to LLVM IR: typed functions,
   floating-point arithmetic, comparisons, branches, stack slots, calls and a
-  synthetic `main`. It returns explicit errors for unsupported constructs
-  (string globals, field/element access, opaque types).
+  synthetic `main`. At the time it returned explicit errors for unsupported
+  constructs (string globals, field/element access, opaque types); string and
+  collection support landed in Phase 5, while opaque types are still rejected.
 - Driver pipeline is now parse → check → lower → generate → `llc` → `clang`
   link. Added `-o/--output`, `--release`, and kept `--emit-ir` for LLVM IR
   output. Added `runtime/nava_runtime.c` for the macOS `main` bridge and
@@ -604,6 +612,22 @@ limitations for every milestone.
   iterables/objects, and the remaining Phase 6 items (arrow functions, generics,
   classes, unions, modules, closures, exceptions, async/await). These remain
   documented as unsupported.
+
+### 2026-11-21 — Final documentation accuracy audit
+- Re-read every document against the current tree after the Phase 6 loop commit
+  (`6f937bb`) and corrected the remaining stale facts:
+  - Workspace count is 11 member crates (`nava-diagnostics` was added in Phase 2);
+    the workspace layout lists in `README.md` and `BUILD.md` now include it.
+  - Phase 1's deferred-loops note now says loops were delivered in Phase 6, and
+    the Phase 6 roadmap task is annotated with its delivery date.
+  - `ARCHITECTURE.md` no longer claims the runtime ABI covers exception handling;
+    `DESIGN.md` status now reads "implemented through Phase 6 (loops)".
+  - `LANGUAGE_SPEC.md` and `COMPATIBILITY.md` no longer promise object/array
+    `console.log` support "until Phase 6"; the `break`/`continue` and general
+    iterable gaps are in the unsupported-features register.
+  - `BUILD.md` and `README.md` describe closures/exceptions as still pending
+    Phase 6 work rather than deferred to a later phase.
+- No compiler code changed; `cargo test --workspace` still passes 135 tests.
 
 ---
 

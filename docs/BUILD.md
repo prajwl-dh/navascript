@@ -126,7 +126,7 @@ tests actually execute there.
 ```
 Cargo.toml                  workspace root, shared package metadata
 compiler/
-  ast/ lexer/ parser/ symbol/ semantic/ typechecker/
+  ast/ diagnostics/ lexer/ parser/ symbol/ semantic/ typechecker/
   ir/ optimizer/ codegen/
   driver/                   package `nava`: lib `nava_driver` + bin `nava`
 
@@ -156,8 +156,11 @@ code 1.
 
 - Runtime memory is a program-lifetime bump arena; nothing is reclaimed until
   process exit (ADR-0005).
-- Closures, function values and exceptions are deferred to Phase 6 (ADR-0015);
-  runtime bounds/field errors terminate the process with a diagnostic.
+- Closures, function values and exceptions are still pending Phase 6 work
+  (ADR-0015; see `PROGRESS.md`); runtime bounds/field errors terminate the
+  process with a diagnostic.
+- Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings;
+  `break`/`continue` and general iterables are not implemented.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.

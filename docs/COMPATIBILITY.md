@@ -61,7 +61,7 @@ deferred (ADR-0015).
 | Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
 | Closures / function values | [ ] | — | Phase 6 (ADR-0015) |
 | Exceptions | [ ] | — | Phase 6 (ADR-0015); runtime errors are currently fatal |
-| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans and strings print natively; object/array values are not meaningfully supported (raw bytes printed) until Phase 6 |
+| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans and strings print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
 | Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
 
 ## 4. Platform
@@ -104,4 +104,6 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
 | Closures and first-class functions | no function values or captured environments in IR | Phase 6 |
-| `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 |
+| `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 (pending) |
+| `break` / `continue` | loop statements are supported but these control-flow keywords are not lexed | Phase 6 (pending) |
+| `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | Phase 6 (pending) |

@@ -43,7 +43,7 @@ Compile to a native macOS executable that prints `55` without Node.js.
 ## Repository layout
 
 ```
-compiler/    lexer, parser, ast, symbol, semantic, typechecker, ir,
+compiler/    lexer, parser, ast, diagnostics, symbol, semantic, typechecker, ir,
              optimizer, codegen, driver
 runtime/     nava_runtime.h/.c plus memory/, strings/, arrays/, objects/,
              console/ sources (one concern per directory)
@@ -77,10 +77,10 @@ strings, arrays and objects with bounds checking. The first major milestone —
 fibonacci printing `55` without Node.js — is verified by
 `tests/driver/native.rs`. Phase 6 is under way: `while`, `do-while`, C-style
 `for` and `for-of` loops now compile and run natively (`examples/loops.ts`,
-`examples/for_of.ts`); `break`/`continue` are not implemented yet. The remaining Phase 6 items — arrow functions, generics,
-classes, structural typing, unions, modules, closures and exceptions, and
-async/await — are still pending; closures and exceptions remain deferred by
-ADR-0015.
+`examples/for_of.ts`); `break`/`continue` are not implemented yet. The
+remaining Phase 6 items — arrow functions, generics, classes, structural
+typing, unions, modules, closures and exceptions, and async/await — are still
+pending (closures and exceptions were deferred from Phase 5 by ADR-0015).
 
 ## Documentation
 
