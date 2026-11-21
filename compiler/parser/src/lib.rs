@@ -4,6 +4,7 @@
 //! implementation is split into private modules for parsing state, items,
 //! type syntax, statements and expressions; only this module is public.
 
+mod arrows;
 mod expressions;
 mod items;
 mod operators;

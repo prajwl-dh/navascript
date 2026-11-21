@@ -194,6 +194,31 @@ fn loops_lower_to_verifiable_back_edges() {
 }
 
 #[test]
+fn arrow_captures_and_value_aliases_are_diagnosed() {
+    let source = "let base = 10; let add = (x: number): number => x + base;";
+    let parsed = parse(source);
+    let typed = check(&parsed.program, source);
+    let lowered = lower(&parsed.program, &typed.typed, source);
+    assert!(lowered.diagnostics.has_errors());
+
+    let source = "let f = (x: number): number => x; let g = f;";
+    let parsed = parse(source);
+    let typed = check(&parsed.program, source);
+    let lowered = lower(&parsed.program, &typed.typed, source);
+    assert!(lowered.diagnostics.has_errors());
+}
+
+#[test]
+fn arrow_initializers_lower_to_named_functions() {
+    let (module, _) =
+        lower_source("let add = (a: number, b: number): number => a + b; let n = add(1, 2);");
+    assert!(nava_ir::verify(&module).is_empty());
+    let function = module.function("add").expect("named arrow function");
+    assert_eq!(function.params.len(), 2);
+    assert_eq!(function.return_ty, nava_ir::IrType::Number);
+}
+
+#[test]
 fn ternary_in_declarations_and_statements_verifies() {
     let (module, _) = lower_source(
         "function f(n: number): number { let x = n > 0 ? 1 : 0; console.log(n > 0 ? \"a\" : \"b\"); return x; }",

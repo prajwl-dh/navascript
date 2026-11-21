@@ -311,6 +311,38 @@ fn parses_c_style_for_and_for_of() {
 }
 
 #[test]
+fn parses_arrow_function_forms() {
+    let output = ok(
+        "let add = (a: number, b: number): number => a + b; let sq = x => x * x; let f = () => { return 1; };",
+    );
+    let ItemKind::Variable(add) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    let ExprKind::Arrow {
+        params, return_ty, ..
+    } = &add.init.as_ref().unwrap().kind
+    else {
+        panic!("expected an arrow");
+    };
+    assert_eq!(params.len(), 2);
+    assert!(return_ty.is_some());
+    let ItemKind::Variable(sq) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &sq.init.as_ref().unwrap().kind,
+        ExprKind::Arrow { params, .. } if params.len() == 1
+    ));
+    let ItemKind::Variable(f) = &output.program.items[2].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &f.init.as_ref().unwrap().kind,
+        ExprKind::Arrow { params, .. } if params.is_empty()
+    ));
+}
+
+#[test]
 fn parses_compound_assignment_and_updates() {
     let output = ok("let x = 1; x += 2; x++; --x;");
     let ItemKind::Expr(add) = &output.program.items[1].kind else {

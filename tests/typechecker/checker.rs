@@ -207,6 +207,34 @@ fn rejects_for_of_over_a_number() {
 }
 
 #[test]
+fn infers_arrow_function_types() {
+    let (output, _) = check_source(
+        "let add = (a: number, b: number): number => a + b; let sq = (x: number) => x * x; let n = add(1, 2);",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn requires_arrow_parameter_annotations() {
+    let (output, _) = check_source("let sq = x => x * x;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("arrow function parameters require a type annotation"))
+    );
+}
+
+#[test]
+fn rejects_wrong_arrow_call_arity() {
+    let (output, _) = check_source("let add = (a: number, b: number): number => a + b; add(1);");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("expected 2 arguments, found 1"))
+    );
+}
+
+#[test]
 fn checks_compound_updates_power_and_ternary() {
     let (output, _) = check_source(
         "let x = 2; x += 3; x++; --x; let p = x ** 2; let t = x > 0 ? \"yes\" : \"no\"; let s = \"a\"; s += \"b\";",

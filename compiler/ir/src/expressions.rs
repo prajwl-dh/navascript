@@ -116,6 +116,13 @@ impl FunctionBuilder {
                 let ty = lowerer.expr_ty(expr);
                 self.lower_ternary(condition, then_expr, else_expr, ty, lowerer)
             }
+            ExprKind::Arrow { .. } => {
+                lowerer.error(
+                    "arrow functions are only supported as variable initialisers",
+                    expr.span,
+                );
+                Value::Null
+            }
             ExprKind::Call { callee, args } => {
                 let callee_name = match &callee.kind {
                     ExprKind::Ident(name) => name.clone(),

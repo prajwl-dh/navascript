@@ -331,6 +331,27 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0019 — Arrow functions as named initialisers
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6 adds arrow expressions, but IR supports only direct
+  named calls, and ADR-0015 defers captured environments and function values.
+  Inferring an unannotated arrow parameter as `Unknown` let a wrong argument
+  type compile successfully and produce a bogus value.
+- **Decision:** Arrow initialisers lower to a named IR function named after the
+  binding; calls resolve through that name. Parameters must have type
+  annotations, checked before lowering. Captured locals and arrows used as
+  values are diagnosed, never silently miscompiled. The checked function type's
+  return type is scoped to arrow lowering rather than changing the general
+  type-to-IR mapping. `parser/arrows.rs` and `typechecker/arrows.rs` keep the
+  touched files within ADR-0016's size guidance.
+- **Consequences:** First-class function values, higher-order functions and
+  closures remain unsupported (ADR-0015) and are recorded in `COMPATIBILITY.md`.
+  No new LLVM declarations or runtime ABI were needed.
+
+---
+
 ## Template for new decisions
 
 ```

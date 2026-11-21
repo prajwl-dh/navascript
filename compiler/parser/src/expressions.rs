@@ -220,10 +220,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 (ExprKind::Null, token.end)
             }
-            TokenKind::Ident => {
-                self.bump();
-                (ExprKind::Ident(token.lexeme.clone()), token.end)
-            }
+            TokenKind::Ident => return self.parse_primary_ident(&token),
             TokenKind::LBracket => {
                 self.bump();
                 let mut items = Vec::new();
@@ -269,6 +266,10 @@ impl<'a> Parser<'a> {
                 });
             }
             TokenKind::LParen => {
+                let start = token.start as usize;
+                if self.arrow_ahead() {
+                    return self.parse_paren_arrow(start);
+                }
                 self.bump();
                 let inner = self.parse_expr(0)?;
                 let close = self.expect(TokenKind::RParen, "expected ')'")?;

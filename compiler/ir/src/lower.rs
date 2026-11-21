@@ -146,6 +146,8 @@ impl<'a> Lowerer<'a> {
         self.module.functions.push(builder.finish());
     }
 
+    /// Emit an arrow function initialiser as a named IR function. Calls use the
+    /// binding name directly, so no first-class function value is needed.
     pub(super) fn string_global(&mut self, value: &str) -> GlobalId {
         let id = self.next_global;
         self.next_global += 1;
@@ -166,6 +168,18 @@ impl<'a> Lowerer<'a> {
 
     pub(super) fn is_known_builtin(name: &str) -> bool {
         matches!(name, "console.log")
+    }
+
+    /// Return type of an arrow expression, taken from its checked function type.
+    pub(super) fn arrow_return_type(&self, expr: &Expr) -> IrType {
+        self.typed
+            .types
+            .get(&expr.span)
+            .map(|ty| match ty {
+                Type::Function { ret, .. } => ir_type_from_symbol(ret),
+                _ => IrType::Opaque,
+            })
+            .unwrap_or(IrType::Opaque)
     }
 
     pub(super) fn expr_ty(&self, expr: &Expr) -> IrType {

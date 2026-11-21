@@ -78,7 +78,10 @@ and the intent to grow toward broad compatibility. Status values mirror
   layout works — Phase 5)
 - [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
-- [ ] Arrow functions / closures (Phase 6; ADR-0015)
+- [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
+  `(a: T): R => { ... }`; supported as variable initialisers with annotated
+  parameters and no captured locals
+- [ ] Closures / captured environments (Phase 6; ADR-0015)
 - [ ] Template literals (Phase 6)
 - [x] Ternary `cond ? a : b` (Phase 6)
 - [x] Exponentiation `a ** b` (right-associative, Phase 6)

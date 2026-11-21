@@ -6,8 +6,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
-- **Current phase:** Phase 6 (Language expansion) in progress — loops and
-  additional literals/operators complete
+- **Current phase:** Phase 6 (Language expansion) in progress — loops,
+  additional literals/operators and arrow functions complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -26,7 +26,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + syntax expansion done) |
+| Phase 6 — Language expansion | [~] In progress (loops, operators, arrows done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -185,8 +185,9 @@ limitations for every milestone.
 - [x] Additional literals/operators: compound assignment (`+= -= *= /= %=`),
   `++`/`--`, `**`, ternary, hex/binary/octal literals, `_` separators,
   non-ASCII identifiers, `\x`/`\u` escapes — done 2026-11-21
-- [ ] Arrow functions, optional chaining and bigint (the remaining
-  `COMPATIBILITY.md` §6 syntax rows)
+- [x] Arrow functions as variable initialisers (annotated parameters, no
+  captures) — done 2026-11-21
+- [ ] Optional chaining and bigint (the remaining `COMPATIBILITY.md` §6 syntax rows)
 - [ ] Generics, classes, inheritance
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
@@ -196,9 +197,9 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (149 passed, 0 failed) succeed;
-  `examples/loops.ts`, `examples/for_of.ts` and `examples/operators.ts` run
-  natively.
+  `cargo test --workspace` (156 passed, 0 failed) succeed;
+  `examples/loops.ts`, `examples/for_of.ts`, `examples/operators.ts` and
+  `examples/arrows.ts` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -655,12 +656,31 @@ limitations for every milestone.
 - **Still pending:** arrow functions, optional chaining, bigint, closures,
   exceptions, generics, classes, unions, modules and async/await.
 
+### 2026-11-21 — Phase 6 (third increment): arrow functions
+- Added arrow expressions (`x => e`, `(a, b) => e`, optional return annotation,
+  expression or block bodies) to the AST, parser and type checker. Arrow
+  initialisers lower to named IR functions; calls use the binding name directly.
+- Parameters require type annotations: unannotated parameters were otherwise
+  inferred as `Unknown` and could silently compile as `number`. Captured locals
+  and arrow values used outside calls are diagnosed in IR rather than
+  miscompiled.
+- Added private `parser/arrows.rs` and `typechecker/arrows.rs` so the touched
+  implementation files stay within ADR-0016's size guidance; moved arrow
+  function construction onto `FunctionBuilder` to keep builder state local.
+- Two-axis code review of `baa6619...HEAD` was applied: the overlong parser file
+  was shortened, the Function-to-IR mapping was scoped to arrow return types,
+  and the soundness and documentation findings were fixed.
+- Added `examples/arrows.ts` and tests across parser/typechecker/IR/native
+  surfaces. Suite grew from 149 to 156 tests; fmt and clippy clean.
+- **Still pending:** optional chaining, bigint, function values/closures,
+  exceptions, generics, classes, unions, modules and async/await.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: arrow functions (plus optional chaining and bigint), generics,
+   `ROADMAP.md`: optional chaining and bigint, then generics,
    classes, structural typing, unions, modules, closures and exceptions
    (ADR-0015), async/await. Loops and the additional literals/operators are
    done; `break`/`continue` can be added later if a fixture needs them.

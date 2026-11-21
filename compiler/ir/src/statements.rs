@@ -1,9 +1,9 @@
 //! Statement and control-flow lowering into basic blocks.
 
-use nava_ast::{Block, Expr, ExprKind, Stmt, StmtKind};
+use nava_ast::{ArrowBody, Block, Expr, ExprKind, Param, Span, Stmt, StmtKind};
 
 use super::builder::FunctionBuilder;
-use super::ir::{BlockId, Instruction, IrType, Terminator, Value};
+use super::ir::{BlockId, Instruction, IrFunction, IrParam, IrType, Terminator, Value};
 use super::lower::{Lowerer, ir_type, ir_type_from_symbol};
 
 impl FunctionBuilder {
@@ -60,6 +60,21 @@ impl FunctionBuilder {
     }
 
     pub(super) fn lower_variable(&mut self, decl: &nava_ast::VariableDecl, lowerer: &mut Lowerer) {
+        if let Some(init) = &decl.init {
+            if let ExprKind::Arrow { params, body, .. } = &init.kind {
+                let result_ty = lowerer.arrow_return_type(init);
+                let function = FunctionBuilder::lower_arrow_function(
+                    &decl.name.name,
+                    params,
+                    body,
+                    result_ty,
+                    init.span,
+                    lowerer,
+                );
+                lowerer.module.functions.push(function);
+                return;
+            }
+        }
         let mut ty = ir_type(&decl.ty);
         if ty == IrType::Opaque {
             if let Some(init) = &decl.init {
@@ -199,5 +214,53 @@ impl FunctionBuilder {
             }
             _ => lowerer.error("unsupported assignment target in IR", target.span),
         }
+    }
+    /// Build the IR function for an arrow initialiser. All builder work stays
+    /// inside `FunctionBuilder`; the lowerer is only used for diagnostics.
+    pub(super) fn lower_arrow_function(
+        name: &str,
+        params: &[Param],
+        body: &ArrowBody,
+        return_ty: IrType,
+        span: Span,
+        lowerer: &mut Lowerer,
+    ) -> IrFunction {
+        let ir_params: Vec<IrParam> = params
+            .iter()
+            .map(|param| IrParam {
+                name: param.name.name.clone(),
+                ty: ir_type(&param.ty),
+            })
+            .collect();
+        let mut builder =
+            FunctionBuilder::new(name.to_owned(), ir_params.clone(), return_ty.clone());
+        let entry = builder.function.entry;
+        for (index, (param, ir_param)) in params.iter().zip(&ir_params).enumerate() {
+            let ty = ir_param.ty.clone();
+            let slot = builder.alloc(ty.clone());
+            builder.store(slot, ty, Value::Param(index as u32));
+            builder.declare(&param.name, slot);
+        }
+        let fallthrough = match body {
+            ArrowBody::Block(block) => builder.lower_block(block, lowerer, entry),
+            ArrowBody::Expr(expr) => {
+                let value = builder.lower_expr(expr, lowerer);
+                builder.set_terminator(entry, Terminator::Return(Some(value)));
+                None
+            }
+        };
+        if let Some(block) = fallthrough {
+            let value = if return_ty == IrType::Void {
+                None
+            } else {
+                lowerer.error(
+                    format!("arrow function '{name}' may fall through without returning"),
+                    span,
+                );
+                Some(Value::Null)
+            };
+            builder.set_terminator(block, Terminator::Return(value));
+        }
+        builder.finish()
     }
 }

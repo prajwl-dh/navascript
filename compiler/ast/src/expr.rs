@@ -43,6 +43,11 @@ pub enum ExprKind {
         then_expr: Box<Expr>,
         else_expr: Box<Expr>,
     },
+    Arrow {
+        params: Vec<super::item::Param>,
+        return_ty: Option<super::types::TypeAnnotation>,
+        body: ArrowBody,
+    },
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
@@ -58,6 +63,13 @@ pub enum ExprKind {
         property: String,
     },
     Paren(Box<Expr>),
+}
+
+/// The body of an arrow function: a single expression or a block.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrowBody {
+    Expr(Box<Expr>),
+    Block(super::item::Block),
 }
 
 #[derive(Debug, Clone, PartialEq)]

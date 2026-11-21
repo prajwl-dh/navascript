@@ -183,6 +183,16 @@ fn for_of_runs_natively() {
 }
 
 #[test]
+fn arrows_run_natively() {
+    let Some(binary) = compile("arrows.ts", "arrows", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run arrows program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "5\n25\npositive\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn new_operators_run_natively() {
     let Some(binary) = compile("operators.ts", "operators", &[]) else {
         return;

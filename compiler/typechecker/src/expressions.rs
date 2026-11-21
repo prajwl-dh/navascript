@@ -86,6 +86,11 @@ impl<'a> Checker<'a> {
                     then_ty
                 }
             }
+            ExprKind::Arrow {
+                params,
+                return_ty,
+                body,
+            } => self.infer_arrow(params, return_ty, body),
             ExprKind::Call { callee, args } => {
                 let callee_ty = self.infer_expr(callee);
                 self.infer_call(&callee_ty, args, expr.span)

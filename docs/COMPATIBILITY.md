@@ -9,10 +9,10 @@ TypeScript. A feature is only marked supported when a test proves it.
 Last updated: 2026-11-21 — Phases 0–5 are complete and Phase 6 is in progress.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects and fatal error
-reporting; Phase 6 has delivered loops and the additional literals/operators
+reporting; Phase 6 has delivered loops, the additional literals/operators
 (compound assignment, `++`/`--`, `**`, ternary, hex/binary/octal, Unicode
-identifiers and `\x`/`\u` escapes). Closures and exceptions are still pending
-(ADR-0015).
+identifiers and `\x`/`\u` escapes) and arrow functions as variable initialisers.
+Closures and exceptions are still pending (ADR-0015).
 
 ## 1. Syntax
 
@@ -30,6 +30,7 @@ identifiers and `\x`/`\u` escapes). Closures and exceptions are still pending
 | Hex/binary/octal literals & `_` separators | [x] | `tests/lexer/`, `tests/parser/` | Phase 6; bigint still unsupported |
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
+| Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; variable initialisers with annotated parameters, no captures or first-class function values |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
@@ -101,7 +102,7 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Full `lib.d.ts` | large surface | long-term |
 | Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
 | `eval` / dynamic code | incompatible with native model | not planned |
-| Arrow function expressions | `=>` is lexed and used in function *type annotations*, but arrow expressions are not parsed | Phase 6 (pending) |
+| Arrow functions as values / with captures | arrows parse and type-check, but only variable initialisers lower; captured locals and passing functions as arguments need function values (ADR-0015) | Phase 6 (pending) |
 | Bigint literals (`123n`) | no BigInt type in the checker or runtime; the suffix is not parsed | Phase 6 (pending) |
 | Optional chaining (`?.`) | `?` and `.` are lexed, but the combined operator is not parsed | Phase 6 (pending) |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |

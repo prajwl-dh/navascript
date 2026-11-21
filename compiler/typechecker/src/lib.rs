@@ -5,6 +5,7 @@
 //! AST, the shared diagnostics leaf and the symbol/type leaf; LLVM is not
 //! involved.
 
+mod arrows;
 mod checker;
 mod declarations;
 mod expressions;
