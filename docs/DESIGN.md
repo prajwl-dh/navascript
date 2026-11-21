@@ -83,7 +83,8 @@ Lexing, parsing and AST construction are **in-process pure computation**
 (Dependency category 1): deepen and merge directly, test through the interface.
 No port is needed for file reading — source is `&str`; an FS adapter would be a
 single, hypothetical adapter. There is **no `DiagnosticSink` trait yet**:
-unit tests read `ParseOutput.diagnostics()`, so there is only one adapter today.
+unit tests read the `ParseOutput.diagnostics` field, so there is only one
+adapter today.
 Introduce the trait when a second real adapter exists (e.g. an LSP publishing
 diagnostics or a type checker streaming into the same sink).
 

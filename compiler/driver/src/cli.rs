@@ -3,6 +3,8 @@
 //! The parser is deliberately dependency-free: argument handling is simple in
 //! Phase 0 and a hand-rolled parser keeps the bootstrap compiler easy to build.
 
+use std::path::PathBuf;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const HELP: &str = "\
@@ -33,9 +35,22 @@ pub enum Command {
     /// Print the compiler version.
     Version,
     /// Build a source file into a native executable.
-    Build { input: String },
+    Build { input: PathBuf },
     /// An invalid invocation, with a human-readable reason.
     Error(String),
+}
+
+/// Handle a flag that takes no arguments, rejecting any trailing tokens.
+fn no_arg_flag<I, S>(mut args: I, flag: &str, command: Command) -> Command
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    if args.next().is_some() {
+        Command::Error(format!("nava: {flag} takes no arguments"))
+    } else {
+        command
+    }
 }
 
 /// Parse command-line arguments (excluding the program name).
@@ -54,31 +69,21 @@ where
     };
 
     match first.as_str() {
-        "-h" | "--help" => {
-            if args.next().is_some() {
-                Command::Error("nava: --help takes no arguments".to_owned())
-            } else {
-                Command::Help
-            }
-        }
-        "-V" | "--version" => {
-            if args.next().is_some() {
-                Command::Error("nava: --version takes no arguments".to_owned())
-            } else {
-                Command::Version
-            }
-        }
+        "-h" | "--help" => no_arg_flag(args, "--help", Command::Help),
+        "-V" | "--version" => no_arg_flag(args, "--version", Command::Version),
         "build" => {
-            let rest: Vec<String> = args.map(|value| value.as_ref().to_owned()).collect();
-            match rest.as_slice() {
-                [] => Command::Error("nava build: missing input file".to_owned()),
-                [input] if input.starts_with('-') => {
+            let mut rest = args.map(|value| value.as_ref().to_owned());
+            match (rest.next(), rest.next()) {
+                (None, _) => Command::Error("nava build: missing input file".to_owned()),
+                (Some(_), Some(_)) => {
+                    Command::Error("nava build: expected exactly one input file".to_owned())
+                }
+                (Some(input), None) if input.starts_with('-') => {
                     Command::Error(format!("nava build: unknown option '{input}'"))
                 }
-                [input] => Command::Build {
-                    input: input.clone(),
+                (Some(input), None) => Command::Build {
+                    input: PathBuf::from(input),
                 },
-                _ => Command::Error("nava build: expected exactly one input file".to_owned()),
             }
         }
         other if other.starts_with('-') => {
@@ -88,13 +93,13 @@ where
     }
 }
 
-/// Read the process arguments, dispatch, and return a process exit code.
+/// Read the process arguments and return a process exit code.
 pub fn run() -> i32 {
     dispatch(parse_args(std::env::args().skip(1)))
 }
 
-/// Execute a parsed command. Kept separate from [`run`] for testability.
-pub fn dispatch(command: Command) -> i32 {
+/// Execute a parsed command. Private: the binary's interface is [`run`].
+fn dispatch(command: Command) -> i32 {
     match command {
         Command::Help => {
             print!("{HELP}");
@@ -105,12 +110,13 @@ pub fn dispatch(command: Command) -> i32 {
             0
         }
         Command::Build { input } => {
-            if !std::path::Path::new(&input).exists() {
-                eprintln!("nava: input file not found: {input}");
+            if !input.exists() {
+                eprintln!("nava: input file not found: {}", input.display());
                 return 1;
             }
             println!(
-                "nava: accepted '{input}'; native code generation is not implemented yet (Phase 4)."
+                "nava: accepted '{}'; native code generation is not implemented yet (Phase 4).",
+                input.display()
             );
             0
         }
@@ -132,61 +138,13 @@ mod tests {
     }
 
     #[test]
-    fn parses_long_version() {
-        assert_eq!(parse_args(["--version"]), Command::Version);
-    }
-
-    #[test]
-    fn parses_short_version() {
-        assert_eq!(parse_args(["-V"]), Command::Version);
-    }
-
-    #[test]
-    fn parses_long_help() {
-        assert_eq!(parse_args(["--help"]), Command::Help);
-    }
-
-    #[test]
-    fn parses_short_help() {
-        assert_eq!(parse_args(["-h"]), Command::Help);
-    }
-
-    #[test]
     fn parses_build_with_one_input() {
         assert_eq!(
             parse_args(["build", "examples/fibonacci.ts"]),
             Command::Build {
-                input: "examples/fibonacci.ts".to_owned(),
+                input: PathBuf::from("examples/fibonacci.ts"),
             }
         );
-    }
-
-    #[test]
-    fn build_requires_an_input() {
-        assert!(matches!(parse_args(["build"]), Command::Error(_)));
-    }
-
-    #[test]
-    fn build_rejects_multiple_inputs() {
-        assert!(matches!(
-            parse_args(["build", "a.ts", "b.ts"]),
-            Command::Error(_)
-        ));
-    }
-
-    #[test]
-    fn build_rejects_option_as_input() {
-        assert!(matches!(parse_args(["build", "--oops"]), Command::Error(_)));
-    }
-
-    #[test]
-    fn rejects_unknown_option() {
-        assert!(matches!(parse_args(["--nope"]), Command::Error(_)));
-    }
-
-    #[test]
-    fn rejects_unknown_command() {
-        assert!(matches!(parse_args(["frobnicate"]), Command::Error(_)));
     }
 
     #[test]

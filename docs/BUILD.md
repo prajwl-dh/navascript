@@ -58,10 +58,13 @@ scripts/test.sh
 ```
 
 The workspace has:
-- **unit tests** in `compiler/driver/src/cli.rs` (pure argument parsing), and
-- **integration tests** in `compiler/driver/tests/cli.rs` (real `nava` binary).
+- **unit tests** in `compiler/driver/src/cli.rs` for exact pure parse results,
+  and
+- **integration tests** in `compiler/driver/tests/cli.rs` for the binary's
+  external interface (behaviour is asserted there, not duplicated in unit tests).
 
 Each compiler module is its own crate so it can own tests as it is implemented.
+`.github/workflows/ci.yml` runs the same fmt, clippy and test checks on macOS.
 
 ## 4. CLI usage (Phase 0)
 

@@ -42,7 +42,7 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0004 — LLVM integration method
 
 - **Date:** 2026-11-20
-- **Status:** Proposed (decide in Phase 0/4)
+- **Status:** Proposed (decide at the start of Phase 4)
 - **Context:** LLVM can be linked in-process via `llvm-sys` or driven as an
   external tool emitting textual IR.
 - **Options:**
@@ -87,6 +87,26 @@ a new number and references the old one. Keep entries short and factual.
   of another.
 - **Consequences:** `COMPATIBILITY.md`, `PROGRESS.md`, and `BOOTSTRAP.md` each
   measure their own goal.
+
+---
+
+## ADR-0008 — Phase 0 scope: verify LLVM, defer linking to Phase 4
+
+- **Date:** 2026-11-20
+- **Status:** Accepted
+- **Context:** The originating specification lists "Integrate LLVM" in the
+  Phase 0 foundation tasks *and* in the Phase 4 native-backend tasks. Linking
+  LLVM during Phase 0 would pull backend work forward and break the
+  front-end/back-end separation. A review of Phase 0 flagged the mismatch
+  between that bullet and the recorded "Phase 0 complete" status.
+- **Decision:** Phase 0 verifies the LLVM toolchain (version, targets, tools,
+  prefix) and records the integration plan (ADR-0004). Actual LLVM linking,
+  code generation and linking of executables belong to Phase 4. Phase 0's
+  "complete" status refers to the foundation scope defined in `ROADMAP.md`,
+  with this deviation explicitly documented rather than silently assumed.
+- **Consequences:** The Phase 0 exit condition is a building CLI and test
+  suite, not a native executable. `PROGRESS.md` and `ROADMAP.md` state the
+  deviation; no claim of LLVM integration is made before Phase 4.
 
 ---
 

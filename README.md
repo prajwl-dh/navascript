@@ -64,8 +64,9 @@ target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts
 ```
 
-Helper scripts: `scripts/build.sh` and `scripts/test.sh`. Full instructions,
-including LLVM setup for later phases, are in `docs/BUILD.md`.
+Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same
+fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full
+instructions, including LLVM setup for later phases, are in `docs/BUILD.md`.
 
 ## Documentation
 

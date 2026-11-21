@@ -98,13 +98,14 @@ limitations for every milestone.
 - [x] Implement `nava --version` (also `-V`)
 - [x] Implement `nava --help` (also `-h`, and no-argument default)
 - [x] Implement `nava build` (stub: validates input, reports Phase 4 TODO)
-- [x] Set up unit (12) + integration (8) test harness
+- [x] Set up unit (3) + integration (13) test harness
+- [x] CI workflow (`.github/workflows/ci.yml`) added
 - [x] Document the build process (`docs/BUILD.md`)
 - [x] Make the initial git commit
 - **Exit condition met:** the workspace builds and the `nava` CLI runs its documented commands.
 - **Verification:** `cargo build --workspace`, `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings`, and
-  `cargo test --workspace` (20 passed, 0 failed) all succeed.
+  `cargo test --workspace` (16 passed, 0 failed) all succeed.
 
 ### Phase 1 — Lexer and Parser
 - [ ] Tokens: keywords, identifiers, numbers, strings, operators, comments
@@ -214,6 +215,7 @@ limitations for every milestone.
   `scripts/test.sh`, `.gitignore`, and `docs/BUILD.md`.
 - Fixed a clippy `trim_split_whitespace` warning and formatted with rustfmt.
 - Verified: build OK, fmt check OK, clippy `-D warnings` OK, 20 tests passed.
+  (Later refined to 16 tests — see the review-hardening entry below.)
 - Deferred CMake/Ninja installation and the LLVM-link decision (ADR-0004) to
   Phase 4, since Phase 0 does not link LLVM.
 
@@ -228,16 +230,36 @@ limitations for every milestone.
   Phase 6 needs it.
 - Linked the design from `docs/ARCHITECTURE.md`. No implementation code changed.
 
+### 2026-11-20 — Code review applied, plan hardened
+- Two-axis review of `7c8c7af...HEAD` found 0 hard standards violations, 7
+  judgement-call items, and 2 spec gaps. Applied the useful parts:
+  - CLI: deduplicated the no-argument flag handling (`no_arg_flag`), changed
+    `Build { input: String }` to `PathBuf`, made `dispatch` private (no
+    speculative public seam), and moved behaviour assertions from layered unit
+    tests to the binary interface. Tests: 3 unit + 13 integration = 16, all
+    passing; fmt/clippy still clean.
+  - Docs: fixed ADR-0004's stale status and the `ParseOutput.diagnostics`
+    field/method inconsistency in `docs/DESIGN.md`.
+  - Plan: added a phase exit protocol and prerequisite/evidence table to
+    `docs/ROADMAP.md`; rewrote Phase 1 tasks to follow the chosen deep-module
+    seam; added ADR-0008 documenting the Phase 0/Phase 4 LLVM split so the
+    "Phase 0 complete" status is honest.
+  - Added `.github/workflows/ci.yml` (fmt, clippy, tests on macOS).
+- Remaining review items deliberately not applied: per-module tests for empty
+  placeholder crates (tests arrive with each phase's implementation), and
+  actual LLVM linking (Phase 4 by ADR-0008).
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Start Phase 1: implement the `nava-lexer` and `nava-ast` crates (tokens with
-   positions, AST node definitions, unit tests), then the parser.
+1. Start Phase 1 following `docs/DESIGN.md`: `nava-ast` leaf types, `nava-lexer`
+   internal seam, then the `nava-parser::parse` external seam and driver wiring.
 2. Install CMake + Ninja when Phase 4 needs them.
 3. Resolve the LLVM-linking decision (see `docs/DECISIONS.md` ADR-0004) at the
    start of Phase 4.
-4. Update this file after each completed task.
+4. Update this file after each completed task, using the phase exit protocol in
+   `docs/ROADMAP.md`.
 
 ---
 

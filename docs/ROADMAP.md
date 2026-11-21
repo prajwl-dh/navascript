@@ -11,6 +11,34 @@ is tracked in `docs/PROGRESS.md`; this file is the stable definition of *what*.
 - Keep TypeScript compatibility, native compilation, and self-hosting as three
   *separate* goals. Progress on one must not be claimed as progress on another.
 
+**Phase exit protocol**
+Before a phase is marked complete in `PROGRESS.md`:
+
+1. Every task has a passing test or a recorded, accepted deviation.
+2. `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D
+   warnings`, and `cargo test --workspace` pass.
+3. `PROGRESS.md` records the evidence (commands + results) and a work-log entry.
+4. The phase's changes are committed.
+5. A summary of work, test results and remaining tasks is given before the next
+   phase starts.
+
+**Phase prerequisites and exit evidence**
+
+| Phase | Depends on | Exit evidence |
+| --- | --- | --- |
+| 0 Foundation | macOS toolchain | CLI builds; workspace tests pass |
+| 1 Lexer/Parser | 0 | `parse(&str)` yields AST + diagnostics; tests at the seam |
+| 2 Type system | 1 | negative type tests fail as expected |
+| 3 IR | 2 | IR verifier accepts valid, rejects malformed IR |
+| 4 Native backend | 3 | fibonacci(10) prints 55 natively, no Node.js |
+| 5 Runtime | 4 | nontrivial app runs without Node.js |
+| 6 Language expansion | 5 | expanded compatibility suite passes |
+| 7 Compatibility | 6 | reproducible compatibility report committed |
+| 8 Optimization | 7 | benchmarks show measured improvement |
+| 9 Self-hosting | 8 | substantial compiler source in Nava; differential tests pass |
+| 10 Bootstrap | 9 | stage 2/3 compile source without Rust |
+| 11 Production | 10 | distribution tests on two or more targets |
+
 ---
 
 ## Phase 0 — Project Foundation
@@ -37,8 +65,10 @@ is tracked in `docs/PROGRESS.md`; this file is the stable definition of *what*.
 
 **Known limitations**
 - `nava build` does not compile anything yet.
-- LLVM is not linked yet.
+- LLVM is not linked yet; full integration is Phase 4. This is a documented
+  deviation from the spec's Phase 0 "Integrate LLVM" bullet — see ADR-0008.
 - CMake/Ninja are not installed in the current environment (install needed).
+- CI workflow exists but has not been exercised outside this machine yet.
 
 ---
 
@@ -46,29 +76,47 @@ is tracked in `docs/PROGRESS.md`; this file is the stable definition of *what*.
 
 **Objectives**
 - Tokenize and parse a useful subset of TypeScript syntax.
-- Produce a typed AST with informative diagnostics.
+- Produce an AST with informative, renderable diagnostics.
+- Establish the deep front-end seam defined in `docs/DESIGN.md` so later phases
+  do not rewrite it.
 
-**Implementation tasks**
-- Token kinds: keywords, identifiers, numeric/string literals, operators,
-  punctuation, comments (line + block), EOF.
-- Source positions (line, column, byte offset) attached to tokens and AST nodes.
-- AST: declarations (variable, function), statements (block, if, return,
-  expression), expressions (literals, identifiers, binary/unary, calls, member).
-- Recursive-descent parser with precedence handling.
-- Error recovery and diagnostics with line/column.
+**Implementation tasks** (follow the chosen deep-module interface)
+
+1. `nava-ast` — dependency-free leaf:
+   - `FileId`, half-open byte-offset `Span`, `Program`, `Item`, statement and
+     expression node types; debug printing for tests.
+2. `nava-lexer` — private internal seam of `nava-parser`:
+   - keywords, identifiers, numeric/string literals, operators, punctuation,
+     line/block comments, EOF; byte spans on every token.
+3. `nava-parser` — external seam `parse(&str) -> ParseOutput`:
+   - recursive-descent parsing with precedence, declarations (variable,
+     function), statements (block, `if`, `return`, expression), expressions
+     (literals, identifiers, binary/unary, calls, member).
+   - panic-mode error recovery yielding a partial `Program`.
+   - `Diagnostics`: deduplicated, sorted by span, 1-based line/column, caret
+     rendering via `render(&str)`.
+4. `nava-driver` — wire `Command::Build` to call `parse`, render diagnostics and
+   stop when `has_errors()`; no LLVM dependency.
 
 **Tests**
-- Token-level golden tests for each token class.
-- Parser tests for variables, functions, expressions, blocks, conditionals.
-- Syntax error tests asserting diagnostic text and position.
+- Internal-seam tests: token classes and spans inside `nava-lexer`.
+- Interface tests through `parse`: variables, functions, expressions, blocks,
+  conditionals; assert results, not internal state.
+- Syntax error tests asserting diagnostic message, line/column and rendered text.
+- Driver integration test: a source file with a syntax error exits non-zero
+  and prints readable diagnostics.
 
 **Acceptance criteria**
 - A basic `.ts` file parses into a valid AST, printed in debug form.
+- A broken file produces sorted, positioned, renderable diagnostics.
+- Front-end crates remain independent of LLVM (`cargo tree` shows no LLVM deps).
 
 **Known limitations**
-- No type checking yet.
-- No classes, generics, interfaces, modules, loops (loops may land here if easy).
+- No type checking yet (Phase 2).
+- No classes, generics, interfaces, modules, loops.
 - `.tsx` not supported.
+- No `DiagnosticSink` trait yet: only one adapter exists (the returned value).
+- Multi-file parsing is deferred; `Span` carries `FileId(0)` for now.
 
 ---
 
