@@ -76,15 +76,22 @@ Phases 0–5 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
 LLVM IR, and links a native executable. The runtime provides arena-allocated
 strings, arrays and objects with bounds checking. The first major milestone —
 fibonacci printing `55` without Node.js — is verified by
-`tests/driver/native.rs`. Phase 6 is under way: `while`, `do-while`, C-style
-`for` and `for-of` loops now compile and run natively (`examples/loops.ts`,
-`examples/for_of.ts`); `break`/`continue` are not implemented yet. The
-remaining Phase 6 items — arrow functions, generics, classes, structural
-typing, unions, modules, closures and exceptions, and async/await — are still
-pending (closures and exceptions were deferred from Phase 5 by ADR-0015).
-Arrow functions work as variable initialisers with annotated parameters and no
-captured locals; `?.` works for member/index access on reference-typed results.
-Optional calls (`a?.()`) and bigint are still unsupported.
+`tests/driver/native.rs`. Phase 6 is under way and has delivered:
+
+- Loops: `while`, `do-while`, C-style `for` and `for-of` over arrays/strings,
+  with `break`/`continue` (`examples/loops.ts`, `examples/for_of.ts`,
+  `examples/break_continue.ts`).
+- The additional literals/operators: compound assignment (`+= -= *= /= %=`),
+  `++`/`--`, `**`, ternary, hex/binary/octal literals with `_` separators,
+  Unicode identifiers and `\x`/`\u` escapes (`examples/operators.ts`).
+- Arrow functions as variable initialisers with annotated parameters and no
+  captured locals (`examples/arrows.ts`).
+- Optional chaining `a?.b` / `a?.[i]` for reference-typed results
+  (`examples/optional.ts`).
+
+Still pending in Phase 6: optional calls (`a?.()`), bigint, generics, classes,
+structural typing, unions, modules, first-class function values/closures,
+exceptions (deferred from Phase 5 by ADR-0015) and async/await.
 
 ## Documentation
 

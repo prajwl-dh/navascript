@@ -9,10 +9,12 @@ TypeScript. A feature is only marked supported when a test proves it.
 Last updated: 2026-11-21 — Phases 0–5 are complete and Phase 6 is in progress.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects and fatal error
-reporting; Phase 6 has delivered loops, the additional literals/operators
-(compound assignment, `++`/`--`, `**`, ternary, hex/binary/octal, Unicode
-identifiers and `\x`/`\u` escapes) and arrow functions as variable initialisers.
-Closures and exceptions are still pending (ADR-0015).
+reporting; Phase 6 has delivered loops with `break`/`continue`, the additional
+literals/operators (compound assignment, `++`/`--`, `**`, ternary,
+hex/binary/octal, Unicode identifiers and `\x`/`\u` escapes), arrow functions
+as variable initialisers and optional member/index chaining. Optional calls,
+bigint, closures and exceptions are still pending (ADR-0015 for closures and
+exceptions).
 
 ## 1. Syntax
 

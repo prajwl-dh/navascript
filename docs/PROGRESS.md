@@ -6,8 +6,9 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
-- **Current phase:** Phase 6 (Language expansion) in progress — loops,
-  additional literals/operators and arrow functions complete
+- **Current phase:** Phase 6 (Language expansion) in progress — loops (with
+  `break`/`continue`), additional literals/operators, arrow functions and
+  optional chaining complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -26,7 +27,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops, operators, arrows done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -34,7 +35,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 11 — Production readiness | [ ] Not started |
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
-(loops and syntax expansion delivered, remaining expansion items pending).
+(loops + jumps, syntax expansion, arrows and optional chaining delivered;
+remaining expansion items pending).
 
 ---
 
@@ -715,15 +717,27 @@ limitations for every milestone.
   `for-of`, nested loops and trailing `continue`. Suite grew from 163 to 169
   tests; fmt and clippy clean.
 
+### 2026-11-21 — Full documentation accuracy audit (Phase 6 state)
+- Re-read every doc against the tree at commit `740839b` and corrected the
+  remaining drift: `README.md` claimed `break`/`continue` and arrow functions
+  were unimplemented; the tracker header/snapshot and next-actions omitted
+  optional chaining and `break`/`continue`; `DESIGN.md` and the
+  `COMPATIBILITY.md` header listed only the first two Phase 6 increments;
+  `BUILD.md`'s native-test row omitted arrows, optional chaining and loop
+  jumps.
+- Verified the current facts directly: 169 tests pass, 11 workspace members,
+  19 `.ts` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
+  `operators`). No compiler code changed.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: optional calls and bigint, then generics,
-   classes, structural typing, unions, modules, closures and exceptions
-   (ADR-0015), async/await. Loops and the additional literals/operators are
-   done; `break`/`continue` can be added later if a fixture needs them.
+   `ROADMAP.md`: optional calls and bigint, then generics, classes, structural
+   typing, unions, modules, closures and exceptions (ADR-0015), async/await.
+   Loops (including `break`/`continue`), the additional literals/operators,
+   arrow functions and optional chaining are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

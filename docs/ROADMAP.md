@@ -244,7 +244,8 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1, see the
   Phase 1 known limitations. **Delivered 2026-11-21** (status in `PROGRESS.md`).
 - Arrow functions and the additional literals/operators listed in
-  `docs/COMPATIBILITY.md` §6.
+  `docs/COMPATIBILITY.md` §6. **Delivered 2026-11-21** (status in `PROGRESS.md`;
+  optional calls and bigint remain pending).
 - Generics.
 - Classes and inheritance.
 - Interfaces and structural typing.
