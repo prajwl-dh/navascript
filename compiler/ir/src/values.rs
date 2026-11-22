@@ -9,7 +9,7 @@ pub type SlotId = u32;
 /// Identifies a string constant within a module.
 pub type GlobalId = u32;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum IrType {
     Number,
     BigInt,

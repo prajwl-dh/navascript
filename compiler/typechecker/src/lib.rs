@@ -10,6 +10,7 @@ mod bigint;
 mod checker;
 mod declarations;
 mod expressions;
+mod generics;
 mod optional;
 mod statements;
 mod types;

@@ -85,7 +85,7 @@ impl FunctionBuilder {
                     .typed
                     .types
                     .get(&init.span)
-                    .map(ir_type_from_symbol)
+                    .map(|ty| ir_type_from_symbol(ty, &lowerer.current_subst))
                     .unwrap_or(IrType::Opaque);
             }
         }

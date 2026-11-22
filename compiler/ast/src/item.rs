@@ -39,6 +39,7 @@ pub struct VariableDecl {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FunctionDecl {
     pub name: Ident,
+    pub type_params: Vec<Ident>,
     pub params: Vec<Param>,
     pub return_ty: Option<TypeAnnotation>,
     pub body: Block,

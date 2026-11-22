@@ -6,14 +6,14 @@ use nava_ast::{
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{is_assignable, resolve_named_type, resolve_type};
+use super::types::{Subst, is_assignable, resolve_named_type};
 
 impl<'a> Checker<'a> {
     pub(super) fn check_variable(&mut self, decl: &VariableDecl, top_level: bool) {
         let declared = decl
             .ty
             .as_ref()
-            .map(|annotation| resolve_type(&annotation.expr, &self.aliases));
+            .map(|annotation| self.resolve(&annotation.expr, &Subst::new(), decl.name.span));
         let inferred = decl.init.as_ref().map(|expr| self.infer_expr(expr));
 
         if let (Some(expected), Some(actual)) = (&declared, &inferred) {
@@ -53,11 +53,20 @@ impl<'a> Checker<'a> {
 
     pub(super) fn check_function(&mut self, decl: &FunctionDecl) {
         self.symbols.enter_scope();
+        let subst = self.type_param_subst(&decl.type_params);
+        for param in &decl.type_params {
+            self.symbols.insert(Symbol {
+                name: param.name.clone(),
+                kind: SymbolKind::Parameter,
+                ty: Type::TypeParam(param.name.clone()),
+                span: param.span,
+            });
+        }
         for param in &decl.params {
             let ty = param
                 .ty
                 .as_ref()
-                .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+                .map(|annotation| self.resolve(&annotation.expr, &subst, param.span))
                 .unwrap_or(Type::Unknown);
             self.symbols.insert(Symbol {
                 name: param.name.name.clone(),
@@ -69,7 +78,7 @@ impl<'a> Checker<'a> {
         let expected_ret = decl
             .return_ty
             .as_ref()
-            .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+            .map(|annotation| self.resolve(&annotation.expr, &subst, decl.name.span))
             .unwrap_or_else(|| self.infer_return_type(&decl.body));
 
         self.check_block(&decl.body, Some(&expected_ret));

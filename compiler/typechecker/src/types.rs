@@ -6,6 +6,8 @@ use nava_ast::TypeExpr;
 use nava_symbol::Type;
 
 pub type AliasTable = HashMap<String, Type>;
+/// Maps a generic type parameter name to its instantiated type.
+pub type Subst = HashMap<String, Type>;
 
 const MAX_ALIAS_DEPTH: u8 = 16;
 
@@ -31,6 +33,11 @@ fn resolve(expr: &TypeExpr, aliases: &AliasTable, depth: u8) -> Type {
                 .cloned()
                 .unwrap_or_else(|| Type::Named(other.to_owned())),
         },
+        // Generic type references need the checker's declaration registry to
+        // know a generic's parameter names and to emit diagnostics; only
+        // `Checker::resolve` handles them. This free function is kept for the
+        // non-generic public API and never sees generic syntax internally.
+        TypeExpr::Generic { .. } => Type::Error,
         TypeExpr::Array(inner) => Type::Array(Box::new(resolve(inner, aliases, depth + 1))),
         TypeExpr::Object(fields) => {
             let mut resolved = BTreeMap::new();
@@ -132,6 +139,28 @@ fn resolve_chain(ty: &Type, aliases: &AliasTable, visiting: &mut Vec<String>) ->
                 .map(|param| resolve_chain(param, aliases, visiting))
                 .collect(),
             ret: Box::new(resolve_chain(ret, aliases, visiting)),
+        },
+        _ => ty.clone(),
+    }
+}
+
+/// Replace generic type parameters with their instantiated types, recursively.
+pub fn substitute(ty: &Type, subst: &Subst) -> Type {
+    match ty {
+        Type::TypeParam(name) => subst.get(name).cloned().unwrap_or_else(|| ty.clone()),
+        Type::Array(inner) => Type::Array(Box::new(substitute(inner, subst))),
+        Type::Object(fields) => Type::Object(
+            fields
+                .iter()
+                .map(|(name, field_ty)| (name.clone(), substitute(field_ty, subst)))
+                .collect(),
+        ),
+        Type::Function { params, ret } => Type::Function {
+            params: params
+                .iter()
+                .map(|param| substitute(param, subst))
+                .collect(),
+            ret: Box::new(substitute(ret, subst)),
         },
         _ => ty.clone(),
     }

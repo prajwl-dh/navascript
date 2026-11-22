@@ -8,7 +8,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Last updated:** 2026-11-21
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
-  chaining, bigint literals and optional calls complete
+  chaining, bigint literals, optional calls and generics complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -27,7 +27,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -35,8 +35,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 11 — Production readiness | [ ] Not started |
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
-(loops + jumps, syntax expansion, arrows, optional chaining, bigint and optional
-calls delivered; remaining expansion items pending).
+(loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
+calls and generics delivered; remaining expansion items pending).
 
 ---
 
@@ -196,7 +196,9 @@ limitations for every milestone.
 - [x] Bigint literals (`123n`, `0xffn`, `1_000n`) with a `bigint` type, integer
   arithmetic/comparisons, `++`/`--`, i64 collection slots and `console.log` —
   done 2026-11-21
-- [ ] Generics, classes, inheritance
+- [x] Generics — generic functions and interfaces, inferred or explicit type
+   arguments, monomorphized lowering — done 2026-11-21
+- [ ] Classes, inheritance
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
 - [ ] Modules, imports, exports
@@ -205,10 +207,11 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (192 passed, 0 failed) succeed;
+  `cargo test --workspace` (213 passed, 0 failed) succeed;
   `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
   `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
-  `examples/bigint.ts` and `examples/optional_call.ts` run natively.
+  `examples/bigint.ts`, `examples/optional_call.ts` and `examples/generics.ts`
+  run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -764,15 +767,36 @@ limitations for every milestone.
   lexer/parser/typechecker/IR/verifier/codegen/native/runtime surfaces. Suite
   grew from 169 to 192 tests; fmt and clippy clean.
 
+### 2026-11-21 — Phase 6 (generics increment)
+- Added generic functions (`function id<T>(x: T): T`) and generic interfaces
+  (`interface Box<T> { value: T; }`). Type arguments are inferred by unifying
+  declared parameter types with actual argument types, or supplied explicitly
+  (`id<number>(1)`). Type-argument arity and mismatches are diagnosed, and
+  `Box<number>` resolves to a concrete object type.
+- Monomorphization: IR emits one specialized function per distinct type-argument
+  combination (`nava_id__number`, `nava_id__string`), keyed by a structural
+  mangling that distinguishes object shapes and disambiguates user-defined
+  names. Recursive generic calls reuse the reserved specialization.
+- Divergent-resolver review fixes: function signatures now come from the
+  checker's resolved types rather than AST annotations, bad generic references
+  emit diagnostics (no silent `Type::Error`), angle-list parsing is shared, and
+  `specialize_if_generic` / mangling live in a private `ir/generics.rs`.
+  Generic type aliases were deliberately left out of scope.
+- Two-axis code review of `33c5656...HEAD` (working tree) was applied: fixed the
+  object-type mangling collision, the silent generic-resolution errors, the
+  feature-envy lowering helper, and the shared angle-argument parser.
+- Added `examples/generics.ts` and tests across parser/typechecker/IR/codegen/
+  native surfaces. Suite grew from 192 to 213 tests; fmt and clippy clean.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: generics, classes, structural typing, unions, modules, closures
-   and exceptions (ADR-0015), async/await. Loops (including `break`/`continue`),
+   `ROADMAP.md`: classes, structural typing, unions, modules, closures and
+   exceptions (ADR-0015), async/await. Loops (including `break`/`continue`),
    the additional literals/operators, arrow functions, optional chaining,
-   bigint and optional calls are done.
+   bigint, optional calls and generics are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

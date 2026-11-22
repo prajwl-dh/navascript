@@ -4,7 +4,7 @@ use nava_ast::{ArrowBody, Param, TypeAnnotation};
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::resolve_type;
+use super::types::Subst;
 
 impl Checker<'_> {
     pub(super) fn infer_arrow(
@@ -24,7 +24,7 @@ impl Checker<'_> {
                 param_types.push(Type::Error);
                 continue;
             };
-            let ty = resolve_type(&annotation.expr, &self.aliases);
+            let ty = self.resolve(&annotation.expr, &Subst::new(), annotation.span);
             self.symbols.insert(Symbol {
                 name: param.name.name.clone(),
                 kind: SymbolKind::Parameter,
@@ -44,7 +44,7 @@ impl Checker<'_> {
         self.symbols.leave_scope();
         let ret = return_ty
             .as_ref()
-            .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+            .map(|annotation| self.resolve(&annotation.expr, &Subst::new(), annotation.span))
             .unwrap_or(inferred);
         Type::Function {
             params: param_types,

@@ -1,9 +1,10 @@
-//! Direct call lowering into IR instructions.
+//! Direct call lowering into IR instructions. Generic callees are specialized
+//! by `Lowerer::specialize_if_generic`.
 
 use nava_ast::Expr;
 
 use super::builder::FunctionBuilder;
-use super::ir::{Instruction, IrType, Value};
+use super::ir::{Instruction, Value};
 use super::lower::Lowerer;
 
 impl FunctionBuilder {
@@ -15,6 +16,7 @@ impl FunctionBuilder {
         callee: &Expr,
         args: &[Expr],
         _optional: bool,
+        span: nava_ast::Span,
         lowerer: &mut Lowerer,
     ) -> Value {
         let callee_name = match &callee.kind {
@@ -45,19 +47,16 @@ impl FunctionBuilder {
                 callee.span,
             );
         }
-        let result_ty = if Lowerer::is_known_builtin(&callee_name) {
-            IrType::Void
-        } else {
-            lowerer.return_type_of(&callee_name)
-        };
+
+        let (emitted_name, result_ty) = lowerer.specialize_if_generic(&callee_name, span);
         let result = match result_ty {
-            IrType::Void => None,
+            super::ir::IrType::Void => None,
             _ => Some(self.fresh_value()),
         };
         self.emit(Instruction::Call {
             result,
             result_ty,
-            callee: callee_name,
+            callee: emitted_name,
             args,
         });
         result.map_or(Value::Null, Value::Local)

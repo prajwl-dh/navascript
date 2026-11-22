@@ -369,6 +369,99 @@ fn checks_optional_calls_like_direct_calls() {
 }
 
 #[test]
+fn infers_generic_type_arguments_from_arguments() {
+    let (output, _) = check_source(
+        "function id<T>(value: T): T { return value; } let n = id(1); let s = id(\"x\");",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn accepts_explicit_and_multiple_type_arguments() {
+    let (output, _) = check_source(
+        "function id<T>(value: T): T { return value; } let b = id<boolean>(true); function pair<A, B>(a: A, b: B): A { return a; } let n = pair<number, string>(1, \"x\"); let m = pair(2, \"y\");",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn instantiates_generic_interfaces() {
+    let (output, _) = check_source(
+        "interface Box<T> { value: T; } let n: Box<number> = { value: 1 }; let s: Box<string> = { value: \"x\" }; console.log(n.value);",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_unknown_generic_type_references() {
+    let (output, _) =
+        check_source("interface Box<T> { value: T; } let bad: Unknown<T> = { value: 1 };");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("unknown generic type 'Unknown'")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn rejects_wrong_generic_annotation_arity() {
+    let (output, _) =
+        check_source("interface Box<T> { value: T; } let bad: Box<number, string> = { value: 1 };");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("expected 1 type arguments for 'Box', found 2")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn rejects_wrong_generic_type_argument_count() {
+    let (output, _) =
+        check_source("function id<T>(value: T): T { return value; } id<number, string>(1);");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("expected 1 type arguments, found 2"))
+    );
+}
+
+#[test]
+fn rejects_calls_whose_type_parameter_cannot_be_inferred() {
+    let (output, _) = check_source("function make<T>(): T { return 1; } let x = make();");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot infer type parameter 'T'"))
+    );
+}
+
+#[test]
+fn rejects_generic_argument_type_mismatches() {
+    let (output, _) =
+        check_source("function id<T>(value: T): T { return value; } id<number>(\"x\");");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("argument has type 'string', expected 'number'"))
+    );
+}
+
+#[test]
+fn rejects_assigning_a_mismatched_generic_interface() {
+    let (output, _) =
+        check_source("interface Box<T> { value: T; } let b: Box<string> = { value: 1 };");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign"))
+    );
+}
+
+#[test]
 fn rejects_calling_a_non_callable_with_optional_syntax() {
     let (output, _) = check_source("let n = 1; n?.();");
     assert!(

@@ -88,11 +88,18 @@ impl<'a> Checker<'a> {
                 return_ty,
                 body,
             } => self.infer_arrow(params, return_ty, body),
-            ExprKind::Call { callee, args, .. } => {
-                // `a?.()` uses the same callability and arity checks as `a()`;
-                // only the (currently unobservable) null branch differs.
+            ExprKind::Call {
+                callee,
+                args,
+                type_args,
+                ..
+            } => {
+                let name = match &callee.kind {
+                    ExprKind::Ident(name) => Some(name.clone()),
+                    _ => None,
+                };
                 let callee_ty = self.infer_expr(callee);
-                self.infer_call(&callee_ty, args, expr.span)
+                self.infer_call(name.as_deref(), &callee_ty, args, type_args, expr.span)
             }
             ExprKind::Index {
                 object,
@@ -250,36 +257,5 @@ impl<'a> Checker<'a> {
             | BinaryOp::And
             | BinaryOp::Or => Type::Boolean,
         }
-    }
-
-    pub(super) fn infer_call(&mut self, callee: &Type, args: &[Expr], span: Span) -> Type {
-        let resolved = resolve_named_type(callee, &self.aliases);
-        let Type::Function { params, ret } = resolved else {
-            self.error(
-                format!("cannot call a value of type '{}'", callee.display()),
-                span,
-            );
-            return Type::Error;
-        };
-        if params.len() != args.len() {
-            self.error(
-                format!("expected {} arguments, found {}", params.len(), args.len()),
-                span,
-            );
-        }
-        for (expected, arg) in params.iter().zip(args) {
-            let actual = self.infer_expr(arg);
-            if !is_assignable(expected, &actual, &self.aliases) {
-                self.error(
-                    format!(
-                        "argument has type '{}', expected '{}'",
-                        actual.display(),
-                        expected.display()
-                    ),
-                    arg.span,
-                );
-            }
-        }
-        *ret
     }
 }

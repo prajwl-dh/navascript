@@ -248,7 +248,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Optional calls (`a?.()`) and bigint literals (`123n`) — the remaining syntactic
   rows in `COMPATIBILITY.md` §6. **Delivered 2026-11-21** (status in
   `PROGRESS.md`).
-- Generics.
+- Generics — generic functions and interfaces with inferred/explicit type
+  arguments, monomorphized lowering. **Delivered 2026-11-21** (status in
+  `PROGRESS.md`; ADR-0023).
 - Classes and inheritance.
 - Interfaces and structural typing.
 - Union and intersection types.
@@ -268,14 +270,17 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Decorators, namespaces, JSX/TSX deferred unless evidence demands otherwise.
 - Full `lib.d.ts` compatibility out of scope for this phase.
 - Loops (including `break`/`continue`) landed first, then the additional
-  literals/operators, arrow functions, optional member/index chaining, bigint
-  and optional calls (see `PROGRESS.md`). Arrows are limited to annotated
+  literals/operators, arrow functions, optional member/index chaining, bigint,
+  optional calls and generics (see `PROGRESS.md`). Arrows are limited to annotated
   variable initialisers with no captures; optional chaining is limited to
   reference-typed results and cannot be observed as null yet. Optional calls
   lower as direct calls because there are no nullable callable values. Bigint is
   backed by a signed 64-bit integer: `+ - *` wrap on overflow while division,
-  modulo and power are checked; arbitrary precision is out of scope. Function
-  values are not implemented; iteration is limited to arrays/strings.
+  modulo and power are checked; arbitrary precision is out of scope. Generics
+  cover functions and interfaces only: generic type aliases are out of scope,
+  and there is no constraint syntax, generic inference across call boundaries
+  beyond argument unification, or higher-kinded types. Function values are not
+  implemented; iteration is limited to arrays/strings.
 
 ---
 

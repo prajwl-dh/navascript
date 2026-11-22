@@ -379,6 +379,97 @@ fn lowers_bigint_literals_and_integer_operations() {
 }
 
 #[test]
+fn generic_calls_emit_monomorphized_functions() {
+    let source = "function id<T>(value: T): T { return value; } let n = id(1); let s = id(\"x\");";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    assert!(
+        module.function("id").is_none(),
+        "generic template must not be emitted"
+    );
+    let number_fn = module
+        .function("id__number")
+        .expect("number specialization");
+    assert_eq!(number_fn.return_ty, nava_ir::IrType::Number);
+    assert_eq!(number_fn.params[0].ty, nava_ir::IrType::Number);
+    let string_fn = module
+        .function("id__string")
+        .expect("string specialization");
+    assert_eq!(string_fn.return_ty, nava_ir::IrType::String);
+}
+
+#[test]
+fn generic_array_parameter_is_specialized_by_element_type() {
+    let source = "function first<T>(items: T[]): T { return items[0]; } let n = first([1, 2]); let s = first([\"a\"]);";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let numbers = module
+        .function("first__number")
+        .expect("number array specialization");
+    assert_eq!(
+        numbers.params[0].ty,
+        nava_ir::IrType::Array(Box::new(nava_ir::IrType::Number))
+    );
+    assert!(module.function("first__string").is_some());
+}
+
+#[test]
+fn explicit_generic_type_arguments_select_the_specialization() {
+    let (module, _) =
+        lower_source("function id<T>(value: T): T { return value; } let b = id<boolean>(true);");
+    assert!(nava_ir::verify(&module).is_empty());
+    let boolean_fn = module
+        .function("id__boolean")
+        .expect("boolean specialization");
+    assert_eq!(boolean_fn.return_ty, nava_ir::IrType::Boolean);
+}
+
+#[test]
+fn object_type_arguments_get_distinct_specialization_names() {
+    let source = "interface A { a: number; } interface B { b: string; } function id<T>(value: T): T { return value; } let a: A = { a: 1 }; let b: B = { b: \"s\" }; console.log(id(a)); console.log(id(b));";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let names: Vec<&str> = module
+        .functions
+        .iter()
+        .filter(|function| function.name.starts_with("id__"))
+        .map(|function| function.name.as_str())
+        .collect();
+    assert_eq!(names.len(), 2, "{names:?}");
+    assert_ne!(names[0], names[1]);
+}
+
+#[test]
+fn generic_specializations_do_not_collide_with_user_functions() {
+    let source = "function id__number(value: number): number { return value; } function id<T>(value: T): T { return value; } console.log(id(1));";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    assert!(module.function("id__number").is_some());
+    assert!(
+        module
+            .functions
+            .iter()
+            .any(|function| function.name.starts_with("id__number_")),
+        "specialization should get a disambiguated name"
+    );
+}
+
+#[test]
+fn recursive_generic_calls_reuse_one_specialization() {
+    let source = "function count<T>(n: number, x: T): number { if (n <= 0) { return 0; } return count(n - 1, x); } console.log(count(3, \"z\"));";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    assert_eq!(
+        module
+            .functions
+            .iter()
+            .filter(|function| function.name.starts_with("count__"))
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn optional_calls_lower_to_direct_calls() {
     let source = "function f(x: number): number { return x; } console.log(f?.(1));";
     let (module, _) = lower_source(source);

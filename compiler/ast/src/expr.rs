@@ -54,6 +54,8 @@ pub enum ExprKind {
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
+        /// Explicit type arguments (`f<number>(1)`); empty when inferred.
+        type_args: Vec<super::types::TypeExpr>,
         /// `a?.()` vs `a()`. The null branch is unobservable until nullable
         /// callable values exist, so lowering treats both as a direct call.
         optional: bool,

@@ -6,8 +6,8 @@ self-hosting.
 
 **Status:** Phase 6 (Language expansion) in progress — loops (with
 `break`/`continue`), the additional literals/operators, arrow functions,
-optional chaining, bigint literals and optional calls are complete; the
-remaining expansion items are pending.
+optional chaining, bigint literals, optional calls and generics are complete;
+the remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -60,7 +60,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 192 tests through Phase 6 (loops + jumps, operators, arrows, optional chaining, bigint, optional calls)
+cargo test --workspace     # 213 tests through Phase 6 (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -96,9 +96,11 @@ fibonacci printing `55` without Node.js — is verified by
 - Optional calls `a?.()` (`examples/optional_call.ts`) — parsed, type-checked
    and lowered as direct calls; the null branch is unobservable until Nava has
    nullable callable values.
+- Generics (`examples/generics.ts`) — generic functions and interfaces with
+   inferred or explicit type arguments, lowered by monomorphization.
 
-Still pending in Phase 6: generics, classes,
-structural typing, unions, modules, first-class function values/closures,
+Still pending in Phase 6: classes, structural typing, unions, modules,
+first-class function values/closures,
 exceptions (deferred from Phase 5 by ADR-0015) and async/await.
 
 ## Documentation

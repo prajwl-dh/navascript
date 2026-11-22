@@ -21,7 +21,14 @@ impl<'a> Parser<'a> {
             TokenKind::Ident | TokenKind::Void => {
                 let token = self.current().clone();
                 self.bump();
-                TypeExpr::Named(token.lexeme)
+                if self.kind() == TokenKind::Lt {
+                    TypeExpr::Generic {
+                        name: token.lexeme,
+                        args: self.parse_generic_args()?,
+                    }
+                } else {
+                    TypeExpr::Named(token.lexeme)
+                }
             }
             TokenKind::LBrace => self.parse_object_type()?,
             TokenKind::LParen => self.parse_function_type()?,
@@ -35,6 +42,43 @@ impl<'a> Parser<'a> {
             base = TypeExpr::Array(Box::new(base));
         }
         Some(base)
+    }
+
+    /// Parse a `<A, B>` list, with the current token on `<`. Shared by generic
+    /// type references and explicit call type arguments. `>>` lexes as two
+    /// `Gt` tokens, so nested generics need no special token.
+    pub(super) fn parse_angle_args(&mut self) -> Option<Vec<TypeExpr>> {
+        self.expect(TokenKind::Lt, "expected '<'")?;
+        let mut args = Vec::new();
+        while self.kind() != TokenKind::Gt && self.kind() != TokenKind::Eof {
+            args.push(self.parse_type_expr()?);
+            if !self.eat(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::Gt, "expected '>' after type arguments")?;
+        Some(args)
+    }
+
+    pub(super) fn parse_generic_args(&mut self) -> Option<Vec<TypeExpr>> {
+        self.parse_angle_args()
+    }
+
+    /// Parse a declaration's `<T, U>` parameter list, if present.
+    pub(super) fn parse_decl_type_params(&mut self) -> Option<Vec<nava_ast::Ident>> {
+        if self.kind() != TokenKind::Lt {
+            return Some(Vec::new());
+        }
+        self.bump();
+        let mut params = Vec::new();
+        while self.kind() != TokenKind::Gt && self.kind() != TokenKind::Eof {
+            params.push(self.parse_ident("expected a type parameter name")?);
+            if !self.eat(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::Gt, "expected '>' after type parameters")?;
+        Some(params)
     }
 
     pub(super) fn parse_object_type(&mut self) -> Option<TypeExpr> {
@@ -149,12 +193,14 @@ impl<'a> Parser<'a> {
         let start = self.current().start;
         self.bump(); // `interface`
         let name = self.parse_ident("expected an interface name")?;
+        let type_params = self.parse_decl_type_params()?;
         self.expect(TokenKind::LBrace, "expected '{' after interface name")?;
         let fields = self.parse_type_fields();
         self.expect(TokenKind::RBrace, "expected '}'")?;
         let end = self.previous_end(start as usize);
         Some(InterfaceDecl {
             name,
+            type_params,
             fields,
             span: Span::new(self.file, start as usize, end),
         })

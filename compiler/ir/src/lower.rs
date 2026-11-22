@@ -1,7 +1,9 @@
 //! AST → IR lowering. All control flow, scoping and slot allocation decisions
 //! are hidden behind `lower`.
 
-use nava_ast::{Expr, ItemKind, Program, Span, TypeAnnotation, TypeExpr};
+use std::collections::HashMap;
+
+use nava_ast::{Expr, FunctionDecl, ItemKind, Program, Span, TypeAnnotation, TypeExpr};
 use nava_diagnostics::{Diagnostic, Diagnostics, LineIndex};
 use nava_symbol::Type;
 use nava_typechecker::TypedProgram;
@@ -29,6 +31,9 @@ pub fn lower(program: &Program, typed: &TypedProgram, source: &str) -> LowerOutp
         lines: LineIndex::new(source),
         typed,
         next_global: 0,
+        program,
+        current_subst: HashMap::new(),
+        specializations: HashMap::new(),
     };
     lowerer.lower_program(program);
     for error in super::verify::verify(&lowerer.module) {
@@ -50,6 +55,11 @@ pub(super) struct Lowerer<'a> {
     pub(super) lines: LineIndex,
     pub(super) typed: &'a TypedProgram,
     pub(super) next_global: GlobalId,
+    pub(super) program: &'a Program,
+    /// Type parameters of the generic function currently being specialized.
+    pub(super) current_subst: HashMap<String, IrType>,
+    /// Monomorphized functions already emitted, keyed by base name + type args.
+    pub(super) specializations: HashMap<(String, Vec<IrType>), String>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -62,7 +72,10 @@ impl<'a> Lowerer<'a> {
         let mut main_body = Vec::new();
         for item in &program.items {
             match &item.kind {
-                ItemKind::Function(decl) => self.lower_function(decl),
+                ItemKind::Function(decl) if decl.type_params.is_empty() => {
+                    self.lower_function(decl, None)
+                }
+                ItemKind::Function(_) => {} // emitted on demand as a specialization
                 ItemKind::Variable(_) | ItemKind::Expr(_) | ItemKind::Stmt(_) => {
                     main_body.push(item)
                 }
@@ -96,32 +109,52 @@ impl<'a> Lowerer<'a> {
         self.module.functions.push(builder.finish());
     }
 
-    pub(super) fn lower_function(&mut self, decl: &nava_ast::FunctionDecl) {
+    /// Lower a function. `specialization` supplies the emitted name and the
+    /// concrete types for a generic function's parameters; ordinary functions
+    /// pass `None`.
+    pub(super) fn lower_function(
+        &mut self,
+        decl: &FunctionDecl,
+        specialization: Option<(String, HashMap<String, IrType>)>,
+    ) {
+        let (name, subst) = match specialization {
+            Some((name, subst)) => (name, subst),
+            None => (decl.name.name.clone(), HashMap::new()),
+        };
+        let previous_subst = std::mem::replace(&mut self.current_subst, subst);
+        // Use the checker's resolved signature, not the AST annotations: this
+        // keeps IR types in step with `Checker::resolve` (including generics).
+        let signature = self
+            .typed
+            .symbols
+            .lookup(&decl.name.name)
+            .and_then(|symbol| match &symbol.ty {
+                Type::Function { params, ret } => Some((params.clone(), (**ret).clone())),
+                _ => None,
+            });
+        let Some((param_types, ret_ty)) = signature else {
+            self.error(
+                format!("missing checked signature for '{}'", decl.name.name),
+                decl.name.span,
+            );
+            self.current_subst = previous_subst;
+            return;
+        };
         let params: Vec<IrParam> = decl
             .params
             .iter()
-            .map(|param| IrParam {
+            .zip(&param_types)
+            .map(|(param, ty)| IrParam {
                 name: param.name.name.clone(),
-                ty: ir_type(&param.ty),
+                ty: ir_type_from_symbol(ty, &self.current_subst),
             })
             .collect();
-        let return_ty = if decl.return_ty.is_some() {
-            ir_type_opt(&decl.return_ty)
-        } else {
-            self.typed
-                .symbols
-                .lookup(&decl.name.name)
-                .map(|symbol| match &symbol.ty {
-                    Type::Function { ret, .. } => ir_type_from_symbol(ret),
-                    _ => IrType::Opaque,
-                })
-                .unwrap_or(IrType::Opaque)
-        };
-        let mut builder = FunctionBuilder::new(decl.name.name.clone(), params, return_ty.clone());
+        let return_ty = ir_type_from_symbol(&ret_ty, &self.current_subst);
+        let mut builder = FunctionBuilder::new(name, params, return_ty.clone());
 
         let entry = builder.function.entry;
         for (index, param) in decl.params.iter().enumerate() {
-            let ty = ir_type(&param.ty);
+            let ty = ir_type_from_symbol(&param_types[index], &self.current_subst);
             let slot = builder.alloc(ty.clone());
             builder.store(slot, ty, Value::Param(index as u32));
             builder.declare(&param.name, slot);
@@ -144,6 +177,7 @@ impl<'a> Lowerer<'a> {
             builder.set_terminator(block, Terminator::Return(value));
         }
         self.module.functions.push(builder.finish());
+        self.current_subst = previous_subst;
     }
 
     /// Emit an arrow function initialiser as a named IR function. Calls use the
@@ -160,7 +194,7 @@ impl<'a> Lowerer<'a> {
 
     pub(super) fn return_type_of(&self, name: &str) -> IrType {
         match self.typed.symbols.lookup(name).map(|symbol| &symbol.ty) {
-            Some(Type::Function { ret, .. }) => ir_type_from_symbol(ret),
+            Some(Type::Function { ret, .. }) => ir_type_from_symbol(ret, &self.current_subst),
             Some(Type::Void) => IrType::Void,
             _ => IrType::Opaque,
         }
@@ -176,7 +210,7 @@ impl<'a> Lowerer<'a> {
             .types
             .get(&expr.span)
             .map(|ty| match ty {
-                Type::Function { ret, .. } => ir_type_from_symbol(ret),
+                Type::Function { ret, .. } => ir_type_from_symbol(ret, &self.current_subst),
                 _ => IrType::Opaque,
             })
             .unwrap_or(IrType::Opaque)
@@ -186,16 +220,12 @@ impl<'a> Lowerer<'a> {
         self.typed
             .types
             .get(&expr.span)
-            .map(ir_type_from_symbol)
+            .map(|ty| ir_type_from_symbol(ty, &self.current_subst))
             .unwrap_or(IrType::Opaque)
     }
 }
 
 pub(super) fn ir_type(annotation: &Option<TypeAnnotation>) -> IrType {
-    ir_type_opt(annotation)
-}
-
-pub(super) fn ir_type_opt(annotation: &Option<TypeAnnotation>) -> IrType {
     annotation
         .as_ref()
         .map(|annotation| ir_type_expr(&annotation.expr))
@@ -212,22 +242,26 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
             "void" => IrType::Void,
             _ => IrType::Opaque,
         },
-        TypeExpr::Array(_) | TypeExpr::Object(_) | TypeExpr::Function { .. } => IrType::Opaque,
+        TypeExpr::Generic { .. }
+        | TypeExpr::Array(_)
+        | TypeExpr::Object(_)
+        | TypeExpr::Function { .. } => IrType::Opaque,
     }
 }
 
-pub(super) fn ir_type_from_symbol(ty: &Type) -> IrType {
+pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) -> IrType {
     match ty {
+        Type::TypeParam(name) => subst.get(name).cloned().unwrap_or(IrType::Opaque),
         Type::Number => IrType::Number,
         Type::BigInt => IrType::BigInt,
         Type::String => IrType::String,
         Type::Boolean => IrType::Boolean,
         Type::Void => IrType::Void,
-        Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner))),
+        Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner, subst))),
         Type::Object(fields) => IrType::Object(
             fields
                 .iter()
-                .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty)))
+                .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty, subst)))
                 .collect(),
         ),
         _ => IrType::Opaque,

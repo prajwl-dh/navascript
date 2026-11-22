@@ -139,7 +139,8 @@ impl FunctionBuilder {
                 callee,
                 args,
                 optional,
-            } => self.lower_call(callee, args, *optional, lowerer),
+                ..
+            } => self.lower_call(callee, args, *optional, expr.span, lowerer),
             ExprKind::Index {
                 object,
                 index,

@@ -248,6 +248,21 @@ fn bigints_run_natively() {
 }
 
 #[test]
+fn generics_run_natively() {
+    let Some(binary) = compile("generics.ts", "generics", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run generics program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "42\nnava\ntrue\n1\na\n7\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn optional_calls_run_natively() {
     let Some(binary) = compile("optional_call.ts", "optional-call", &[]) else {
         return;

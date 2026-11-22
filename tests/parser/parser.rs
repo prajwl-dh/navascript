@@ -535,6 +535,74 @@ fn parses_optional_calls() {
 }
 
 #[test]
+fn parses_generic_function_declarations() {
+    let output = ok("function identity<T>(value: T): T { return value; }");
+    let ItemKind::Function(decl) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    assert_eq!(decl.type_params.len(), 1);
+    assert_eq!(decl.type_params[0].name, "T");
+}
+
+#[test]
+fn parses_multiple_type_parameters() {
+    let output = ok("function pair<A, B>(a: A, b: B): A { return a; }");
+    let ItemKind::Function(decl) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    let names: Vec<&str> = decl
+        .type_params
+        .iter()
+        .map(|param| param.name.as_str())
+        .collect();
+    assert_eq!(names, vec!["A", "B"]);
+}
+
+#[test]
+fn parses_generic_type_references_including_nested_forms() {
+    let output =
+        ok("interface Box<T> { value: T; } let b: Box<string>; let nested: Box<Box<number>>;");
+    let ItemKind::Interface(interface) = &output.program.items[0].kind else {
+        panic!("expected an interface");
+    };
+    assert_eq!(interface.type_params.len(), 1);
+    let ItemKind::Variable(outer) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &outer.ty.as_ref().unwrap().expr,
+        TypeExpr::Generic { name, args } if name == "Box" && args.len() == 1
+    ));
+    let ItemKind::Variable(nested) = &output.program.items[2].kind else {
+        panic!("expected a variable");
+    };
+    let TypeExpr::Generic { args, .. } = &nested.ty.as_ref().unwrap().expr else {
+        panic!("expected a generic type");
+    };
+    assert!(matches!(&args[0], TypeExpr::Generic { name, .. } if name == "Box"));
+}
+
+#[test]
+fn parses_explicit_call_type_arguments() {
+    let output =
+        ok("function id<T>(x: T): T { return x; } let n = id<number>(1); let plain = id(2);");
+    let ItemKind::Variable(explicit) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    let ExprKind::Call { type_args, .. } = &explicit.init.as_ref().unwrap().kind else {
+        panic!("expected a call");
+    };
+    assert_eq!(type_args.len(), 1);
+    let ItemKind::Variable(plain) = &output.program.items[2].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &plain.init.as_ref().unwrap().kind,
+        ExprKind::Call { type_args, .. } if type_args.is_empty()
+    ));
+}
+
+#[test]
 fn keeps_direct_calls_distinct_from_optional_calls() {
     let output = ok("f(); f?.();");
     let ItemKind::Expr(direct) = &output.program.items[0].kind else {

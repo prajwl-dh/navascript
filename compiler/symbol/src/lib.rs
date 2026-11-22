@@ -26,6 +26,8 @@ pub enum Type {
     },
     /// A named type awaiting alias/interface resolution.
     Named(String),
+    /// A generic type parameter, bound at a call site (ADR-0023).
+    TypeParam(String),
     /// No information yet (inference fallback).
     Unknown,
     /// A type that already produced a diagnostic.
@@ -59,6 +61,7 @@ impl Type {
                 format!("({params}) => {}", ret.display())
             }
             Type::Named(name) => name.clone(),
+            Type::TypeParam(name) => name.clone(),
             Type::Unknown => "unknown".to_owned(),
             Type::Error => "<error>".to_owned(),
         }

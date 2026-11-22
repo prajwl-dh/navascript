@@ -181,8 +181,10 @@ impl<'a> Parser<'a> {
                         span,
                     };
                 }
-                TokenKind::LParen => {
-                    expr = self.parse_call_tail(expr, false)?;
+                TokenKind::LParen | TokenKind::Lt
+                    if self.kind() == TokenKind::LParen || self.type_args_ahead() =>
+                {
+                    expr = self.parse_call(expr, false)?;
                 }
                 _ => break,
             }

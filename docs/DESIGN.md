@@ -19,14 +19,15 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 
 Status: **accepted and implemented through Phase 6 (loops with
 `break`/`continue`, additional literals/operators, arrow functions, optional
-chaining, bigint and optional calls)**. The front-end seam (`parse`), the shared
-diagnostics leaf, the type-checker seam (`check`), the IR seam (`lower`) and the
-backend seam (`generate`) are all in use by the driver pipeline and covered by
-tests in `tests/`. Loop, operator, call, optional-access and bigint lowering
-live in private implementation modules (`ir/loops.rs`, `ir/for_of.rs`,
-`ir/operators.rs`, `ir/calls.rs`, `ir/results.rs`, `ir/values.rs`) behind the
-unchanged `lower` seam; bigint operator typing lives in
-`typechecker/bigint.rs`. Revisit when a second real adapter or consumer appears.
+chaining, bigint, optional calls and generics)**. The front-end seam (`parse`),
+the shared diagnostics leaf, the type-checker seam (`check`), the IR seam
+(`lower`) and the backend seam (`generate`) are all in use by the driver pipeline
+and covered by tests in `tests/`. Loop, operator, call, optional-access, bigint
+and generic lowering live in private implementation modules (`ir/loops.rs`,
+`ir/for_of.rs`, `ir/operators.rs`, `ir/calls.rs`, `ir/results.rs`,
+`ir/values.rs`, `ir/generics.rs`) behind the unchanged `lower` seam; bigint and
+generic typing live in `typechecker/bigint.rs` and `typechecker/generics.rs`.
+Revisit when a second real adapter or consumer appears.
 
 ## 1. The deepened module: the front-end seam
 

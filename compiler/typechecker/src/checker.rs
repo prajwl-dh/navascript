@@ -21,6 +21,11 @@ pub struct TypedProgram {
     /// ambiguous: an identifier and a member expression can share it.
     pub types: HashMap<Span, Type>,
     pub symbols: SymbolTable,
+    /// Generic parameter names for functions, interfaces and aliases.
+    pub generic_params: HashMap<String, Vec<String>>,
+    /// Resolved type arguments for each call expression, in parameter order.
+    /// IR lowering uses this to select a monomorphization.
+    pub call_instantiations: HashMap<Span, Vec<Type>>,
 }
 
 pub fn check(program: &Program, source: &str) -> CheckOutput {
@@ -37,6 +42,8 @@ pub fn check(program: &Program, source: &str) -> CheckOutput {
         typed: TypedProgram {
             types: checker.types,
             symbols: checker.symbols,
+            generic_params: checker.generic_params,
+            call_instantiations: checker.call_instantiations,
         },
     }
 }
@@ -49,6 +56,8 @@ pub(super) struct Checker<'a> {
     pub(super) diagnostics: Vec<Diagnostic>,
     pub(super) types: HashMap<Span, Type>,
     pub(super) loop_depth: u32,
+    pub(super) generic_params: HashMap<String, Vec<String>>,
+    pub(super) call_instantiations: HashMap<Span, Vec<Type>>,
 }
 
 impl<'a> Checker<'a> {
@@ -61,6 +70,8 @@ impl<'a> Checker<'a> {
             diagnostics: Vec::new(),
             types: HashMap::new(),
             loop_depth: 0,
+            generic_params: HashMap::new(),
+            call_instantiations: HashMap::new(),
         }
     }
 

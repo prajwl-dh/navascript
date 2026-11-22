@@ -137,6 +137,20 @@ fn emits_bigint_collection_slots() {
 }
 
 #[test]
+fn emits_monomorphized_generic_functions() {
+    let ir = generate_source(
+        "function id<T>(value: T): T { return value; } console.log(id(1)); console.log(id(\"s\"));",
+    );
+    assert!(
+        ir.contains("define double @nava_id__number(double %p0)"),
+        "{ir}"
+    );
+    assert!(ir.contains("define ptr @nava_id__string(ptr %p0)"), "{ir}");
+    assert!(ir.contains("call double @nava_id__number(double"), "{ir}");
+    assert!(ir.contains("call ptr @nava_id__string(ptr"), "{ir}");
+}
+
+#[test]
 fn emits_optional_calls_as_direct_calls() {
     let ir = generate_source("function f(x: number): number { return x; } console.log(f?.(1));");
     assert!(ir.contains("call double @nava_f(double"), "{ir}");

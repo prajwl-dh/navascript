@@ -53,6 +53,7 @@ impl<'a> Parser<'a> {
     pub(super) fn parse_function(&mut self) -> Option<FunctionDecl> {
         self.bump(); // `function`
         let name = self.parse_ident("expected a function name")?;
+        let type_params = self.parse_decl_type_params()?;
         self.expect(TokenKind::LParen, "expected '(' after function name")?;
         let mut params = Vec::new();
         while self.kind() != TokenKind::RParen && self.kind() != TokenKind::Eof {
@@ -82,6 +83,7 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?;
         Some(FunctionDecl {
             name,
+            type_params,
             params,
             return_ty,
             body,

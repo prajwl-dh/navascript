@@ -72,7 +72,11 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Interfaces `interface Foo { ... }`, with structural field checking.
 
 ### Advanced (Phase 6+)
-- [ ] Generics
+- [x] Generics (Phase 6) — generic functions (`function id<T>(x: T): T`) and
+  interfaces (`interface Box<T> { value: T; }`). Type arguments are inferred
+  from call arguments or written explicitly (`id<number>(1)`); each distinct
+  instantiation is lowered to a monomorphized native function (ADR-0023).
+  Generic type aliases and constraints are not supported.
 - [ ] Classes and inheritance
 - [ ] Structural typing
 - [ ] Union / intersection types
@@ -124,6 +128,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Named function declarations (emitted as native functions)
 - [x] Parameters and return type annotations
 - [x] Inference for return types
+- [x] Generic functions with inferred or explicit type arguments (Phase 6)
 - [x] Recursion — the fibonacci acceptance program runs natively
 - [ ] Nested functions / closures (Phase 6; ADR-0015)
 - [ ] Higher-order functions (Phase 6)

@@ -6,18 +6,27 @@ use nava_ast::{Block, FunctionDecl, Ident, ItemKind, Stmt, StmtKind, TypeField};
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{resolve_named_type, resolve_type};
+use super::types::{Subst, resolve_named_type};
 
 impl<'a> Checker<'a> {
     pub(super) fn collect_aliases(&mut self) {
         for item in &self.program.items {
             match &item.kind {
                 ItemKind::TypeAlias(alias) => {
-                    let ty = resolve_type(&alias.ty, &self.aliases);
+                    let ty = self.resolve(&alias.ty, &Subst::new(), alias.span);
                     self.aliases.insert(alias.name.name.clone(), ty);
                 }
                 ItemKind::Interface(interface) => {
-                    let fields = self.resolve_fields(&interface.fields);
+                    let subst = self.type_param_subst(&interface.type_params);
+                    self.generic_params.insert(
+                        interface.name.name.clone(),
+                        interface
+                            .type_params
+                            .iter()
+                            .map(|param| param.name.clone())
+                            .collect(),
+                    );
+                    let fields = self.resolve_fields(&interface.fields, &subst);
                     self.aliases
                         .insert(interface.name.name.clone(), Type::Object(fields));
                 }
@@ -41,11 +50,19 @@ impl<'a> Checker<'a> {
         }
     }
 
-    pub(super) fn resolve_fields(&self, fields: &[TypeField]) -> BTreeMap<String, Type> {
-        fields
-            .iter()
-            .map(|field| (field.name.clone(), resolve_type(&field.ty, &self.aliases)))
-            .collect()
+    pub(super) fn resolve_fields(
+        &mut self,
+        fields: &[TypeField],
+        subst: &Subst,
+    ) -> BTreeMap<String, Type> {
+        let mut resolved = BTreeMap::new();
+        for field in fields {
+            resolved.insert(
+                field.name.clone(),
+                self.resolve(&field.ty, subst, field.span),
+            );
+        }
+        resolved
     }
 
     pub(super) fn collect_declarations(&mut self) {
@@ -55,7 +72,9 @@ impl<'a> Checker<'a> {
                     let ty = decl
                         .ty
                         .as_ref()
-                        .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+                        .map(|annotation| {
+                            self.resolve(&annotation.expr, &Subst::new(), decl.name.span)
+                        })
                         .unwrap_or(Type::Unknown);
                     self.declare(&decl.name, ty, SymbolKind::Variable);
                 }
@@ -81,6 +100,14 @@ impl<'a> Checker<'a> {
     }
 
     pub(super) fn declare_function(&mut self, decl: &FunctionDecl) {
+        let subst = self.type_param_subst(&decl.type_params);
+        self.generic_params.insert(
+            decl.name.name.clone(),
+            decl.type_params
+                .iter()
+                .map(|param| param.name.clone())
+                .collect(),
+        );
         let params: Vec<Type> = decl
             .params
             .iter()
@@ -88,7 +115,7 @@ impl<'a> Checker<'a> {
                 param
                     .ty
                     .as_ref()
-                    .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+                    .map(|annotation| self.resolve(&annotation.expr, &subst, param.span))
                     .unwrap_or(Type::Unknown)
             })
             .collect();
@@ -104,7 +131,7 @@ impl<'a> Checker<'a> {
         let ret = decl
             .return_ty
             .as_ref()
-            .map(|annotation| resolve_type(&annotation.expr, &self.aliases))
+            .map(|annotation| self.resolve(&annotation.expr, &subst, decl.name.span))
             .unwrap_or(Type::Unknown);
         self.symbols.insert(Symbol {
             name: decl.name.name.clone(),

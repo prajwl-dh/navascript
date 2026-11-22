@@ -10,6 +10,7 @@ mod calls;
 mod checks;
 mod expressions;
 mod for_of;
+mod generics;
 mod ir;
 mod loops;
 mod lower;

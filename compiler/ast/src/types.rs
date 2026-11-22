@@ -17,6 +17,11 @@ pub struct TypeAnnotation {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeExpr {
     Named(String),
+    /// A generic type reference such as `Box<number>`.
+    Generic {
+        name: String,
+        args: Vec<TypeExpr>,
+    },
     Array(Box<TypeExpr>),
     Object(Vec<TypeField>),
     Function {
@@ -42,6 +47,7 @@ pub struct TypeAliasDecl {
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterfaceDecl {
     pub name: Ident,
+    pub type_params: Vec<Ident>,
     pub fields: Vec<TypeField>,
     pub span: Span,
 }

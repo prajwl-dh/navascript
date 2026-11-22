@@ -13,8 +13,8 @@ reporting; Phase 6 has delivered loops with `break`/`continue`, the additional
 literals/operators (compound assignment, `++`/`--`, `**`, ternary,
 hex/binary/octal, Unicode identifiers and `\x`/`\u` escapes), arrow functions
 as variable initialisers, optional member/index chaining, bigint literals and
-optional calls. Generics, classes, unions, modules, closures and exceptions are
-still pending (ADR-0015 for closures and exceptions).
+optional calls and generics. Classes, unions, modules, closures and exceptions
+are still pending (ADR-0015 for closures and exceptions).
 
 ## 1. Syntax
 
@@ -39,7 +39,7 @@ still pending (ADR-0015 for closures and exceptions).
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [ ] | — | Phase 6 |
-| Generics | [ ] | — | Phase 6 |
+| Generics | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; generic functions and interfaces with inferred/explicit type arguments, monomorphized lowering; generic type aliases and constraints out of scope |
 | Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing Phase 6 |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
 | Unions / intersections | [ ] | — | Phase 6 |
@@ -61,7 +61,7 @@ still pending (ADR-0015 for closures and exceptions).
 | Type inference | [x] | `tests/typechecker/` | variables and return types |
 | Assignability checks | [x] | `tests/typechecker/` | assignments, arguments, returns |
 | Structural typing | [~] | `tests/typechecker/` | basic object field checking; full structural typing Phase 6 |
-| Generics | [ ] | — | Phase 6 |
+| Generics | [x] | `tests/typechecker/`, `tests/ir/` | Phase 6; generic parameters unify with argument types; annotated generic references (`Box<number>`) resolve to concrete object types; bad references are diagnosed |
 | `any` / `unknown` | [ ] | — | Restricted semantics TBD |
 | Conditional / mapped types | [-] | — | Long-term |
 

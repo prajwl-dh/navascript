@@ -14,7 +14,7 @@ impl Parser<'_> {
         if self.kind() == TokenKind::LParen {
             // `a?.()` — parsed like a direct call; the compiler records which
             // syntax was used but cannot observe a null callable yet.
-            return Some(Some(self.parse_call_tail(expr.clone(), true)?));
+            return Some(Some(self.parse_call(expr.clone(), true)?));
         }
         let value = if self.kind() == TokenKind::LBracket {
             self.bump();

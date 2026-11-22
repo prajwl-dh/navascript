@@ -434,6 +434,41 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0023 — Generics via call-site monomorphization
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6 adds generics to broaden TypeScript compatibility. Nava
+  IR has concrete types only — every function has a fixed signature and a named
+  LLVM symbol — so there is no representation for an unbound type parameter at
+  the backend. A "generic" function lowered with `Opaque` parameters would
+  silently miscompile. Generic *type references* also need the checker's
+  declaration registry to know a generic's parameter names, which the free
+  `resolve_type` helper does not have.
+- **Decision:** `Type::TypeParam(String)` represents a parameter inside a
+  generic declaration. `Checker::resolve` is the single type resolver: it
+  applies declaration substitutions, resolves `Box<T>` references from the
+  registered generic interfaces, and emits diagnostics for unknown generics or
+  wrong type-argument arity. At a call, declared parameter types are unified with
+  actual argument types (or explicit type arguments) to produce a `Subst`, which
+  is recorded on the call's span for IR. The IR skips generic templates and emits
+  a specialization per distinct type-argument combination on demand, with a
+  structural name mangling (`id__number`, `first__number_array`,
+  `id__object_1_a_number`) and numeric disambiguation against user-defined
+  names. Recursive calls reuse a reserved specialization. Function signatures
+  in IR come from the checker's resolved types, not AST annotations. The helpers
+  live in private `typechecker/generics.rs`, `ir/generics.rs` and
+  `parser/calls.rs` behind the existing seams. Generic type aliases are
+  deliberately out of scope.
+- **Consequences:** Each instantiation produces a separate native function;
+  there is no cross-instantiation sharing or generic code reuse. Constraints,
+  higher-kinded types and inference across call boundaries beyond argument
+  unification are unsupported. Because monomorphization is driven by recorded
+  type arguments, an unbound `TypeParam` is diagnosed instead of reaching
+  codegen as `Opaque`.
+
+---
+
 ## Template for new decisions
 
 ```
