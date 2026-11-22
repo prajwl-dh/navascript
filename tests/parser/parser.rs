@@ -535,6 +535,42 @@ fn parses_optional_calls() {
 }
 
 #[test]
+fn parses_union_intersection_and_optional_property_types() {
+    let output = ok(
+        "interface P { name: string; nickname?: string; } let u: string | null; let i: P & { age: number };",
+    );
+    let ItemKind::Interface(interface) = &output.program.items[0].kind else {
+        panic!("expected an interface");
+    };
+    assert!(interface.fields[1].optional);
+    let ItemKind::Variable(union) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    assert!(
+        matches!(&union.ty.as_ref().unwrap().expr, TypeExpr::Union(members) if members.len() == 2)
+    );
+    let ItemKind::Variable(intersection) = &output.program.items[2].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &intersection.ty.as_ref().unwrap().expr,
+        TypeExpr::Intersection(members) if members.len() == 2
+    ));
+}
+
+#[test]
+fn union_binds_looser_than_intersection() {
+    let output = ok("let x: A & B | C;");
+    let ItemKind::Variable(decl) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    let TypeExpr::Union(members) = &decl.ty.as_ref().unwrap().expr else {
+        panic!("expected a union at the top level");
+    };
+    assert!(matches!(&members[0], TypeExpr::Intersection(_)));
+}
+
+#[test]
 fn parses_class_declarations_with_members() {
     let output = ok(
         "class Point extends Shape { x: number; constructor(x: number) { this.x = x; } sum(): number { return this.x; } }",

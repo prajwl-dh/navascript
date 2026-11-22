@@ -6,7 +6,7 @@ use nava_ast::{
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{Subst, is_assignable, resolve_named_type};
+use super::types::{Subst, is_assignable, resolve_named_type, union_layout_error};
 
 impl<'a> Checker<'a> {
     pub(super) fn check_variable(&mut self, decl: &VariableDecl, top_level: bool) {
@@ -29,11 +29,25 @@ impl<'a> Checker<'a> {
             }
         }
 
+        if let Some(expected) = &declared {
+            if let Some(message) = union_layout_error(expected, &self.aliases) {
+                self.error(message, decl.name.span);
+            }
+        }
+        let has_declared = declared.is_some();
         let final_ty = match (declared, inferred) {
             (Some(expected), _) => expected,
             (None, Some(actual)) => actual,
             (None, None) => Type::Unknown,
         };
+        self.types.insert(decl.name.span, final_ty.clone());
+        if let Some(init) = &decl.init {
+            if has_declared {
+                // Keep the initializer's stored type consistent with the
+                // declared type so IR allocates the full object layout.
+                self.types.insert(init.span, final_ty.clone());
+            }
+        }
         // Top-level declarations were inserted in the collection pass, where
         // duplicates were already reported. Locals are inserted here, so a
         // duplicate in the same scope is reported now.
@@ -158,19 +172,49 @@ impl<'a> Checker<'a> {
 
     pub(super) fn check_if(&mut self, if_stmt: &IfStmt, expected_ret: Option<&Type>) {
         self.infer_expr(&if_stmt.condition);
+        let narrowing = self.narrow_binding(&if_stmt.condition);
+        if let Some(narrowing) = &narrowing {
+            self.enter_narrowed(&narrowing.name, &narrowing.then_ty);
+        }
         self.check_block(&if_stmt.then_branch, expected_ret);
+        if narrowing.is_some() {
+            self.leave_narrowed();
+        }
         match &if_stmt.else_branch {
-            Some(nava_ast::ElseBranch::If(nested)) => self.check_if(nested, expected_ret),
-            Some(nava_ast::ElseBranch::Block(block)) => self.check_block(block, expected_ret),
+            Some(nava_ast::ElseBranch::If(nested)) => {
+                if let Some(narrowing) = &narrowing {
+                    self.enter_narrowed(&narrowing.name, &narrowing.else_ty);
+                }
+                self.check_if(nested, expected_ret);
+                if narrowing.is_some() {
+                    self.leave_narrowed();
+                }
+            }
+            Some(nava_ast::ElseBranch::Block(block)) => {
+                if let Some(narrowing) = &narrowing {
+                    self.enter_narrowed(&narrowing.name, &narrowing.else_ty);
+                }
+                self.check_block(block, expected_ret);
+                if narrowing.is_some() {
+                    self.leave_narrowed();
+                }
+            }
             None => {}
         }
     }
 
     pub(super) fn check_while(&mut self, stmt: &WhileStmt, expected_ret: Option<&Type>) {
         self.infer_expr(&stmt.condition);
+        let narrowing = self.narrow_binding(&stmt.condition);
+        if let Some(narrowing) = &narrowing {
+            self.enter_narrowed(&narrowing.name, &narrowing.then_ty);
+        }
         self.loop_depth += 1;
         self.check_block(&stmt.body, expected_ret);
         self.loop_depth -= 1;
+        if narrowing.is_some() {
+            self.leave_narrowed();
+        }
     }
 
     pub(super) fn check_for(&mut self, stmt: &ForStmt, expected_ret: Option<&Type>) {

@@ -8,8 +8,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Last updated:** 2026-11-21
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
-  chaining, bigint literals, optional calls, generics and classes with
-  inheritance complete
+  chaining, bigint literals, optional calls, generics, classes with inheritance,
+  unions/intersections and full structural typing complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -28,7 +28,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -37,7 +37,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
-calls, generics and classes delivered; remaining expansion items pending).
+calls, generics, classes, unions/intersections and structural typing delivered;
+remaining expansion items pending).
 
 ---
 
@@ -201,19 +202,20 @@ limitations for every milestone.
    arguments, monomorphized lowering — done 2026-11-21
 - [x] Classes and inheritance — fields, constructors, methods, `this`,
    `super(...)`, inherited members/constructors, static dispatch — done 2026-11-21
-- [ ] Interfaces / structural typing (full)
-- [ ] Union / intersection types
+- [x] Interfaces / structural typing (full) — union/intersection-aware
+   assignability, optional properties and merged object layouts — done 2026-11-21
+- [x] Union / intersection types with null narrowing — done 2026-11-21
 - [ ] Modules, imports, exports
 - [ ] Closures, higher-order functions
 - [ ] Async/await, promises
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (227 passed, 0 failed) succeed;
+  `cargo test --workspace` (243 passed, 0 failed) succeed;
   `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
   `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
-  `examples/bigint.ts`, `examples/optional_call.ts`, `examples/generics.ts` and
-  `examples/classes.ts` run natively.
+  `examples/bigint.ts`, `examples/optional_call.ts`, `examples/generics.ts`,
+  `examples/classes.ts` and `examples/unions.ts` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -809,15 +811,32 @@ limitations for every milestone.
   codegen/native surfaces. Suite grew from 213 to 227 tests; fmt and clippy
   clean.
 
+### 2026-11-21 — Phase 6 (type-system block): unions and structural typing
+- Added `|` / `&` type syntax with union/intersection `Type` variants,
+  normalization, order-independent assignability, and merged intersection
+  layouts. Optional properties (`field?: T`) resolve to `T | null` and omitted
+  reference fields are initialized to null (ADR-0025).
+- Null narrowing in `if`, `while`, logical conditions and branch bodies, backed
+  by the existing `IsNull` instruction — the null branch of `a?.b` is now
+  observable for nullable reference types.
+- Two-axis code review of `b251e15...HEAD` (working tree) was applied: rejected
+  unions with mixed runtime representations and nullable primitives (they
+  previously produced invalid IR), fixed order-sensitive union assignability,
+  reverted an out-of-scope global pointer-equality change, extended narrowing to
+  loops and `&&`/`||`, and removed duplicated object-field resolution.
+- Added `examples/unions.ts` and tests across lexer/parser/typechecker/IR/
+  codegen/native surfaces. Suite grew from 227 to 243 tests; fmt and clippy
+  clean.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: structural typing, unions, modules, closures and exceptions
-   (ADR-0015), async/await. Loops (including `break`/`continue`), the additional
-   literals/operators, arrow functions, optional chaining, bigint, optional
-   calls, generics and classes are done.
+   `ROADMAP.md`: modules, closures and exceptions (ADR-0015), async/await.
+   Loops (including `break`/`continue`), the additional literals/operators,
+   arrow functions, optional chaining, bigint, optional calls, generics,
+   classes, unions/intersections and structural typing are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

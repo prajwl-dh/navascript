@@ -6,7 +6,7 @@ use nava_ast::{Block, FunctionDecl, Ident, ItemKind, Stmt, StmtKind, TypeField};
 use nava_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{Subst, resolve_named_type};
+use super::types::{Subst, resolve_named_type, union_layout_error};
 
 impl<'a> Checker<'a> {
     pub(super) fn collect_aliases(&mut self) {
@@ -133,6 +133,14 @@ impl<'a> Checker<'a> {
             .as_ref()
             .map(|annotation| self.resolve(&annotation.expr, &subst, decl.name.span))
             .unwrap_or(Type::Unknown);
+        for ty in &params {
+            if let Some(message) = union_layout_error(ty, &self.aliases) {
+                self.error(message, decl.name.span);
+            }
+        }
+        if let Some(message) = union_layout_error(&ret, &self.aliases) {
+            self.error(message, decl.name.span);
+        }
         self.symbols.insert(Symbol {
             name: decl.name.name.clone(),
             kind: SymbolKind::Function,

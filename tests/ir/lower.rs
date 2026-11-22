@@ -379,6 +379,52 @@ fn lowers_bigint_literals_and_integer_operations() {
 }
 
 #[test]
+fn null_comparisons_lower_to_is_null() {
+    let source =
+        "function f(x: string | null): number { if (x != null) { return x.length; } return 0; }";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let function = module.function("f").expect("f");
+    assert!(function.blocks.iter().any(|block| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, Instruction::IsNull { .. }))
+    }));
+}
+
+#[test]
+fn intersections_merge_object_fields_for_layout() {
+    let source = "interface A { a: number; } interface B { b: string; } let both: A & B = { a: 1, b: \"x\" }; console.log(both.b);";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(
+        |block| block.instructions.iter().any(|instruction| matches!(
+            instruction,
+            Instruction::ObjectNew { fields, .. } if fields.len() == 2
+        ))
+    ));
+}
+
+#[test]
+fn omitted_optional_reference_field_is_null_initialized() {
+    let source = "interface P { name: string; nickname?: string; } let p: P = { name: \"x\" };";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(
+        |block| block.instructions.iter().any(|instruction| matches!(
+            instruction,
+            Instruction::ObjectSet {
+                value: Value::Null,
+                ..
+            }
+        ))
+    ));
+}
+
+#[test]
 fn classes_emit_named_method_functions() {
     let source = "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());";
     let (module, _) = lower_source(source);

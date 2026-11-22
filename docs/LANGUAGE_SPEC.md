@@ -57,8 +57,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] `string` — NUL-terminated arena buffers (Phase 5); literals, `+`,
   `length`, indexing and equality work natively.
 - [x] `void`
-- [~] `null` — type-checks; `console.log(null)` prints `null`, but an inferred
-  `null` value cannot be lowered (its IR type is opaque). Full semantics TBD.
+- [~] `null` — type-checks and prints as `null`; usable as the null member of a
+  nullable reference union (`string | null`), where narrowing and `?.` observe
+  it. A bare inferred `null` still cannot be lowered (its IR type is opaque).
 - [ ] `undefined` — not yet implemented.
 
 ### Composites (Phase 2 type checking; native layout in Phase 5)
@@ -82,9 +83,15 @@ and the intent to grow toward broad compatibility. Status values mirror
   use a stable base-first layout and inherited constructors/methods are
   available (ADR-0024). Dispatch is static (no virtual methods), and field
   initialisers are not supported — assign fields in a constructor.
-- [ ] Structural typing
-- [ ] Union / intersection types
-- [ ] Optional properties and parameters
+- [x] Structural typing (Phase 6) — union/intersection-aware assignability,
+   optional properties, and merged layouts for interfaces and class instances.
+- [x] Union / intersection types (Phase 6) — `A | B` and `A & B` with nullable
+   reference unions (`T | null`), control-flow narrowing on null tests in
+   `if`/`while`/`&&`/`||`, and merged object layouts (ADR-0025). Mixed
+   representations such as `number | string` are diagnosed.
+- [x] Optional properties (`field?: T`) (Phase 6) — may be omitted from object
+   literals; omitted reference fields are initialized to null and scalar ones
+   to zero. Optional *parameters* remain unsupported.
 - [ ] Overloads
 - [ ] `any` / `unknown` (restricted semantics; document divergence)
 - [ ] Decorators (deferred)

@@ -68,6 +68,8 @@ pub enum TokenKind {
     Ge,
     AndAnd,
     OrOr,
+    Amp,
+    Pipe,
     Unknown,
     Eof,
 }

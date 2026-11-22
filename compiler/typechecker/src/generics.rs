@@ -60,6 +60,18 @@ impl Checker<'_> {
                 let local: Subst = params.into_iter().zip(resolved).collect();
                 substitute(&substitute(&body, subst), &local)
             }
+            TypeExpr::Union(members) => Type::Union(
+                members
+                    .iter()
+                    .map(|member| self.resolve(member, subst, span))
+                    .collect(),
+            ),
+            TypeExpr::Intersection(members) => Type::Intersection(
+                members
+                    .iter()
+                    .map(|member| self.resolve(member, subst, span))
+                    .collect(),
+            ),
             TypeExpr::Array(inner) => Type::Array(Box::new(self.resolve(inner, subst, span))),
             TypeExpr::Object(fields) => {
                 let mut resolved = std::collections::BTreeMap::new();

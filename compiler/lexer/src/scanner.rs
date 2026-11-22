@@ -188,6 +188,8 @@ impl<'a> Scanner<'a> {
             Some('=') => Some(TokenKind::Eq),
             Some('!') => Some(TokenKind::Bang),
             Some('?') => Some(TokenKind::Question),
+            Some('&') => Some(TokenKind::Amp),
+            Some('|') => Some(TokenKind::Pipe),
             Some('<') => Some(TokenKind::Lt),
             Some('>') => Some(TokenKind::Gt),
             _ => None,

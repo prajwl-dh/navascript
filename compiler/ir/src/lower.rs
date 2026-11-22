@@ -243,6 +243,17 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
             "void" => IrType::Void,
             _ => IrType::Opaque,
         },
+        TypeExpr::Union(members) => members
+            .iter()
+            .filter(|member| !matches!(member, TypeExpr::Named(name) if name == "null"))
+            .find_map(|member| {
+                let ty = ir_type_expr(member);
+                (ty != IrType::Opaque).then_some(ty)
+            })
+            .unwrap_or(IrType::Opaque),
+        TypeExpr::Intersection(members) => {
+            members.first().map(ir_type_expr).unwrap_or(IrType::Opaque)
+        }
         TypeExpr::Generic { .. }
         | TypeExpr::Array(_)
         | TypeExpr::Object(_)
@@ -264,6 +275,42 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
                 .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty, subst)))
                 .collect(),
         ),
+        Type::Union(members) => members
+            .iter()
+            .filter(|member| !matches!(member, Type::Null))
+            .find_map(|member| {
+                let ty = ir_type_from_symbol(member, subst);
+                (ty != IrType::Opaque).then_some(ty)
+            })
+            .unwrap_or(IrType::Opaque),
+        Type::Intersection(members) => {
+            let mut fields: Vec<(String, IrType)> = Vec::new();
+            for member in members {
+                match ir_type_from_symbol(member, subst) {
+                    IrType::Object(mut own) => {
+                        for (name, ty) in own.drain(..) {
+                            if let Some(existing) =
+                                fields.iter_mut().find(|(field, _)| field == &name)
+                            {
+                                existing.1 = ty;
+                            } else {
+                                fields.push((name, ty));
+                            }
+                        }
+                    }
+                    other if other != IrType::Opaque => return other,
+                    _ => {}
+                }
+            }
+            if fields.is_empty() {
+                IrType::Opaque
+            } else {
+                // Object literals lay fields out in sorted order; intersections
+                // must use the same order so member indices agree.
+                fields.sort_by(|a, b| a.0.cmp(&b.0));
+                IrType::Object(fields)
+            }
+        }
         Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner, subst))),
         Type::Object(fields) => IrType::Object(
             fields

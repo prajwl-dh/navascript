@@ -33,7 +33,34 @@ impl FunctionBuilder {
                 let lhs = self.lower_expr(left, lowerer);
                 let rhs = self.lower_expr(right, lowerer);
                 let result = self.fresh_value();
-                if *op == AstBinaryOp::Add {
+                let null_comparison = matches!(
+                    op,
+                    AstBinaryOp::Eq
+                        | AstBinaryOp::StrictEq
+                        | AstBinaryOp::NotEq
+                        | AstBinaryOp::StrictNotEq
+                ) && (matches!(lhs, Value::Null)
+                    || matches!(rhs, Value::Null));
+                if null_comparison {
+                    let target = if matches!(lhs, Value::Null) {
+                        rhs.clone()
+                    } else {
+                        lhs.clone()
+                    };
+                    self.emit(Instruction::IsNull {
+                        result,
+                        value: target,
+                    });
+                    if matches!(op, AstBinaryOp::NotEq | AstBinaryOp::StrictNotEq) {
+                        let negated = self.fresh_value();
+                        self.emit(Instruction::Unary {
+                            result: negated,
+                            op: UnaryOp::Not,
+                            operand: Value::Local(result),
+                        });
+                        return Value::Local(negated);
+                    }
+                } else if *op == AstBinaryOp::Add {
                     self.emit_add(lhs, rhs, lhs_ty, rhs_ty, result);
                 } else if lhs_ty == IrType::BigInt {
                     self.emit(Instruction::BigIntBinary {
@@ -290,6 +317,25 @@ impl FunctionBuilder {
                     } else {
                         lowerer.error(format!("unknown field '{}'", field.name), field.span);
                     }
+                }
+                // Omitted optional properties need an explicit neutral value;
+                // otherwise the arena leaves an arbitrary byte pattern.
+                for (index, (name, field_ty)) in field_types.iter().enumerate() {
+                    if fields.iter().any(|field| &field.name == name) {
+                        continue;
+                    }
+                    let initial = match field_ty {
+                        IrType::Number => Value::Number(0.0),
+                        IrType::BigInt => Value::BigInt(0),
+                        IrType::Boolean => Value::Bool(false),
+                        _ => Value::Null,
+                    };
+                    self.emit(Instruction::ObjectSet {
+                        object: Value::Local(object),
+                        field_index: index as u32,
+                        value: initial,
+                        field_ty: field_ty.clone(),
+                    });
                 }
                 Value::Local(object)
             }

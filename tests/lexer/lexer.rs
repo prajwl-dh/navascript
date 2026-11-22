@@ -231,6 +231,21 @@ fn does_not_treat_a_bigint_suffix_as_part_of_a_longer_identifier() {
 }
 
 #[test]
+fn lexes_union_and_intersection_type_operators() {
+    assert_eq!(
+        kinds("string | null & X"),
+        vec![
+            TokenKind::Ident,
+            TokenKind::Pipe,
+            TokenKind::Null,
+            TokenKind::Amp,
+            TokenKind::Ident,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn lexes_class_keywords() {
     assert_eq!(
         kinds("class A extends B { new this super }"),

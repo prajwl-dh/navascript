@@ -6,8 +6,9 @@ self-hosting.
 
 **Status:** Phase 6 (Language expansion) in progress — loops (with
 `break`/`continue`), the additional literals/operators, arrow functions,
-optional chaining, bigint literals, optional calls, generics and classes with
-inheritance are complete; the remaining expansion items are pending.
+optional chaining, bigint literals, optional calls, generics, classes with
+inheritance, unions/intersections and full structural typing are complete; the
+remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -60,7 +61,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 227 tests through Phase 6 (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes)
+cargo test --workspace     # 243 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -101,9 +102,11 @@ fibonacci printing `55` without Node.js — is verified by
 - Classes and inheritance (`examples/classes.ts`) — fields, constructors,
    methods, `this`, `super(...)`, `extends`, inherited members and constructors;
    methods lower to named functions with static dispatch (ADR-0024).
+- Unions, intersections, narrowing and optional properties
+   (`examples/unions.ts`) — nullable reference unions with control-flow
+   narrowing, merged intersection layouts, optional object fields (ADR-0025).
 
-Still pending in Phase 6: structural typing (full), unions, modules,
-first-class function values/closures,
+Still pending in Phase 6: modules, first-class function values/closures,
 exceptions (deferred from Phase 5 by ADR-0015) and async/await.
 
 ## Documentation

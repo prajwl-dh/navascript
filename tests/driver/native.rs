@@ -248,6 +248,19 @@ fn bigints_run_natively() {
 }
 
 #[test]
+fn unions_and_intersections_run_natively() {
+    let Some(binary) = compile("unions.ts", "unions", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run unions program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "4\nnull\nx\n2\ntrue\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn classes_and_inheritance_run_natively() {
     let Some(binary) = compile("classes.ts", "classes", &[]) else {
         return;

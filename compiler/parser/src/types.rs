@@ -16,9 +16,34 @@ impl<'a> Parser<'a> {
         })
     }
 
+    /// Union types bind loosest; intersections bind tighter.
     pub(super) fn parse_type_expr(&mut self) -> Option<TypeExpr> {
+        let mut members = vec![self.parse_intersection_type()?];
+        while self.eat(TokenKind::Pipe) {
+            members.push(self.parse_intersection_type()?);
+        }
+        if members.len() == 1 {
+            Some(members.pop().unwrap())
+        } else {
+            Some(TypeExpr::Union(members))
+        }
+    }
+
+    fn parse_intersection_type(&mut self) -> Option<TypeExpr> {
+        let mut members = vec![self.parse_postfix_type()?];
+        while self.eat(TokenKind::Amp) {
+            members.push(self.parse_postfix_type()?);
+        }
+        if members.len() == 1 {
+            Some(members.pop().unwrap())
+        } else {
+            Some(TypeExpr::Intersection(members))
+        }
+    }
+
+    fn parse_postfix_type(&mut self) -> Option<TypeExpr> {
         let mut base = match self.kind() {
-            TokenKind::Ident | TokenKind::Void => {
+            TokenKind::Ident | TokenKind::Void | TokenKind::Null => {
                 let token = self.current().clone();
                 self.bump();
                 if self.kind() == TokenKind::Lt {
@@ -137,11 +162,19 @@ impl<'a> Parser<'a> {
                 }
                 continue;
             };
+            let optional = self.eat(TokenKind::Question);
             let ty = if self.kind() == TokenKind::LParen {
                 self.parse_method_type()
             } else {
                 self.expect(TokenKind::Colon, "expected ':' after property name")
                     .and_then(|_| self.parse_type_expr())
+                    .map(|ty| {
+                        if optional {
+                            TypeExpr::Union(vec![ty, TypeExpr::Named("null".to_owned())])
+                        } else {
+                            ty
+                        }
+                    })
             };
             if !self.eat(TokenKind::Semicolon)
                 && !self.eat(TokenKind::Comma)
@@ -154,6 +187,7 @@ impl<'a> Parser<'a> {
                 fields.push(TypeField {
                     name: name.name,
                     ty,
+                    optional,
                     span: Span::new(self.file, start as usize, end),
                 });
             }

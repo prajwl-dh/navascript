@@ -254,8 +254,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Classes and inheritance — fields, constructors, methods, `this`/`super(...)`
   and inherited members, with static method dispatch. **Delivered 2026-11-21**
   (status in `PROGRESS.md`; ADR-0024).
-- Interfaces and structural typing.
-- Union and intersection types.
+- Interfaces and structural typing — union-aware assignability, optional
+  properties, merged object layouts. **Delivered 2026-11-21** (ADR-0025).
+- Union and intersection types — nullable reference unions with control-flow
+  narrowing. **Delivered 2026-11-21** (ADR-0025).
 - Modules, imports, exports, module resolution.
 - Closures and higher-order functions (with runtime from Phase 5).
 - Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
@@ -284,8 +286,13 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   beyond argument unification, or higher-kinded types. Classes use static
   method dispatch — there is no virtual dispatch, so a base-typed reference
   calls the base implementation. Class field initialisers are not supported;
-  assign fields in a constructor. Function values are not implemented;
-  iteration is limited to arrays/strings.
+  assign fields in a constructor.
+  Unions must share one runtime representation: `number | string` and nullable
+  primitives (`number | null`) are diagnosed, not silently miscompiled; only
+  nullable reference types are usable today. Narrowing covers null tests in
+  `if`, `while`, `&&`/`||` and branch bodies, not ternary or post-assignment
+  flow. Function values are not implemented; iteration is limited to
+  arrays/strings.
 
 ---
 

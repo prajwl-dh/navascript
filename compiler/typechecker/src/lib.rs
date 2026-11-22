@@ -13,6 +13,7 @@ mod classes;
 mod declarations;
 mod expressions;
 mod generics;
+mod narrowing;
 mod optional;
 mod statements;
 mod types;

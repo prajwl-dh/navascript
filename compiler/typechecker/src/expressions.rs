@@ -5,7 +5,7 @@ use nava_symbol::Type;
 use std::collections::BTreeMap;
 
 use super::checker::Checker;
-use super::types::{is_assignable, resolve_named_type};
+use super::types::{is_assignable, object_field, resolve_named_type};
 
 impl<'a> Checker<'a> {
     pub(super) fn infer_expr(&mut self, expr: &Expr) -> Type {
@@ -40,7 +40,21 @@ impl<'a> Checker<'a> {
             },
             ExprKind::Binary { op, left, right } => {
                 let lhs = self.infer_expr(left);
+                let narrowing = self.narrow_binding(left);
+                if let Some(narrowing) = &narrowing {
+                    let ty = if *op == BinaryOp::And {
+                        &narrowing.then_ty
+                    } else {
+                        &narrowing.else_ty
+                    };
+                    if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                        self.enter_narrowed(&narrowing.name, ty);
+                    }
+                }
                 let rhs = self.infer_expr(right);
+                if narrowing.is_some() && matches!(op, BinaryOp::And | BinaryOp::Or) {
+                    self.leave_narrowed();
+                }
                 self.infer_binary(*op, &lhs, &rhs, expr.span)
             }
             ExprKind::Unary { op, operand } => {
@@ -190,24 +204,14 @@ impl<'a> Checker<'a> {
                     return;
                 }
                 let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
+                if let Some(expected) = object_field(&object_ty, property, &self.aliases) {
+                    self.check_assignment(&expected, actual, target.span);
+                    return;
+                }
                 match object_ty {
-                    Type::ClassInstance { fields, .. } => {
-                        match fields.iter().find(|(name, _)| name == property) {
-                            Some((_, expected)) => {
-                                self.check_assignment(expected, actual, target.span)
-                            }
-                            None => self.error(
-                                format!("property '{property}' does not exist"),
-                                target.span,
-                            ),
-                        }
+                    Type::Object(_) | Type::ClassInstance { .. } | Type::Intersection(_) => {
+                        self.error(format!("property '{property}' does not exist"), target.span)
                     }
-                    Type::Object(fields) => match fields.get(property) {
-                        Some(expected) => self.check_assignment(expected, actual, target.span),
-                        None => {
-                            self.error(format!("property '{property}' does not exist"), target.span)
-                        }
-                    },
                     Type::Error | Type::Unknown => {}
                     other => self.error(
                         format!("assignment requires an object, found '{}'", other.display()),

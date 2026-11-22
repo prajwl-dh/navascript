@@ -38,6 +38,18 @@ fn resolve(expr: &TypeExpr, aliases: &AliasTable, depth: u8) -> Type {
         // `Checker::resolve` handles them. This free function is kept for the
         // non-generic public API and never sees generic syntax internally.
         TypeExpr::Generic { .. } => Type::Error,
+        TypeExpr::Union(members) => Type::Union(
+            members
+                .iter()
+                .map(|member| resolve(member, aliases, depth + 1))
+                .collect(),
+        ),
+        TypeExpr::Intersection(members) => Type::Intersection(
+            members
+                .iter()
+                .map(|member| resolve(member, aliases, depth + 1))
+                .collect(),
+        ),
         TypeExpr::Array(inner) => Type::Array(Box::new(resolve(inner, aliases, depth + 1))),
         TypeExpr::Object(fields) => {
             let mut resolved = BTreeMap::new();
@@ -76,6 +88,23 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
         return true;
     }
     match (target, actual) {
+        (Type::Union(targets), Type::Union(actuals)) => actuals.iter().all(|actual_member| {
+            targets
+                .iter()
+                .any(|target_member| is_assignable(target_member, actual_member, aliases))
+        }),
+        (Type::Union(targets), _) => targets
+            .iter()
+            .any(|member| is_assignable(member, actual, aliases)),
+        (_, Type::Union(actuals)) => actuals
+            .iter()
+            .all(|member| is_assignable(target, member, aliases)),
+        (Type::Intersection(targets), _) => targets
+            .iter()
+            .all(|member| is_assignable(member, actual, aliases)),
+        (_, Type::Intersection(actuals)) => actuals
+            .iter()
+            .any(|member| is_assignable(target, member, aliases)),
         (Type::ClassInstance { fields, .. }, other)
         | (other, Type::ClassInstance { fields, .. }) => {
             let other = resolve_named_type(other, aliases);
@@ -95,9 +124,13 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
         (Type::Array(a), Type::Array(b)) => is_assignable(a, b, aliases),
         (Type::Object(target_fields), Type::Object(actual_fields)) => {
             target_fields.iter().all(|(name, expected)| {
-                actual_fields
-                    .get(name)
-                    .is_some_and(|found| is_assignable(expected, found, aliases))
+                match actual_fields.get(name) {
+                    Some(found) => is_assignable(expected, found, aliases),
+                    // An optional property resolves to `T | null`; a missing
+                    // field is assignable to it.
+                    None => matches!(expected, Type::Union(members)
+                        if members.iter().any(|member| matches!(member, Type::Null))),
+                }
             })
         }
         (
@@ -125,7 +158,44 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
 /// A cycle resolves to `Type::Error` rather than looping forever.
 pub fn resolve_named_type(ty: &Type, aliases: &AliasTable) -> Type {
     let mut visiting = Vec::new();
-    resolve_chain(ty, aliases, &mut visiting)
+    normalize(&resolve_chain(ty, aliases, &mut visiting))
+}
+
+/// Flatten nested unions/intersections, drop duplicates, and collapse a single
+/// member. `Unknown`/`Error` absorb a union so one bad type does not cascade.
+fn normalize(ty: &Type) -> Type {
+    fn flatten(members: &[Type], intersection: bool) -> Vec<Type> {
+        let mut out = Vec::new();
+        for member in members {
+            match normalize(member) {
+                Type::Union(inner) if !intersection => out.extend(inner),
+                Type::Intersection(inner) if intersection => out.extend(inner),
+                other => out.push(other),
+            }
+        }
+        out.dedup();
+        out
+    }
+    match ty {
+        Type::Union(members) => {
+            let members = flatten(members, false);
+            if members.len() == 1 {
+                members.into_iter().next().unwrap()
+            } else {
+                Type::Union(members)
+            }
+        }
+        Type::Intersection(members) => {
+            let members = flatten(members, true);
+            if members.len() == 1 {
+                members.into_iter().next().unwrap()
+            } else {
+                Type::Intersection(members)
+            }
+        }
+        Type::Array(inner) => Type::Array(Box::new(normalize(inner))),
+        _ => ty.clone(),
+    }
 }
 
 fn resolve_chain(ty: &Type, aliases: &AliasTable, visiting: &mut Vec<String>) -> Type {
@@ -142,6 +212,18 @@ fn resolve_chain(ty: &Type, aliases: &AliasTable, visiting: &mut Vec<String>) ->
             visiting.pop();
             resolved
         }
+        Type::Union(members) => Type::Union(
+            members
+                .iter()
+                .map(|member| resolve_chain(member, aliases, visiting))
+                .collect(),
+        ),
+        Type::Intersection(members) => Type::Intersection(
+            members
+                .iter()
+                .map(|member| resolve_chain(member, aliases, visiting))
+                .collect(),
+        ),
         Type::Array(inner) => Type::Array(Box::new(resolve_chain(inner, aliases, visiting))),
         Type::Object(fields) => Type::Object(
             fields
@@ -158,6 +240,53 @@ fn resolve_chain(ty: &Type, aliases: &AliasTable, visiting: &mut Vec<String>) ->
         },
         _ => ty.clone(),
     }
+}
+
+/// Look up a field on object-like types, including intersections and class
+/// instances, so every consumer shares one resolution rule.
+pub fn object_field(ty: &Type, property: &str, aliases: &AliasTable) -> Option<Type> {
+    match resolve_named_type(ty, aliases) {
+        Type::Object(fields) => fields.get(property).cloned(),
+        Type::ClassInstance { fields, .. } => fields
+            .iter()
+            .find(|(name, _)| name == property)
+            .map(|(_, ty)| ty.clone()),
+        Type::Intersection(members) => members
+            .iter()
+            .find_map(|member| object_field(member, property, aliases)),
+        _ => None,
+    }
+}
+
+/// Reject unions whose members cannot share one native representation. The
+/// backend has tagged-free unboxed values, so a `number | string` or a nullable
+/// `number` cannot be stored safely (README: never silently miscompile).
+pub fn union_layout_error(ty: &Type, aliases: &AliasTable) -> Option<String> {
+    let Type::Union(members) = resolve_named_type(ty, aliases) else {
+        return None;
+    };
+    let has_null = members.iter().any(|member| matches!(member, Type::Null));
+    let mut categories = std::collections::BTreeSet::new();
+    for member in &members {
+        let category = match member {
+            Type::Null => continue,
+            Type::Number => "number",
+            Type::BigInt => "bigint",
+            Type::Boolean => "boolean",
+            Type::String | Type::Array(_) | Type::Object(_) | Type::ClassInstance { .. } => {
+                "reference"
+            }
+            _ => "other",
+        };
+        categories.insert(category);
+    }
+    if categories.len() > 1 {
+        return Some("union members must share a runtime representation".to_owned());
+    }
+    if has_null && !categories.is_empty() && !categories.contains("reference") {
+        return Some("nullable unions require a reference type".to_owned());
+    }
+    None
 }
 
 /// Replace generic type parameters with their instantiated types, recursively.

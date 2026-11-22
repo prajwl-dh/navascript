@@ -19,6 +19,8 @@ pub enum Type {
     Void,
     Null,
     Array(Box<Type>),
+    Union(Vec<Type>),
+    Intersection(Vec<Type>),
     Object(BTreeMap<String, Type>),
     /// A class instance. `fields` is in base-first declaration order so every
     /// method in the hierarchy agrees on slot indices (ADR-0024).
@@ -50,6 +52,16 @@ impl Type {
             Type::Void => "void".to_owned(),
             Type::Null => "null".to_owned(),
             Type::Array(inner) => format!("{}[]", inner.display()),
+            Type::Union(members) => members
+                .iter()
+                .map(Type::display)
+                .collect::<Vec<_>>()
+                .join(" | "),
+            Type::Intersection(members) => members
+                .iter()
+                .map(Type::display)
+                .collect::<Vec<_>>()
+                .join(" & "),
             Type::Object(fields) => {
                 let body = fields
                     .iter()

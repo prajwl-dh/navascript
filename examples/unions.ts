@@ -1,0 +1,34 @@
+// Unions, intersections, narrowing and optional properties (Phase 6).
+interface Named {
+    name: string;
+    nickname?: string;
+}
+
+interface Aged {
+    age: number;
+}
+
+function run(): void {
+    let maybe: string | null = "nava";
+    if (maybe != null) {
+        console.log(maybe.length);
+    } else {
+        console.log("missing");
+    }
+
+    let absent: string | null = null;
+    if (absent == null) {
+        console.log("null");
+    }
+
+    // Intersections merge the fields of both members.
+    let both: Named & Aged = { name: "x", age: 2, nickname: "y" };
+    console.log(both.name);
+    console.log(both.age);
+
+    // An omitted optional reference property is initialized to null.
+    let plain: Named = { name: "z" };
+    console.log(plain.nickname == null);
+}
+
+run();

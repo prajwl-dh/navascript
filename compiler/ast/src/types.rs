@@ -23,6 +23,10 @@ pub enum TypeExpr {
         args: Vec<TypeExpr>,
     },
     Array(Box<TypeExpr>),
+    /// `A | B` — a value may be any one of the members.
+    Union(Vec<TypeExpr>),
+    /// `A & B` — a value must satisfy every member.
+    Intersection(Vec<TypeExpr>),
     Object(Vec<TypeField>),
     Function {
         params: Vec<TypeExpr>,
@@ -34,6 +38,8 @@ pub enum TypeExpr {
 pub struct TypeField {
     pub name: String,
     pub ty: TypeExpr,
+    /// `field?: T` — the field may be absent from an object literal.
+    pub optional: bool,
     pub span: Span,
 }
 

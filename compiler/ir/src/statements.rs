@@ -78,7 +78,15 @@ impl FunctionBuilder {
                 return;
             }
         }
-        let mut ty = ir_type(&decl.ty);
+        // Prefer the checker's final declared type: aliases and optional
+        // properties may give the variable a wider layout than its initializer.
+        let mut ty = lowerer
+            .typed
+            .types
+            .get(&decl.name.span)
+            .map(|ty| ir_type_from_symbol(ty, &lowerer.current_subst))
+            .filter(|ty| *ty != IrType::Opaque)
+            .unwrap_or_else(|| ir_type(&decl.ty));
         if ty == IrType::Opaque {
             if let Some(init) = &decl.init {
                 ty = lowerer

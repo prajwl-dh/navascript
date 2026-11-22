@@ -370,8 +370,9 @@ a new number and references the old one. Keep entries short and factual.
   index forms cannot be confused.
 - **Consequences:** Existing `==`/`!=` semantics are untouched. Since no
   nullable object/array value can currently be constructed, the null branch is
-  unobservable and results are typed `T` until union types land (ADR deferred to
-  a later Phase 6 increment). Optional calls `a?.()` were added in ADR-0022: the
+  unobservable at the time, and results were typed `T` until unions landed in
+  ADR-0025 (which made the null branch observable for nullable references).
+  Optional calls `a?.()` were added in ADR-0022: the
   AST records the `optional` flag, but lowering treats them as direct calls
   because a statically named function cannot be null — no null branch is
   emitted. This is a documented limitation, not a silent miscompile; callability
@@ -494,6 +495,35 @@ a new number and references the old one. Keep entries short and factual.
   base-typed reference calls the base implementation. Field initialisers are
   unsupported; fields are assigned in constructors. Full nominal subtyping and
   virtual dispatch remain out of scope and are recorded in `COMPATIBILITY.md`.
+
+---
+
+## ADR-0025 — Unions, nullable references and narrowing
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** ADR-0020 deferred a unions ADR and left optional-chaining results
+  typed `T` because no nullable value could be represented. Phase 6 now adds
+  `A | B` / `A & B`, but Nava values are unboxed and untagged: `number | string`
+  has no single native representation, and storing `null` in a numeric slot
+  would produce invalid LLVM IR.
+- **Decision:** Union and intersection types are normalized and resolved in the
+  checker. Assignability for unions is order-independent (every actual member
+  must match some target member). The checker rejects unions whose members do
+  not share a runtime representation, and rejects nullable primitives; only
+  nullable reference types (`T | null`) are lowered. For those, the IR uses the
+  reference member's pointer representation and the existing `IsNull`
+  instruction, so the null branch of `a?.b` is now observable. Optional object
+  properties resolve to `T | null` and may be omitted; omitted fields are
+  initialized to null (references) or zero (scalars). Intersections merge their
+  object fields in sorted order so member indices match object literals.
+  Narrowing refines symbol types for null tests in `if`, `while`, `&&` and
+  `||`; it lives in a private `typechecker/narrowing.rs`.
+- **Consequences:** Tagged unions, discriminated narrowing, ternary/post-
+  assignment flow analysis and optional parameters remain out of scope and are
+  recorded in `COMPATIBILITY.md`. Mixed-representation unions are diagnosed
+  rather than silently miscompiled, satisfying the "never silently miscompile"
+  working rule.
 
 ---
 

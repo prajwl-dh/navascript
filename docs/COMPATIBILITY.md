@@ -13,8 +13,8 @@ reporting; Phase 6 has delivered loops with `break`/`continue`, the additional
 literals/operators (compound assignment, `++`/`--`, `**`, ternary,
 hex/binary/octal, Unicode identifiers and `\x`/`\u` escapes), arrow functions
 as variable initialisers, optional member/index chaining, bigint literals and
-optional calls, generics and classes. Unions, modules, closures and exceptions
-are still pending (ADR-0015 for closures and exceptions).
+optional calls, generics, classes, unions/intersections and full structural
+typing. Modules, closures and exceptions are still pending (ADR-0015).
 
 ## 1. Syntax
 
@@ -33,16 +33,17 @@ are still pending (ADR-0015 for closures and exceptions).
 | Bigint literals (`123n`) | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; radix/separator forms decode to a signed 64-bit value; out-of-range and fractional suffixes are diagnosed; i64 arithmetic/comparisons and `console.log` work natively |
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
-| Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; null branch not observable yet (no nullable values); result typed `T` until unions land |
+| Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; the null branch is observable for `T | null` receivers (ADR-0025), but scalar results are still diagnosed and `undefined` does not exist |
 | Optional call (`a?.()`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; parsed, type-checked for callability/arity and lowered as a direct call; no null branch because Nava has no nullable callable values |
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; variable initialisers with annotated parameters, no captures or first-class function values |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
 | Classes | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; fields, constructors, methods, `this`, `super(...)`, `extends`, inherited members/constructors; static dispatch only, no field initialisers (ADR-0024) |
 | Generics | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; generic functions and interfaces with inferred/explicit type arguments, monomorphized lowering; generic type aliases and constraints out of scope |
-| Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing Phase 6 |
+| Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing in Phase 6 with optional properties and intersection merging |
+| Optional properties (`field?: T`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolve to `T | null`, may be omitted from object literals; omitted reference fields are null-initialized |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
-| Unions / intersections | [ ] | — | Phase 6 |
+| Unions / intersections | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; nullable reference unions, intersection field merging, `== null`/`!= null` narrowing; mixed-representation unions are diagnosed (ADR-0025) |
 | Modules (`import`/`export`) | [ ] | — | Phase 6/7 |
 | Async/await, promises | [ ] | — | Phase 6 |
 | Decorators | [-] | — | Deferred; not in initial scope |
@@ -61,7 +62,7 @@ are still pending (ADR-0015 for closures and exceptions).
 | Function signatures | [x] | `tests/typechecker/` | `(a: T) => R`, arity and argument checks |
 | Type inference | [x] | `tests/typechecker/` | variables and return types |
 | Assignability checks | [x] | `tests/typechecker/` | assignments, arguments, returns |
-| Structural typing | [~] | `tests/typechecker/` | basic object field checking; full structural typing Phase 6 |
+| Structural typing | [x] | `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; union/intersection-aware assignability, optional properties, merged intersection layouts, class instances |
 | Generics | [x] | `tests/typechecker/`, `tests/ir/` | Phase 6; generic parameters unify with argument types; annotated generic references (`Box<number>`) resolve to concrete object types; bad references are diagnosed |
 | `any` / `unknown` | [ ] | — | Restricted semantics TBD |
 | Conditional / mapped types | [-] | — | Long-term |
@@ -114,6 +115,9 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
+| Mixed-representation unions | `number | string` and nullable primitives are diagnosed because values are unboxed and untagged | Phase 6 (diagnosed, not miscompiled) |
+| Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | Phase 6 (pending) |
+| Optional non-reference field defaults | omitted optional numeric/bigint/boolean fields are zero-initialized rather than `undefined` | Phase 6 (documented) |
 | Virtual method dispatch | class methods are mangled direct calls; a base-typed reference calls the base implementation | Phase 6 (pending) |
 | Class field initialisers | fields are declared without initialisers; assign them in a constructor | Phase 6 (pending) |
 | Closures and first-class functions | no function values or captured environments in IR | Phase 6 |

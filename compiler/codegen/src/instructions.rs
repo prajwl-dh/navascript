@@ -154,6 +154,9 @@ pub(super) fn emit_instruction(
                             format!("fcmp one double {}, 0.0", llvm_value(value))
                         }
                         IrType::BigInt => format!("icmp ne i64 {}, 0", llvm_value(value)),
+                        IrType::String | IrType::Array(_) | IrType::Object(_) => {
+                            format!("icmp ne ptr {}, null", llvm_value(value))
+                        }
                         _ => {
                             return Err(CodegenError {
                                 message: format!(

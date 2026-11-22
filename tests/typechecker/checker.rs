@@ -369,6 +369,84 @@ fn checks_optional_calls_like_direct_calls() {
 }
 
 #[test]
+fn accepts_union_and_intersection_assignments() {
+    let (output, _) = check_source(
+        "interface A { a: number; } interface B { b: string; } let u: string | null = \"x\"; let v: string | null = null; let i: A & B = { a: 1, b: \"x\" };",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn accepts_union_assignment_in_either_member_order() {
+    let (output, _) = check_source(
+        "let a: string | null = \"x\"; let b: null | string = a; let c: string | null = b;",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_unions_with_mixed_runtime_representations() {
+    let (output, _) = check_source("let u: number | string = 1;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("union members must share a runtime representation")),
+        "{:?}",
+        messages(&output)
+    );
+    let (output, _) = check_source("let n: number | null = 1;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("nullable unions require a reference type"))
+    );
+}
+
+#[test]
+fn rejects_values_outside_a_union() {
+    let (output, _) = check_source("let u: number | string = true;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn narrows_nullable_unions_in_conditions() {
+    let (output, _) = check_source(
+        "function f(x: string | null): number { if (x != null) { return x.length; } return 0; }",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn narrows_in_logical_conditions_and_loops() {
+    let (output, _) = check_source(
+        "function f(x: string | null): void { if (x != null && x.length > 0) { console.log(x.length); } while (x != null) { console.log(x.length); break; } }",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn accepts_missing_optional_properties() {
+    let (output, _) = check_source(
+        "interface P { name: string; nickname?: string; } let a: P = { name: \"x\" }; let b: P = { name: \"y\", nickname: \"z\" };",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn resolves_intersection_members() {
+    let (output, _) = check_source(
+        "interface A { a: number; } interface B { b: string; } let both: A & B = { a: 1, b: \"x\" }; console.log(both.a); console.log(both.b);",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
 fn checks_classes_fields_and_methods() {
     let (output, _) = check_source(
         "class Point { x: number; constructor(x: number) { this.x = x; } sum(): number { return this.x; } } let p = new Point(2); console.log(p.sum());",

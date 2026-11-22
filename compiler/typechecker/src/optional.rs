@@ -4,7 +4,7 @@ use nava_ast::{Expr, Span};
 use nava_symbol::Type;
 
 use super::checker::Checker;
-use super::types::resolve_named_type;
+use super::types::{object_field, resolve_named_type};
 
 impl Checker<'_> {
     pub(super) fn infer_index(
@@ -43,30 +43,26 @@ impl Checker<'_> {
         span: Span,
     ) -> Type {
         let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
-        let ty = match object_ty {
-            Type::ClassInstance { fields, .. } => fields
-                .iter()
-                .find(|(name, _)| name == property)
-                .map(|(_, ty)| ty.clone())
-                .unwrap_or_else(|| {
+        let ty = if let Some(found) = object_field(&object_ty, property, &self.aliases) {
+            found
+        } else {
+            match object_ty {
+                Type::Object(_) | Type::ClassInstance { .. } | Type::Intersection(_) => {
                     self.error(format!("property '{property}' does not exist"), span);
                     Type::Error
-                }),
-            Type::Object(fields) => fields.get(property).cloned().unwrap_or_else(|| {
-                self.error(format!("property '{property}' does not exist"), span);
-                Type::Error
-            }),
-            Type::String | Type::Array(_) if property == "length" => Type::Number,
-            Type::Error | Type::Unknown => Type::Unknown,
-            other => {
-                self.error(
-                    format!(
-                        "property access requires an object, found '{}'",
-                        other.display()
-                    ),
-                    span,
-                );
-                Type::Error
+                }
+                Type::String | Type::Array(_) if property == "length" => Type::Number,
+                Type::Error | Type::Unknown => Type::Unknown,
+                other => {
+                    self.error(
+                        format!(
+                            "property access requires an object, found '{}'",
+                            other.display()
+                        ),
+                        span,
+                    );
+                    Type::Error
+                }
             }
         };
         self.validate_optional_result(&ty, optional, span);

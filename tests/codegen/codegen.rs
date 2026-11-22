@@ -137,6 +137,15 @@ fn emits_bigint_collection_slots() {
 }
 
 #[test]
+fn emits_pointer_null_comparisons_for_nullable_refs() {
+    let ir = generate_source(
+        "function f(x: string | null): number { if (x != null) { return x.length; } return 0; }",
+    );
+    assert!(ir.contains("icmp eq ptr"), "{ir}");
+    assert!(ir.contains("xor i1"), "{ir}");
+}
+
+#[test]
 fn emits_class_methods_as_named_functions() {
     let ir = generate_source(
         "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());",

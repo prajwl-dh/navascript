@@ -6,7 +6,7 @@ use nava_ast::{ClassDecl, ClassMember, ItemKind};
 use nava_symbol::Type;
 
 use super::checker::Checker;
-use super::types::{Subst, resolve_named_type};
+use super::types::{Subst, resolve_named_type, union_layout_error};
 
 /// Checked shape of a class, including inherited members.
 #[derive(Debug, Clone, PartialEq)]
@@ -110,6 +110,9 @@ impl Checker<'_> {
                         .as_ref()
                         .map(|annotation| self.resolve(&annotation.expr, &subst, name.span))
                         .unwrap_or(Type::Unknown);
+                    if let Some(message) = union_layout_error(&field_ty, &self.aliases) {
+                        self.error(message, name.span);
+                    }
                     if let Some(existing) = fields
                         .iter_mut()
                         .find(|(field_name, _)| field_name == &name.name)
