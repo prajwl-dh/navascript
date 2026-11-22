@@ -21,6 +21,7 @@ pub struct Item {
 pub enum ItemKind {
     Variable(VariableDecl),
     Function(FunctionDecl),
+    Class(ClassDecl),
     TypeAlias(TypeAliasDecl),
     Interface(InterfaceDecl),
     Expr(Expr),
@@ -43,6 +44,34 @@ pub struct FunctionDecl {
     pub params: Vec<Param>,
     pub return_ty: Option<TypeAnnotation>,
     pub body: Block,
+}
+
+/// A class declaration. Fields and methods are inherited from `base` at type
+/// check time; methods lower to named functions with `this` as first parameter.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClassDecl {
+    pub name: Ident,
+    pub base: Option<Ident>,
+    pub members: Vec<ClassMember>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClassMember {
+    Field {
+        name: Ident,
+        ty: Option<TypeAnnotation>,
+    },
+    Constructor {
+        params: Vec<Param>,
+        body: Block,
+    },
+    Method {
+        name: Ident,
+        params: Vec<Param>,
+        return_ty: Option<TypeAnnotation>,
+        body: Block,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

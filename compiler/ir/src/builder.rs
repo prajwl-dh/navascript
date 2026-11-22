@@ -25,6 +25,9 @@ pub(super) struct FunctionBuilder {
     pub(super) next_block: BlockId,
     pub(super) scopes: Vec<HashMap<String, SlotId>>,
     pub(super) loops: Vec<LoopContext>,
+    /// The `this` stack slot and its object type inside a class member.
+    pub(super) this_slot: Option<SlotId>,
+    pub(super) this_ty: Option<IrType>,
 }
 
 impl FunctionBuilder {
@@ -45,6 +48,8 @@ impl FunctionBuilder {
             next_block: 1,
             scopes: vec![HashMap::new()],
             loops: Vec::new(),
+            this_slot: None,
+            this_ty: None,
         }
     }
 

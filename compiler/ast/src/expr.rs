@@ -18,6 +18,19 @@ pub enum ExprKind {
     Bool(bool),
     Null,
     Ident(String),
+    /// `this` inside a class method.
+    This,
+    /// `super` inside a class method (the base-class instance).
+    Super,
+    /// `new Class(args)`.
+    New {
+        class: super::types::Ident,
+        args: Vec<Expr>,
+    },
+    /// `super(args)` — calls the base-class constructor on `this`.
+    SuperCall {
+        args: Vec<Expr>,
+    },
     Binary {
         op: BinaryOp,
         left: Box<Expr>,

@@ -137,6 +137,19 @@ fn emits_bigint_collection_slots() {
 }
 
 #[test]
+fn emits_class_methods_as_named_functions() {
+    let ir = generate_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());",
+    );
+    assert!(
+        ir.contains("define void @nava_A__ctor(ptr %p0, double %p1)"),
+        "{ir}"
+    );
+    assert!(ir.contains("define double @nava_A_value(ptr %p0)"), "{ir}");
+    assert!(ir.contains("call double @nava_A_value(ptr"), "{ir}");
+}
+
+#[test]
 fn emits_monomorphized_generic_functions() {
     let ir = generate_source(
         "function id<T>(value: T): T { return value; } console.log(id(1)); console.log(id(\"s\"));",

@@ -13,7 +13,7 @@ reporting; Phase 6 has delivered loops with `break`/`continue`, the additional
 literals/operators (compound assignment, `++`/`--`, `**`, ternary,
 hex/binary/octal, Unicode identifiers and `\x`/`\u` escapes), arrow functions
 as variable initialisers, optional member/index chaining, bigint literals and
-optional calls and generics. Classes, unions, modules, closures and exceptions
+optional calls, generics and classes. Unions, modules, closures and exceptions
 are still pending (ADR-0015 for closures and exceptions).
 
 ## 1. Syntax
@@ -38,7 +38,7 @@ are still pending (ADR-0015 for closures and exceptions).
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; variable initialisers with annotated parameters, no captures or first-class function values |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
-| Classes | [ ] | — | Phase 6 |
+| Classes | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; fields, constructors, methods, `this`, `super(...)`, `extends`, inherited members/constructors; static dispatch only, no field initialisers (ADR-0024) |
 | Generics | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; generic functions and interfaces with inferred/explicit type arguments, monomorphized lowering; generic type aliases and constraints out of scope |
 | Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing Phase 6 |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
@@ -53,6 +53,7 @@ are still pending (ADR-0015 for closures and exceptions).
 | Feature | Status | Tests | Notes |
 | --- | --- | --- | --- |
 | `number`, `string`, `boolean`, `void` | [x] | `tests/typechecker/` | Phase 2 |
+| Class instances | [x] | `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; nominal `ClassInstance` with base-first field layout; assignability is structural over fields (full nominal subtyping is pending) |
 | `bigint` | [~] | `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; signed 64-bit integer; arithmetic/comparisons require two bigints (mixing with `number` is diagnosed); `+ - *` wrap on overflow, div/mod/pow are checked; arbitrary precision out of scope |
 | `null` | [~] | manual check | type-checks; `console.log(null)` prints `null`, but an inferred `null` value cannot be lowered (opaque type) |
 | Arrays | [x] | `tests/typechecker/` | `T[]` and array literals |
@@ -113,6 +114,8 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
+| Virtual method dispatch | class methods are mangled direct calls; a base-typed reference calls the base implementation | Phase 6 (pending) |
+| Class field initialisers | fields are declared without initialisers; assign them in a constructor | Phase 6 (pending) |
 | Closures and first-class functions | no function values or captured environments in IR | Phase 6 |
 | `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 (pending) |
 | `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | Phase 6 (pending) |

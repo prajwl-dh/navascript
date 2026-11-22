@@ -5,7 +5,7 @@ use nava_ast::Expr;
 
 use super::builder::FunctionBuilder;
 use super::ir::{Instruction, Value};
-use super::lower::Lowerer;
+use super::lower::{Lowerer, ir_type_from_symbol};
 
 impl FunctionBuilder {
     /// Lower `f(args)` and `f?.(args)`. Both become a direct call: Nava has no
@@ -19,6 +19,37 @@ impl FunctionBuilder {
         span: nava_ast::Span,
         lowerer: &mut Lowerer,
     ) -> Value {
+        if let Some(mangled) = lowerer.typed.method_calls.get(&span).cloned() {
+            let object = match &callee.kind {
+                nava_ast::ExprKind::Member { object, .. } => self.lower_expr(object, lowerer),
+                _ => {
+                    lowerer.error("method call requires a receiver", callee.span);
+                    Value::Null
+                }
+            };
+            let mut call_args = vec![object];
+            for arg in args {
+                call_args.push(self.lower_expr(arg, lowerer));
+            }
+            let result_ty = lowerer
+                .typed
+                .types
+                .get(&span)
+                .map(|ty| ir_type_from_symbol(ty, &lowerer.current_subst))
+                .unwrap_or(super::ir::IrType::Opaque);
+            let result = if result_ty == super::ir::IrType::Void {
+                None
+            } else {
+                Some(self.fresh_value())
+            };
+            self.emit(Instruction::Call {
+                result,
+                result_ty,
+                callee: mangled,
+                args: call_args,
+            });
+            return result.map_or(Value::Null, Value::Local);
+        }
         let callee_name = match &callee.kind {
             nava_ast::ExprKind::Ident(name) => name.clone(),
             nava_ast::ExprKind::Member {

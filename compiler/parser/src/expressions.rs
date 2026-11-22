@@ -224,6 +224,50 @@ impl<'a> Parser<'a> {
                 self.bump();
                 (ExprKind::Null, token.end)
             }
+            TokenKind::This => {
+                self.bump();
+                (ExprKind::This, token.end)
+            }
+            TokenKind::Super => {
+                self.bump();
+                if self.kind() == TokenKind::LParen {
+                    let placeholder = Expr {
+                        kind: ExprKind::Super,
+                        span: Span::new(self.file, token.start as usize, token.end as usize),
+                    };
+                    let Expr {
+                        kind: ExprKind::Call { args, .. },
+                        span,
+                    } = self.parse_call(placeholder, false)?
+                    else {
+                        unreachable!("parse_call always produces a Call")
+                    };
+                    return Some(Expr {
+                        kind: ExprKind::SuperCall { args },
+                        span,
+                    });
+                }
+                (ExprKind::Super, token.end)
+            }
+            TokenKind::New => {
+                self.bump();
+                let class = self.parse_ident("expected a class name after 'new'")?;
+                let placeholder = Expr {
+                    kind: ExprKind::Ident(class.name.clone()),
+                    span: class.span,
+                };
+                let Expr {
+                    kind: ExprKind::Call { args, .. },
+                    span,
+                } = self.parse_call(placeholder, false)?
+                else {
+                    unreachable!("parse_call always produces a Call")
+                };
+                return Some(Expr {
+                    kind: ExprKind::New { class, args },
+                    span,
+                });
+            }
             TokenKind::Ident => return self.parse_primary_ident(&token),
             TokenKind::LBracket => {
                 self.bump();

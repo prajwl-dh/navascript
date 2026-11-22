@@ -8,6 +8,8 @@
 mod arrows;
 mod bigint;
 mod checker;
+mod class_check;
+mod classes;
 mod declarations;
 mod expressions;
 mod generics;
@@ -16,4 +18,5 @@ mod statements;
 mod types;
 
 pub use checker::{CheckOutput, TypedProgram, check};
+pub use classes::ClassInfo;
 pub use types::{AliasTable, is_assignable, resolve_type};

@@ -44,6 +44,14 @@ impl Checker<'_> {
     ) -> Type {
         let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
         let ty = match object_ty {
+            Type::ClassInstance { fields, .. } => fields
+                .iter()
+                .find(|(name, _)| name == property)
+                .map(|(_, ty)| ty.clone())
+                .unwrap_or_else(|| {
+                    self.error(format!("property '{property}' does not exist"), span);
+                    Type::Error
+                }),
             Type::Object(fields) => fields.get(property).cloned().unwrap_or_else(|| {
                 self.error(format!("property '{property}' does not exist"), span);
                 Type::Error

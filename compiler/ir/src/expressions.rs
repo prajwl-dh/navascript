@@ -13,6 +13,9 @@ impl FunctionBuilder {
             ExprKind::BigInt(value) => Value::BigInt(*value),
             ExprKind::Bool(value) => Value::Bool(*value),
             ExprKind::Null => Value::Null,
+            ExprKind::This | ExprKind::Super => self.lower_self(expr, lowerer),
+            ExprKind::New { class, args } => self.lower_new(class, args, lowerer),
+            ExprKind::SuperCall { args } => self.lower_super_call(expr, args, lowerer),
             ExprKind::String(value) => {
                 let global = lowerer.string_global(value);
                 Value::String(global)

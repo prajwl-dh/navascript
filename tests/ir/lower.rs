@@ -379,6 +379,49 @@ fn lowers_bigint_literals_and_integer_operations() {
 }
 
 #[test]
+fn classes_emit_named_method_functions() {
+    let source = "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let ctor = module.function("A__ctor").expect("constructor function");
+    assert_eq!(ctor.params.len(), 2);
+    assert_eq!(ctor.params[0].name, "this");
+    let method = module.function("A_value").expect("method function");
+    assert_eq!(method.return_ty, nava_ir::IrType::Number);
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(|block| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, Instruction::ObjectNew { .. }))
+    }));
+    assert!(main.blocks.iter().any(|block| {
+        block.instructions.iter().any(
+        |instruction| matches!(instruction, Instruction::Call { callee, .. } if callee == "A__ctor")
+    )
+    }));
+}
+
+#[test]
+fn inherited_and_super_calls_target_the_base_function() {
+    let source = "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } class B extends A { constructor(n: number) { this.n = n; } value(): number { return super.value() + 1; } } let b = new B(4); console.log(b.value());";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    assert!(module.function("A_value").is_some());
+    assert!(module.function("B_value").is_some());
+    let base_calls: usize = module
+        .functions
+        .iter()
+        .flat_map(|function| function.blocks.iter())
+        .flat_map(|block| block.instructions.iter())
+        .filter(|instruction| {
+            matches!(instruction, Instruction::Call { callee, .. } if callee == "A_value")
+        })
+        .count();
+    assert!(base_calls >= 1, "super.value() should call A_value");
+}
+
+#[test]
 fn generic_calls_emit_monomorphized_functions() {
     let source = "function id<T>(value: T): T { return value; } let n = id(1); let s = id(\"x\");";
     let (module, _) = lower_source(source);

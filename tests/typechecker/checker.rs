@@ -369,6 +369,87 @@ fn checks_optional_calls_like_direct_calls() {
 }
 
 #[test]
+fn checks_classes_fields_and_methods() {
+    let (output, _) = check_source(
+        "class Point { x: number; constructor(x: number) { this.x = x; } sum(): number { return this.x; } } let p = new Point(2); console.log(p.sum());",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn inherits_fields_and_methods() {
+    let (output, _) = check_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } class B extends A { constructor(n: number) { this.n = n; } } let b = new B(3); console.log(b.value());",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn resolves_super_method_calls() {
+    let (output, _) = check_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } class B extends A { constructor(n: number) { this.n = n; } value(): number { return super.value() + 1; } } let b = new B(4); console.log(b.value());",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn inherits_constructors_and_accepts_super_calls() {
+    let (output, _) = check_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } } class B extends A { constructor(n: number) { super(n); } } class C extends A {} new B(1); new C(2);",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_bad_super_call_arity() {
+    let (output, _) = check_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } } class B extends A { constructor() { super(); } }",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("expected 1 base constructor arguments, found 0"))
+    );
+}
+
+#[test]
+fn rejects_unknown_classes_and_bad_constructor_calls() {
+    let (output, _) = check_source("let x = new Missing(1);");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("unknown class 'Missing'"))
+    );
+    let (output, _) =
+        check_source("class A { n: number; constructor(n: number) { this.n = n; } } new A();");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("expected 1 constructor arguments, found 0"))
+    );
+}
+
+#[test]
+fn rejects_unknown_methods_and_this_outside_a_class() {
+    let (output, _) = check_source(
+        "class A { n: number; constructor(n: number) { this.n = n; } } let a = new A(1); a.missing();",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("property 'missing' does not exist")),
+        "{:?}",
+        messages(&output)
+    );
+    let (output, _) = check_source("let x = this;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("'this' is only valid inside a class"))
+    );
+}
+
+#[test]
 fn infers_generic_type_arguments_from_arguments() {
     let (output, _) = check_source(
         "function id<T>(value: T): T { return value; } let n = id(1); let s = id(\"x\");",

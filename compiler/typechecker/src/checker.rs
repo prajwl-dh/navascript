@@ -1,6 +1,8 @@
 //! The type checker: one `check` seam hiding scopes, inference and checking.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
+
+use super::classes::ClassInfo;
 
 use nava_ast::{FileId, Item, ItemKind, Program, Span};
 use nava_diagnostics::{Diagnostic, Diagnostics, LineIndex};
@@ -26,6 +28,12 @@ pub struct TypedProgram {
     /// Resolved type arguments for each call expression, in parameter order.
     /// IR lowering uses this to select a monomorphization.
     pub call_instantiations: HashMap<Span, Vec<Type>>,
+    /// Checked class shapes, including inherited members.
+    pub classes: HashMap<String, ClassInfo>,
+    /// Mangled method target for each `obj.method(...)` call expression.
+    pub method_calls: HashMap<Span, String>,
+    /// Base constructor target for each `super(args)` call.
+    pub super_calls: HashMap<Span, String>,
 }
 
 pub fn check(program: &Program, source: &str) -> CheckOutput {
@@ -33,6 +41,7 @@ pub fn check(program: &Program, source: &str) -> CheckOutput {
     checker.seed_builtins();
     checker.collect_aliases();
     checker.check_alias_cycles();
+    checker.collect_classes();
     checker.collect_declarations();
     for item in &program.items {
         checker.check_item(item);
@@ -44,6 +53,9 @@ pub fn check(program: &Program, source: &str) -> CheckOutput {
             symbols: checker.symbols,
             generic_params: checker.generic_params,
             call_instantiations: checker.call_instantiations,
+            classes: checker.classes,
+            method_calls: checker.method_calls,
+            super_calls: checker.super_calls,
         },
     }
 }
@@ -58,6 +70,12 @@ pub(super) struct Checker<'a> {
     pub(super) loop_depth: u32,
     pub(super) generic_params: HashMap<String, Vec<String>>,
     pub(super) call_instantiations: HashMap<Span, Vec<Type>>,
+    pub(super) classes: HashMap<String, ClassInfo>,
+    pub(super) class_resolved: HashSet<String>,
+    pub(super) method_calls: HashMap<Span, String>,
+    /// The class whose body is currently being checked (for `super(...)`).
+    pub(super) current_class: Option<String>,
+    pub(super) super_calls: HashMap<Span, String>,
 }
 
 impl<'a> Checker<'a> {
@@ -72,6 +90,11 @@ impl<'a> Checker<'a> {
             loop_depth: 0,
             generic_params: HashMap::new(),
             call_instantiations: HashMap::new(),
+            classes: HashMap::new(),
+            class_resolved: HashSet::new(),
+            method_calls: HashMap::new(),
+            current_class: None,
+            super_calls: HashMap::new(),
         }
     }
 
@@ -103,6 +126,7 @@ impl<'a> Checker<'a> {
         match &item.kind {
             ItemKind::Variable(decl) => self.check_variable(decl, true),
             ItemKind::Function(decl) => self.check_function(decl),
+            ItemKind::Class(decl) => self.check_class(decl),
             ItemKind::Expr(expr) => {
                 self.infer_expr(expr);
             }

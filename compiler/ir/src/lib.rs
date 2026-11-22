@@ -8,6 +8,7 @@
 mod builder;
 mod calls;
 mod checks;
+mod classes;
 mod expressions;
 mod for_of;
 mod generics;

@@ -248,6 +248,16 @@ fn bigints_run_natively() {
 }
 
 #[test]
+fn classes_and_inheritance_run_natively() {
+    let Some(binary) = compile("classes.ts", "classes", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run classes program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "5\n9\nq\n3\n30\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn generics_run_natively() {
     let Some(binary) = compile("generics.ts", "generics", &[]) else {
         return;

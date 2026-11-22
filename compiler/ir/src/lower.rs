@@ -76,6 +76,7 @@ impl<'a> Lowerer<'a> {
                     self.lower_function(decl, None)
                 }
                 ItemKind::Function(_) => {} // emitted on demand as a specialization
+                ItemKind::Class(decl) => self.lower_class(decl),
                 ItemKind::Variable(_) | ItemKind::Expr(_) | ItemKind::Stmt(_) => {
                     main_body.push(item)
                 }
@@ -257,6 +258,12 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
         Type::String => IrType::String,
         Type::Boolean => IrType::Boolean,
         Type::Void => IrType::Void,
+        Type::ClassInstance { fields, .. } => IrType::Object(
+            fields
+                .iter()
+                .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty, subst)))
+                .collect(),
+        ),
         Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner, subst))),
         Type::Object(fields) => IrType::Object(
             fields

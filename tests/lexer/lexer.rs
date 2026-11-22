@@ -231,6 +231,25 @@ fn does_not_treat_a_bigint_suffix_as_part_of_a_longer_identifier() {
 }
 
 #[test]
+fn lexes_class_keywords() {
+    assert_eq!(
+        kinds("class A extends B { new this super }"),
+        vec![
+            TokenKind::Class,
+            TokenKind::Ident,
+            TokenKind::Extends,
+            TokenKind::Ident,
+            TokenKind::LBrace,
+            TokenKind::New,
+            TokenKind::This,
+            TokenKind::Super,
+            TokenKind::RBrace,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn lexes_optional_calls() {
     assert_eq!(
         kinds("f?.()"),

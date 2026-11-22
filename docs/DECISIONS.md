@@ -469,6 +469,34 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0024 — Class layout and static dispatch
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** Phase 6 adds classes and inheritance. Nava objects are flat
+  arrays of 8-byte slots, and IR functions have concrete signatures. A derived
+  instance has more fields than its base, so a base method that indexes `this`
+  by position could read a different field than the same index in the derived
+  object. Structural class identity also made method dispatch depend on hash-map
+  iteration order when two classes shared a field layout.
+- **Decision:** Class instances use a nominal `Type::ClassInstance { name,
+  fields }`, where `fields` is ordered base-first, inherited fields preceding
+  derived ones. `IrType::Object` preserves that order, so every method in a
+  hierarchy agrees on slot indices. Method resolution walks the base chain and
+  targets the function named `<DeclaringClass>_<method>`; a receiver without
+  class identity is diagnosed rather than guessed. Constructors are inherited
+  when a derived class declares none, `super(args)` emits a direct call to the
+  base constructor on `this`, and methods/constructors lower to named functions
+  with `this` as parameter 0. Class checking and shape resolution are split into
+  private `typechecker/class_check.rs` and `typechecker/classes.rs`; lowering
+  lives in `ir/classes.rs`.
+- **Consequences:** Dispatch is static — there are no virtual methods, so a
+  base-typed reference calls the base implementation. Field initialisers are
+  unsupported; fields are assigned in constructors. Full nominal subtyping and
+  virtual dispatch remain out of scope and are recorded in `COMPATIBILITY.md`.
+
+---
+
 ## Template for new decisions
 
 ```

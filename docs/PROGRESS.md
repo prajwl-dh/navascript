@@ -8,7 +8,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Last updated:** 2026-11-21
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
-  chaining, bigint literals, optional calls and generics complete
+  chaining, bigint literals, optional calls, generics and classes with
+  inheritance complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -27,7 +28,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -36,7 +37,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
-calls and generics delivered; remaining expansion items pending).
+calls, generics and classes delivered; remaining expansion items pending).
 
 ---
 
@@ -198,7 +199,8 @@ limitations for every milestone.
   done 2026-11-21
 - [x] Generics — generic functions and interfaces, inferred or explicit type
    arguments, monomorphized lowering — done 2026-11-21
-- [ ] Classes, inheritance
+- [x] Classes and inheritance — fields, constructors, methods, `this`,
+   `super(...)`, inherited members/constructors, static dispatch — done 2026-11-21
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
 - [ ] Modules, imports, exports
@@ -207,11 +209,11 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (213 passed, 0 failed) succeed;
+  `cargo test --workspace` (227 passed, 0 failed) succeed;
   `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
   `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
-  `examples/bigint.ts`, `examples/optional_call.ts` and `examples/generics.ts`
-  run natively.
+  `examples/bigint.ts`, `examples/optional_call.ts`, `examples/generics.ts` and
+  `examples/classes.ts` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -788,15 +790,34 @@ limitations for every milestone.
 - Added `examples/generics.ts` and tests across parser/typechecker/IR/codegen/
   native surfaces. Suite grew from 192 to 213 tests; fmt and clippy clean.
 
+### 2026-11-21 — Phase 6 (classes and inheritance increment)
+- Added class declarations with fields, constructors, methods, `this`,
+  `super(...)`, `extends`, and `new`. Methods lower to named IR functions with
+  `this` as their first parameter; dispatch is static (ADR-0024).
+- Class instances carry a nominal `Type::ClassInstance` with base-first field
+  order. This fixed two soundness bugs found by review: nondeterministic
+  dispatch from structural class identity, and inherited field indices shifting
+  when a derived field sorts before a base field. `examples/classes.ts` now
+  covers both (`Shifted.sum()` returns 30, not a reinterpreted pointer).
+- Constructors are inherited when a derived class declares none, and
+  `super(args)` calls the base constructor on `this`.
+- Two-axis code review of `6e48dd8...HEAD` (working tree) was applied: removed
+  the structural dispatch fallback, preserved base-first field layout, added
+  constructor inheritance and `super(...)`, split oversized class modules, and
+  corrected the native expectation from the mis-indexed `4` to `9`.
+- Added `examples/classes.ts` and tests across lexer/parser/typechecker/IR/
+  codegen/native surfaces. Suite grew from 213 to 227 tests; fmt and clippy
+  clean.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: classes, structural typing, unions, modules, closures and
-   exceptions (ADR-0015), async/await. Loops (including `break`/`continue`),
-   the additional literals/operators, arrow functions, optional chaining,
-   bigint, optional calls and generics are done.
+   `ROADMAP.md`: structural typing, unions, modules, closures and exceptions
+   (ADR-0015), async/await. Loops (including `break`/`continue`), the additional
+   literals/operators, arrow functions, optional chaining, bigint, optional
+   calls, generics and classes are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

@@ -15,6 +15,22 @@ impl<'a> Checker<'a> {
             ExprKind::String(_) => Type::String,
             ExprKind::Bool(_) => Type::Boolean,
             ExprKind::Null => Type::Null,
+            ExprKind::This | ExprKind::Super => {
+                let name = if matches!(expr.kind, ExprKind::This) {
+                    "this"
+                } else {
+                    "super"
+                };
+                match self.symbols.lookup(name) {
+                    Some(symbol) => symbol.ty.clone(),
+                    None => {
+                        self.error(format!("'{name}' is only valid inside a class"), expr.span);
+                        Type::Error
+                    }
+                }
+            }
+            ExprKind::New { class, args } => self.infer_new(class, args, expr.span),
+            ExprKind::SuperCall { args } => self.infer_super_call(args, expr.span),
             ExprKind::Ident(name) => match self.symbols.lookup(name) {
                 Some(symbol) => symbol.ty.clone(),
                 None => {
@@ -94,12 +110,30 @@ impl<'a> Checker<'a> {
                 type_args,
                 ..
             } => {
-                let name = match &callee.kind {
-                    ExprKind::Ident(name) => Some(name.clone()),
-                    _ => None,
+                let (name, callee_ty, method_target) = match &callee.kind {
+                    ExprKind::Ident(name) => (Some(name.clone()), self.infer_expr(callee), None),
+                    ExprKind::Member {
+                        object,
+                        property,
+                        optional: false,
+                    } => {
+                        let object_ty = self.infer_expr(object);
+                        let target = self
+                            .class_of(&object_ty)
+                            .and_then(|class| self.lookup_method(&class, property));
+                        match target {
+                            Some((mangled, fun_ty)) => (None, fun_ty, Some(mangled)),
+                            None => (None, self.infer_expr(callee), None),
+                        }
+                    }
+                    _ => (None, self.infer_expr(callee), None),
                 };
-                let callee_ty = self.infer_expr(callee);
-                self.infer_call(name.as_deref(), &callee_ty, args, type_args, expr.span)
+                let result =
+                    self.infer_call(name.as_deref(), &callee_ty, args, type_args, expr.span);
+                if let Some(mangled) = method_target {
+                    self.method_calls.insert(expr.span, mangled);
+                }
+                result
             }
             ExprKind::Index {
                 object,
@@ -157,6 +191,17 @@ impl<'a> Checker<'a> {
                 }
                 let object_ty = resolve_named_type(&self.infer_expr(object), &self.aliases);
                 match object_ty {
+                    Type::ClassInstance { fields, .. } => {
+                        match fields.iter().find(|(name, _)| name == property) {
+                            Some((_, expected)) => {
+                                self.check_assignment(expected, actual, target.span)
+                            }
+                            None => self.error(
+                                format!("property '{property}' does not exist"),
+                                target.span,
+                            ),
+                        }
+                    }
                     Type::Object(fields) => match fields.get(property) {
                         Some(expected) => self.check_assignment(expected, actual, target.span),
                         None => {

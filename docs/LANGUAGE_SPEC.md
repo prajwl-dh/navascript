@@ -77,7 +77,11 @@ and the intent to grow toward broad compatibility. Status values mirror
   from call arguments or written explicitly (`id<number>(1)`); each distinct
   instantiation is lowered to a monomorphized native function (ADR-0023).
   Generic type aliases and constraints are not supported.
-- [ ] Classes and inheritance
+- [x] Classes and inheritance (Phase 6) — `class C extends B` with fields,
+  constructors, methods, `new C(...)`, `this` and `super(...)`. Inherited fields
+  use a stable base-first layout and inherited constructors/methods are
+  available (ADR-0024). Dispatch is static (no virtual methods), and field
+  initialisers are not supported — assign fields in a constructor.
 - [ ] Structural typing
 - [ ] Union / intersection types
 - [ ] Optional properties and parameters
@@ -97,6 +101,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Optional member/index access `a?.b` / `a?.[i]` (Phase 6; reference-typed
   results only)
 - [x] Optional calls `a?.()` (Phase 6; lowered as direct calls — see above)
+- [x] `new C(...)`, `this` and `super(...)` (Phase 6; inside class members)
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
 - [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
   `(a: T): R => { ... }`; supported as variable initialisers with annotated

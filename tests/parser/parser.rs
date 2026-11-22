@@ -535,6 +535,47 @@ fn parses_optional_calls() {
 }
 
 #[test]
+fn parses_class_declarations_with_members() {
+    let output = ok(
+        "class Point extends Shape { x: number; constructor(x: number) { this.x = x; } sum(): number { return this.x; } }",
+    );
+    let ItemKind::Class(class) = &output.program.items[0].kind else {
+        panic!("expected a class");
+    };
+    assert_eq!(class.name.name, "Point");
+    assert_eq!(class.base.as_ref().unwrap().name, "Shape");
+    assert_eq!(class.members.len(), 3);
+    assert!(matches!(
+        class.members[0],
+        nava_ast::ClassMember::Field { .. }
+    ));
+    assert!(matches!(
+        class.members[1],
+        nava_ast::ClassMember::Constructor { .. }
+    ));
+    assert!(matches!(
+        class.members[2],
+        nava_ast::ClassMember::Method { .. }
+    ));
+}
+
+#[test]
+fn parses_new_this_and_super_expressions() {
+    let output = ok("let p = new Point(1);");
+    let ItemKind::Variable(decl) = &output.program.items[0].kind else {
+        panic!("expected a variable");
+    };
+    assert!(matches!(
+        &decl.init.as_ref().unwrap().kind,
+        ExprKind::New { class, args } if class.name == "Point" && args.len() == 1
+    ));
+    let output = ok("function f(): number { let t = this; let s = super; return 1; }");
+    let text = format!("{:?}", output.program);
+    assert!(text.contains("This"));
+    assert!(text.contains("Super"));
+}
+
+#[test]
 fn parses_generic_function_declarations() {
     let output = ok("function identity<T>(value: T): T { return value; }");
     let ItemKind::Function(decl) = &output.program.items[0].kind else {

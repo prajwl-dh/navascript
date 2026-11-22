@@ -20,6 +20,12 @@ pub enum Type {
     Null,
     Array(Box<Type>),
     Object(BTreeMap<String, Type>),
+    /// A class instance. `fields` is in base-first declaration order so every
+    /// method in the hierarchy agrees on slot indices (ADR-0024).
+    ClassInstance {
+        name: String,
+        fields: Vec<(String, Type)>,
+    },
     Function {
         params: Vec<Type>,
         ret: Box<Type>,
@@ -52,6 +58,7 @@ impl Type {
                     .join("; ");
                 format!("{{ {body} }}")
             }
+            Type::ClassInstance { name, .. } => name.clone(),
             Type::Function { params, ret } => {
                 let params = params
                     .iter()

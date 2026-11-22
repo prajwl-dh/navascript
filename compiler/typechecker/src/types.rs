@@ -76,6 +76,22 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
         return true;
     }
     match (target, actual) {
+        (Type::ClassInstance { fields, .. }, other)
+        | (other, Type::ClassInstance { fields, .. }) => {
+            let other = resolve_named_type(other, aliases);
+            let other_fields = match other {
+                Type::Object(map) => map.into_iter().collect::<Vec<(String, Type)>>(),
+                Type::ClassInstance { fields, .. } => fields,
+                Type::Unknown | Type::Error => return true,
+                _ => return false,
+            };
+            fields.iter().all(|(name, ty)| {
+                other_fields
+                    .iter()
+                    .find(|(other_name, _)| other_name == name)
+                    .is_some_and(|(_, other_ty)| is_assignable(ty, other_ty, aliases))
+            })
+        }
         (Type::Array(a), Type::Array(b)) => is_assignable(a, b, aliases),
         (Type::Object(target_fields), Type::Object(actual_fields)) => {
             target_fields.iter().all(|(name, expected)| {

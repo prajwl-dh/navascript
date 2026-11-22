@@ -251,7 +251,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Generics — generic functions and interfaces with inferred/explicit type
   arguments, monomorphized lowering. **Delivered 2026-11-21** (status in
   `PROGRESS.md`; ADR-0023).
-- Classes and inheritance.
+- Classes and inheritance — fields, constructors, methods, `this`/`super(...)`
+  and inherited members, with static method dispatch. **Delivered 2026-11-21**
+  (status in `PROGRESS.md`; ADR-0024).
 - Interfaces and structural typing.
 - Union and intersection types.
 - Modules, imports, exports, module resolution.
@@ -271,7 +273,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Full `lib.d.ts` compatibility out of scope for this phase.
 - Loops (including `break`/`continue`) landed first, then the additional
   literals/operators, arrow functions, optional member/index chaining, bigint,
-  optional calls and generics (see `PROGRESS.md`). Arrows are limited to annotated
+  optional calls, generics and classes (see `PROGRESS.md`). Arrows are limited to annotated
   variable initialisers with no captures; optional chaining is limited to
   reference-typed results and cannot be observed as null yet. Optional calls
   lower as direct calls because there are no nullable callable values. Bigint is
@@ -279,8 +281,11 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   modulo and power are checked; arbitrary precision is out of scope. Generics
   cover functions and interfaces only: generic type aliases are out of scope,
   and there is no constraint syntax, generic inference across call boundaries
-  beyond argument unification, or higher-kinded types. Function values are not
-  implemented; iteration is limited to arrays/strings.
+  beyond argument unification, or higher-kinded types. Classes use static
+  method dispatch — there is no virtual dispatch, so a base-typed reference
+  calls the base implementation. Class field initialisers are not supported;
+  assign fields in a constructor. Function values are not implemented;
+  iteration is limited to arrays/strings.
 
 ---
 

@@ -22,11 +22,15 @@ impl Checker<'_> {
                     "boolean" => Type::Boolean,
                     "void" => Type::Void,
                     "null" => Type::Null,
-                    other => self
-                        .aliases
-                        .get(other)
-                        .map(|ty| substitute(ty, subst))
-                        .unwrap_or(Type::Named(other.to_owned())),
+                    other => {
+                        if let Some(ty) = self.aliases.get(other) {
+                            substitute(ty, subst)
+                        } else if self.classes.contains_key(other) {
+                            self.instance_type(other)
+                        } else {
+                            Type::Named(other.to_owned())
+                        }
+                    }
                 }
             }
             TypeExpr::Generic { name, args } => {
