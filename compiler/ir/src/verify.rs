@@ -6,8 +6,7 @@ use std::fmt;
 use nava_ast::Span;
 
 use super::checks::{
-    check_slot, check_value, instruction_type, require, value_type, values_in_instruction,
-    values_in_terminator,
+    check_slot, check_value, require, value_type, values_in_instruction, values_in_terminator,
 };
 use super::ir::{
     BinaryOp, BlockId, Instruction, IrFunction, IrModule, IrType, Terminator, Value, ValueId,
@@ -159,6 +158,7 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                     }
                 }
                 Instruction::Binary { result, .. }
+                | Instruction::BigIntBinary { result, .. }
                 | Instruction::Unary { result, .. }
                 | Instruction::IsNull { result, .. }
                 | Instruction::ToBool { result, .. }
@@ -173,7 +173,7 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 | Instruction::ObjectNew { result, .. }
                 | Instruction::ObjectGet { result, .. } => {
                     if defs
-                        .insert(*result, (instruction_type(instruction), block.id))
+                        .insert(*result, (instruction.result_type(), block.id))
                         .is_some()
                     {
                         errors.push(error(function, Some(block.id), "duplicate value id"));
@@ -259,6 +259,17 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                     }
                     available_values.insert(*result);
                 }
+                Instruction::BigIntBinary {
+                    result, lhs, rhs, ..
+                } => {
+                    check_value(lhs, &available_values, function, block.id, errors);
+                    check_value(rhs, &available_values, function, block.id, errors);
+                    let lhs_ty = value_type(lhs, &defs);
+                    let rhs_ty = value_type(rhs, &defs);
+                    require(&lhs_ty, IrType::BigInt, function, block.id, errors);
+                    require(&rhs_ty, IrType::BigInt, function, block.id, errors);
+                    available_values.insert(*result);
+                }
                 Instruction::Unary {
                     result,
                     op,
@@ -269,6 +280,9 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                     match op {
                         super::ir::UnaryOp::Neg => {
                             require(&operand_ty, IrType::Number, function, block.id, errors)
+                        }
+                        super::ir::UnaryOp::NegBigInt => {
+                            require(&operand_ty, IrType::BigInt, function, block.id, errors)
                         }
                         super::ir::UnaryOp::Not => {
                             require(&operand_ty, IrType::Boolean, function, block.id, errors)

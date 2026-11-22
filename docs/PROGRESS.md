@@ -7,8 +7,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-21
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
-  `break`/`continue`), additional literals/operators, arrow functions and
-  optional chaining complete
+  `break`/`continue`), additional literals/operators, arrow functions, optional
+  chaining, bigint literals and optional calls complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -27,7 +27,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -35,8 +35,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 11 — Production readiness | [ ] Not started |
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
-(loops + jumps, syntax expansion, arrows and optional chaining delivered;
-remaining expansion items pending).
+(loops + jumps, syntax expansion, arrows, optional chaining, bigint and optional
+calls delivered; remaining expansion items pending).
 
 ---
 
@@ -191,8 +191,11 @@ limitations for every milestone.
 - [x] Arrow functions as variable initialisers (annotated parameters, no
   captures) — done 2026-11-21
 - [x] Optional chaining (`a?.b`, `a?.[i]`; reference-typed results) — done 2026-11-21
-- [ ] Optional call (`a?.()`) and bigint (the remaining `COMPATIBILITY.md` §6
-  syntax rows)
+- [x] Optional call (`a?.()`) — parsed, type-checked and lowered as a direct
+  call; null branch unobservable without nullable callables — done 2026-11-21
+- [x] Bigint literals (`123n`, `0xffn`, `1_000n`) with a `bigint` type, integer
+  arithmetic/comparisons, `++`/`--`, i64 collection slots and `console.log` —
+  done 2026-11-21
 - [ ] Generics, classes, inheritance
 - [ ] Interfaces / structural typing (full)
 - [ ] Union / intersection types
@@ -202,10 +205,10 @@ limitations for every milestone.
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (169 passed, 0 failed) succeed;
+  `cargo test --workspace` (192 passed, 0 failed) succeed;
   `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
-  `examples/operators.ts`, `examples/arrows.ts` and `examples/optional.ts` run
-  natively.
+  `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
+  `examples/bigint.ts` and `examples/optional_call.ts` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -687,7 +690,8 @@ limitations for every milestone.
   IR lowering with a dedicated `IsNull` instruction, null/value blocks and a
   result stack slot. Codegen emits `icmp eq ptr ..., null` for `IsNull`.
 - Rejected assignment through optional chaining in both the checker and IR.
-  `a?.()` produces a parse diagnostic, not a silent miscompile.
+  At this point `a?.()` produced a parse diagnostic (it was implemented in the
+  final Phase 6 increment below), never a silent miscompile.
 - Added private `parser/optional.rs` and `typechecker/optional.rs`, plus
   `ir/calls.rs`, keeping touched implementation files within ADR-0016.
 - Two-axis review of `5c5695c...HEAD` was applied: the global `==` change was
@@ -697,8 +701,8 @@ limitations for every milestone.
 - Added `examples/optional.ts` and lexer/parser/typechecker/IR/native tests.
   Suite grew from 156 to 163 tests; fmt and clippy clean.
 - **Known limitation:** the null branch is unobservable until nullable values
-  exist; results are typed `T` until union types land. Optional calls and
-  bigint remain pending.
+  exist; results are typed `T` until union types land. Optional calls and bigint
+  were still pending at this point (both delivered in the final increment).
 
 ### 2026-11-21 — Phase 6 (fifth increment): break and continue
 - Added `break`/`continue` keywords, AST statements, parser support, a
@@ -729,15 +733,46 @@ limitations for every milestone.
   18 `.ts` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
   `operators`). No compiler code changed.
 
+### 2026-11-21 — Phase 6 (final increment): bigint and optional calls
+- **Bigint literals:** `TokenKind::BigInt` recognises `123n`, `0xffn`, `1_000n`
+  and other radix/separator forms; `decode_bigint` decodes via `i128` and
+  diagnoses values outside the signed 64-bit range, and a `n` suffix on a
+  fractional/exponent form is a lex diagnostic. `123nfoo` is *not* treated as a
+  bigint (the suffix must be word-final).
+- Added a `bigint` primitive through the checker (`Type::BigInt`), IR
+  (`IrType::BigInt`, `Value::BigInt(i64)`, `Instruction::BigIntBinary`,
+  `UnaryOp::NegBigInt`) and codegen (LLVM `i64`). Bigint supports `+ - * / % **`,
+  comparisons/equality, unary `-`, `++`/`--`, bigint arrays/objects and
+  `console.log`. Division, modulo and power use checked runtime helpers
+  (`runtime/bigint/bigint.c`); `+ - *` follow LLVM i64 wrap semantics.
+- **Optional calls:** `?.()` is parsed as a `Call` with an `optional` flag,
+  type-checked for callability/arity like a direct call, and lowered as a direct
+  call. No null branch is emitted: Nava has no first-class callable values, so
+  there is nothing nullable to test (documented in ADR-0020).
+- Unified IR instruction result-type mapping in private `ir/results.rs`, shared
+  by the verifier and codegen (it also fixed a pre-existing `And`/`Or`
+  divergence). Split `typechecker/bigint.rs`, `ir/values.rs` and `ir/results.rs`
+  to stay within ADR-0016's size guidance; extracted the shared call-tail parser
+  into `parser/calls.rs` and the separator stripper into `parser/parser.rs`.
+- Two-axis code review of `c75e46f...HEAD` (working tree) was applied: unified
+  result types, removed unreachable bigint `And`/`Or` result handling, corrected
+  the runtime's overflow comment, added verifier negative tests, and kept files
+  within ADR-0016. The Spec axis' scope question was resolved by noting that the
+  §6 row's own reason requires a checker/runtime type, making arithmetic the
+  minimum that makes literals testable.
+- Added `examples/bigint.ts`, `examples/optional_call.ts` and tests across
+  lexer/parser/typechecker/IR/verifier/codegen/native/runtime surfaces. Suite
+  grew from 169 to 192 tests; fmt and clippy clean.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: optional calls and bigint, then generics, classes, structural
-   typing, unions, modules, closures and exceptions (ADR-0015), async/await.
-   Loops (including `break`/`continue`), the additional literals/operators,
-   arrow functions and optional chaining are done.
+   `ROADMAP.md`: generics, classes, structural typing, unions, modules, closures
+   and exceptions (ADR-0015), async/await. Loops (including `break`/`continue`),
+   the additional literals/operators, arrow functions, optional chaining,
+   bigint and optional calls are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

@@ -326,9 +326,10 @@ a new number and references the old one. Keep entries short and factual.
   silently decoded to an empty string. The three files that grew past ADR-0016's
   size guidance were split into private modules behind their existing façades.
 - **Consequences:** `return` and other statement lowering now use the current
-  block after expression lowering, not the incoming block. Bigint, arrow
-  functions and optional chaining remain unsupported and are recorded in
-  `COMPATIBILITY.md`. No new runtime ABI functions were needed.
+  block after expression lowering, not the incoming block. At this point bigint,
+  arrow functions and optional chaining were still unsupported (they were
+  delivered in later Phase 6 increments; see ADR-0019, ADR-0020 and ADR-0022).
+  No new runtime ABI functions were needed.
 
 ---
 
@@ -370,7 +371,11 @@ a new number and references the old one. Keep entries short and factual.
 - **Consequences:** Existing `==`/`!=` semantics are untouched. Since no
   nullable object/array value can currently be constructed, the null branch is
   unobservable and results are typed `T` until union types land (ADR deferred to
-  a later Phase 6 increment). Optional calls `a?.()` remain unsupported.
+  a later Phase 6 increment). Optional calls `a?.()` were added in ADR-0022: the
+  AST records the `optional` flag, but lowering treats them as direct calls
+  because a statically named function cannot be null — no null branch is
+  emitted. This is a documented limitation, not a silent miscompile; callability
+  and arity are still checked, so `null?.()` is diagnosed.
 
 ---
 
@@ -392,6 +397,40 @@ a new number and references the old one. Keep entries short and factual.
 - **Consequences:** Nested loops resolve to the innermost context. Loop jumps
   are ordinary `br` terminators, so no new LLVM instruction was needed. The
   extra `for_of.rs` module keeps `loops.rs` within ADR-0016's size guidance.
+
+---
+
+## ADR-0022 — Bigint and optional calls
+
+- **Date:** 2026-11-21
+- **Status:** Accepted
+- **Context:** The last syntactic rows of `COMPATIBILITY.md` §6 were bigint
+  literals (`123n`) and optional calls (`a?.()`). The bigint row's own reason
+  named three gaps: the suffix was not parsed, and there was no `bigint` type in
+  the checker or runtime. A literal with no operations, however, is not testable
+  as a feature, so the minimum useful implementation includes integer operators.
+  Optional calls needed to coexist with the existing direct-call-only IR.
+- **Decision:** The lexer recognises a word-final `n` suffix after an integer
+  (radix prefixes and `_` separators included) as `TokenKind::BigInt`; a suffix
+  on a fractional/exponent form is a lex diagnostic, and a suffix followed by an
+  identifier character is not a bigint. `decode_bigint` parses through `i128`
+  and diagnoses values outside `i64`. `bigint` is a checker primitive
+  (`Type::BigInt`) lowering to LLVM `i64` (`IrType::BigInt`, `Value::BigInt`);
+  bigint operators use a dedicated `Instruction::BigIntBinary` and
+  `UnaryOp::NegBigInt`. `+ - *` use LLVM i64 semantics (wrap), while div, mod and
+  power call checked runtime helpers (`runtime/bigint/bigint.c`) that diagnose
+  zero divisors, negative exponents and overflowing powers. Bigint arrays and
+  objects use new i64 slot accessors. Optional calls are parsed as `Call` with
+  an `optional` flag, share direct-call type checking, and lower as direct calls
+  (see ADR-0020). Shared call-tail parsing lives in `parser/calls.rs`; shared
+  instruction result-type logic lives in `ir/results.rs` and is used by both the
+  verifier and codegen.
+- **Consequences:** Bigint is *not* arbitrary precision; mixing it with `number`
+  is diagnosed rather than coerced, and `+ - *` wrap on overflow. Optional calls
+  have no null branch until first-class callable values exist. The unified
+  result-type mapping also corrected a pre-existing `And`/`Or` divergence
+  between verifier and codegen. Arbitrary precision, nullable callables and
+  first-class functions remain out of scope.
 
 ---
 

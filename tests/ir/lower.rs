@@ -339,6 +339,66 @@ fn for_of_lowers_to_an_index_loop() {
 }
 
 #[test]
+fn lowers_bigint_literals_and_integer_operations() {
+    let (module, _) = lower_source("let a = 123n; let b = a + 1n; let c = a > b; let d = -a;");
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    let instructions: Vec<&Instruction> = main
+        .blocks
+        .iter()
+        .flat_map(|block| block.instructions.iter())
+        .collect();
+    assert!(instructions.iter().any(|instruction| matches!(
+        instruction,
+        Instruction::Store {
+            value: Value::BigInt(123),
+            ..
+        }
+    )));
+    assert!(instructions.iter().any(|instruction| matches!(
+        instruction,
+        Instruction::Alloc {
+            ty: nava_ir::IrType::BigInt,
+            ..
+        }
+    )));
+    assert!(instructions.iter().any(|instruction| matches!(
+        instruction,
+        Instruction::BigIntBinary {
+            op: nava_ir::BinaryOp::Add,
+            ..
+        }
+    )));
+    assert!(instructions.iter().any(|instruction| matches!(
+        instruction,
+        Instruction::Unary {
+            op: nava_ir::UnaryOp::NegBigInt,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn optional_calls_lower_to_direct_calls() {
+    let source = "function f(x: number): number { return x; } console.log(f?.(1));";
+    let (module, _) = lower_source(source);
+    assert!(nava_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(
+        |block| block.instructions.iter().any(|instruction| matches!(
+            instruction,
+            Instruction::Call { callee, .. } if callee == "f"
+        ))
+    ));
+    assert!(
+        !main
+            .blocks
+            .iter()
+            .any(|block| block.label.starts_with("optional."))
+    );
+}
+
+#[test]
 fn every_lowered_module_verifies() {
     let sources = [
         "let x = 1 + 2;",

@@ -1,50 +1,6 @@
 //! The Nava IR data model — platform-independent by construction.
 
-/// Identifies an SSA-like instruction result within a function.
-pub type ValueId = u32;
-/// Identifies a basic block within a function.
-pub type BlockId = u32;
-/// Identifies a stack slot within a function.
-pub type SlotId = u32;
-/// Identifies a string constant within a module.
-pub type GlobalId = u32;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IrType {
-    Number,
-    Boolean,
-    String,
-    Array(Box<IrType>),
-    Object(Vec<(String, IrType)>),
-    Void,
-    /// A type whose layout is not fixed until the runtime phase.
-    Opaque,
-}
-
-impl IrType {
-    pub fn display(&self) -> String {
-        match self {
-            IrType::Number => "number".to_owned(),
-            IrType::Boolean => "boolean".to_owned(),
-            IrType::String => "string".to_owned(),
-            IrType::Array(inner) => format!("{}[]", inner.display()),
-            IrType::Object(_) => "object".to_owned(),
-            IrType::Void => "void".to_owned(),
-            IrType::Opaque => "opaque".to_owned(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Value {
-    /// Function parameter, by index.
-    Param(u32),
-    Local(ValueId),
-    Number(f64),
-    Bool(bool),
-    String(GlobalId),
-    Null,
-}
+pub use super::values::{BlockId, GlobalId, IrType, SlotId, Value, ValueId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -107,6 +63,7 @@ impl BinaryOp {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
     Neg,
+    NegBigInt,
     Not,
 }
 
@@ -137,6 +94,14 @@ pub enum Instruction {
         result: ValueId,
         op: UnaryOp,
         operand: Value,
+    },
+    /// Integer (bigint) binary operation. Arithmetic yields `bigint`,
+    /// comparisons and logical ops yield `boolean`.
+    BigIntBinary {
+        result: ValueId,
+        op: BinaryOp,
+        lhs: Value,
+        rhs: Value,
     },
     /// Pointer null check used by optional chaining.
     IsNull {

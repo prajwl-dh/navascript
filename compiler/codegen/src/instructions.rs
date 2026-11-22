@@ -97,7 +97,38 @@ pub(super) fn emit_instruction(
             let operand = llvm_value(operand);
             let line = match op {
                 UnaryOp::Neg => format!("fneg double {operand}"),
+                UnaryOp::NegBigInt => format!("sub i64 0, {operand}"),
                 UnaryOp::Not => format!("xor i1 {operand}, true"),
+            };
+            let _ = writeln!(out, "  %v{result} = {line}");
+        }
+        Instruction::BigIntBinary {
+            result,
+            op,
+            lhs,
+            rhs,
+        } => {
+            let lhs = llvm_value(lhs);
+            let rhs = llvm_value(rhs);
+            let line = match op {
+                BinaryOp::Add => format!("add i64 {lhs}, {rhs}"),
+                BinaryOp::Sub => format!("sub i64 {lhs}, {rhs}"),
+                BinaryOp::Mul => format!("mul i64 {lhs}, {rhs}"),
+                // Runtime helpers check division by zero and negative exponents.
+                BinaryOp::Div => format!("call i64 @nava_bigint_div(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Mod => format!("call i64 @nava_bigint_mod(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Pow => format!("call i64 @nava_bigint_pow(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Eq => format!("icmp eq i64 {lhs}, {rhs}"),
+                BinaryOp::Ne => format!("icmp ne i64 {lhs}, {rhs}"),
+                BinaryOp::Lt => format!("icmp slt i64 {lhs}, {rhs}"),
+                BinaryOp::Le => format!("icmp sle i64 {lhs}, {rhs}"),
+                BinaryOp::Gt => format!("icmp sgt i64 {lhs}, {rhs}"),
+                BinaryOp::Ge => format!("icmp sge i64 {lhs}, {rhs}"),
+                BinaryOp::And | BinaryOp::Or => {
+                    return Err(CodegenError {
+                        message: "bigint logical operators are not supported".to_owned(),
+                    });
+                }
             };
             let _ = writeln!(out, "  %v{result} = {line}");
         }
@@ -114,6 +145,7 @@ pub(super) fn emit_instruction(
                 Value::Number(_) => {
                     format!("fcmp one double {}, 0.0", llvm_value(value))
                 }
+                Value::BigInt(_) => format!("icmp ne i64 {}, 0", llvm_value(value)),
                 _ => {
                     let ty = value_type(value, types);
                     match ty {
@@ -121,6 +153,7 @@ pub(super) fn emit_instruction(
                         IrType::Number => {
                             format!("fcmp one double {}, 0.0", llvm_value(value))
                         }
+                        IrType::BigInt => format!("icmp ne i64 {}, 0", llvm_value(value)),
                         _ => {
                             return Err(CodegenError {
                                 message: format!(
@@ -161,6 +194,7 @@ pub(super) fn emit_instruction(
                         "nava_console_log_str"
                     }
                     Some(IrType::Number) | None => "nava_console_log_f64",
+                    Some(IrType::BigInt) => "nava_console_log_i64",
                     Some(other) => {
                         return Err(CodegenError {
                             message: format!(

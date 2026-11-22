@@ -313,6 +313,72 @@ fn rejects_non_numeric_update_and_power() {
 }
 
 #[test]
+fn infers_bigint_literals_and_arithmetic() {
+    let (output, _) = check_source(
+        "let a = 123n; let b: bigint = 0xffn; let sum = a + b; let cmp = a > b; let neg = -a; let xs = [1n, 2n]; let boxed = { value: 3n };",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    assert!(
+        output.typed.types.values().any(|ty| *ty == Type::BigInt),
+        "expected inferred bigint types"
+    );
+}
+
+#[test]
+fn rejects_mixing_bigint_and_number() {
+    let (output, _) = check_source("let bad = 1n + 2;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot mix bigint with other types"))
+    );
+}
+
+#[test]
+fn rejects_bigint_assigned_to_number() {
+    let (output, _) = check_source("let n: number = 1n;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign 'bigint' to 'number'"))
+    );
+}
+
+#[test]
+fn rejects_bigint_with_logical_operators() {
+    let (output, _) = check_source("let bad = 1n && 2n;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("logical operators require booleans"))
+    );
+}
+
+#[test]
+fn checks_optional_calls_like_direct_calls() {
+    let (output, _) = check_source(
+        "function f(a: number): number { return a; } let ok = f?.(1); let wrong = f?.();",
+    );
+    let messages = messages(&output);
+    assert!(
+        messages
+            .iter()
+            .any(|message| message.contains("expected 1 arguments, found 0")),
+        "{messages:?}"
+    );
+}
+
+#[test]
+fn rejects_calling_a_non_callable_with_optional_syntax() {
+    let (output, _) = check_source("let n = 1; n?.();");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot call a value of type 'number'"))
+    );
+}
+
+#[test]
 fn checks_assignment_form_for_of() {
     let (output, _) =
         check_source("let x = 0; let xs: number[] = [1]; for (x of xs) { let y = x; }");

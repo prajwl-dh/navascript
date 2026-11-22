@@ -5,6 +5,12 @@ use super::token::{LexError, Lexed, Token, TokenKind, keyword};
 mod number;
 mod string;
 
+/// Whether `ch` may continue an identifier (or follow a bigint suffix without
+/// making the suffix part of a longer word).
+pub(super) fn is_ident_continue(ch: char) -> bool {
+    ch.is_alphanumeric() || ch == '_' || ch == '$'
+}
+
 /// Tokenize UTF-8 source text. Spans are half-open byte offsets.
 pub fn tokenize(source: &str) -> Lexed {
     Scanner::new(source).run()
@@ -123,12 +129,8 @@ impl<'a> Scanner<'a> {
 
     fn lex_ident_or_keyword(&mut self) {
         let start = self.pos;
-        while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() || ch == '_' || ch == '$' {
-                self.advance_char();
-            } else {
-                break;
-            }
+        while self.peek().is_some_and(is_ident_continue) {
+            self.advance_char();
         }
         let kind = keyword(&self.source[start..self.pos]);
         self.push(kind, start);

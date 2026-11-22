@@ -24,7 +24,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
 - [x] Numeric literals: decimal integers and floats (including exponents),
   hex (`0x`), binary (`0b`) and octal (`0o`) integers, and `_` separators.
-  Bigint (`123n`) is not yet supported.
+- [x] Bigint literals (`123n`, `0xffn`, `1_000n`) — Phase 6; decoded to a signed
+  64-bit value. Out-of-range literals and a `n` suffix on a fractional/exponent
+  form are diagnostics; a suffix that starts a longer identifier (`123nfoo`) is
+  not treated as a bigint.
 - [x] String literals: single and double quotes with `\n`, `\t`, `\r`, `\0`,
   `\\`, `\"`, `\'`, `\xNN`, `\uNNNN` and `\u{...}` escapes. Template literals
   are not yet supported.
@@ -33,10 +36,11 @@ and the intent to grow toward broad compatibility. Status values mirror
   assignment (`+= -= *= /= %=`), ternary (`?:`), and `=>` in function *type
   annotations*.
 - [x] Optional chaining (`a?.b`, `a?.[i]`) — Phase 6; reference-typed results
-  only. No optional call `a?.()` yet, and the null branch is currently
-  unobservable because no null object/array can be constructed; the result is
-  typed as `T` until union types land.
-- [ ] Bigint literals.
+  only. The null branch is currently unobservable because no null object/array
+  can be constructed; the result is typed as `T` until union types land.
+- [x] Optional calls (`a?.()`) — Phase 6; parsed, type-checked for callability
+  and arity, and lowered as direct calls. No null branch is emitted because
+  Nava has no nullable callable values (ADR-0020).
 - [x] Comments: `//` and `/* */`.
 - [x] Every token carries byte offsets; diagnostics derive 1-based line and
   column from them.
@@ -45,6 +49,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ### Primitives (Phase 2, native values in Phase 4)
 - [x] `number` — 64-bit floating point (ADR-0006); emitted as LLVM `double`.
+- [~] `bigint` — Phase 6; signed 64-bit integer emitted as LLVM `i64`.
+  Arithmetic requires two bigints (mixing with `number` is diagnosed);
+  `+ - *` wrap on overflow while div/mod/pow are checked. Arbitrary precision
+  is out of scope.
 - [x] `boolean` — emitted as LLVM `i1`; prints `true`/`false`.
 - [x] `string` — NUL-terminated arena buffers (Phase 5); literals, `+`,
   `length`, indexing and equality work natively.
@@ -76,7 +84,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 4. Expressions
 
-- [x] Literals (number, string, boolean, null), identifiers
+- [x] Literals (number, bigint, string, boolean, null), identifiers
 - [x] Binary/unary operators with TypeScript precedence
 - [x] Function calls (direct calls lower and link natively)
 - [x] Member access `obj.prop` (parsed, type-checked, lowered; native field
@@ -84,6 +92,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
 - [x] Optional member/index access `a?.b` / `a?.[i]` (Phase 6; reference-typed
   results only)
+- [x] Optional calls `a?.()` (Phase 6; lowered as direct calls — see above)
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
 - [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
   `(a: T): R => { ... }`; supported as variable initialisers with annotated
@@ -137,9 +146,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [ ] Closures (Phase 6, ADR-0015)
 - [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
   terminate the process with a diagnostic (Phase 6, ADR-0015).
-- [~] `console.log` — numbers, booleans and strings print natively; object and
-  array values are not meaningfully supported (their raw bytes are printed).
-  No fix is scheduled in the current Phase 6 increment.
+- [~] `console.log` — numbers, booleans, strings and bigints print natively;
+  object and array values are not meaningfully supported (their raw bytes are
+  printed). No fix is scheduled in the current Phase 6 increment.
 
 ## 9. First acceptance program
 

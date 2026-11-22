@@ -5,6 +5,7 @@
 //! type syntax, statements and expressions; only this module is public.
 
 mod arrows;
+mod calls;
 mod expressions;
 mod items;
 mod operators;

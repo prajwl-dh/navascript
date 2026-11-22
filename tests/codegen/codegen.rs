@@ -110,3 +110,34 @@ fn emits_runtime_calls_for_collections() {
     assert!(ir.contains("call ptr @nava_object_new(i64 1"), "{ir}");
     assert!(ir.contains("call double @nava_object_get_f64"), "{ir}");
 }
+
+#[test]
+fn emits_bigint_constants_and_integer_arithmetic() {
+    let ir = generate_source("console.log(123n + 1n); console.log(2n ** 8n);");
+    assert!(
+        ir.contains("declare void @nava_console_log_i64(i64)"),
+        "{ir}"
+    );
+    assert!(ir.contains("add i64 123, 1"), "{ir}");
+    assert!(
+        ir.contains("call i64 @nava_bigint_pow(i64 2, i64 8)"),
+        "{ir}"
+    );
+    assert!(ir.contains("call void @nava_console_log_i64(i64"), "{ir}");
+}
+
+#[test]
+fn emits_bigint_collection_slots() {
+    let ir =
+        generate_source("let xs = [1n]; console.log(xs[0]); let p = { v: 2n }; console.log(p.v);");
+    assert!(ir.contains("call void @nava_array_set_i64"), "{ir}");
+    assert!(ir.contains("call i64 @nava_array_get_i64"), "{ir}");
+    assert!(ir.contains("call void @nava_object_set_i64"), "{ir}");
+    assert!(ir.contains("call i64 @nava_object_get_i64"), "{ir}");
+}
+
+#[test]
+fn emits_optional_calls_as_direct_calls() {
+    let ir = generate_source("function f(x: number): number { return x; } console.log(f?.(1));");
+    assert!(ir.contains("call double @nava_f(double"), "{ir}");
+}

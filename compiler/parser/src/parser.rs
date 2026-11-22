@@ -148,9 +148,25 @@ pub(super) fn token_span(token: &Token, file: FileId) -> Span {
     Span::new(file, token.start as usize, token.end as usize)
 }
 
+/// Remove `_` separators shared by number and bigint literal decoding.
+fn strip_separators(lexeme: &str) -> String {
+    lexeme.chars().filter(|&ch| ch != '_').collect()
+}
+
+/// Parse a bigint lexeme (`123n`, `0xffn`, `1_000n`). Nava stores bigints as
+/// `i64`; out-of-range literals are diagnosed by the caller.
+pub(super) fn decode_bigint(lexeme: &str) -> Option<i64> {
+    let digits = lexeme.strip_suffix('n')?;
+    let clean = strip_separators(digits);
+    let (radix, digits) = radix_prefix(&clean).unwrap_or((10, clean.as_str()));
+    i128::from_str_radix(digits, radix)
+        .ok()
+        .and_then(|value| i64::try_from(value).ok())
+}
+
 /// Parse a numeric lexeme, including `0x`/`0b`/`0o` prefixes and `_` separators.
 pub(super) fn decode_number(lexeme: &str) -> f64 {
-    let clean: String = lexeme.chars().filter(|&ch| ch != '_').collect();
+    let clean = strip_separators(lexeme);
     let (radix, digits) = radix_prefix(&clean).unwrap_or((10, clean.as_str()));
     u64::from_str_radix(digits, radix)
         .map(|value| value as f64)

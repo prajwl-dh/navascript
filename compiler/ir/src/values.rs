@@ -1,0 +1,50 @@
+//! IR value representation and type tags, independent of instructions.
+
+/// Identifies an SSA-like instruction result within a function.
+pub type ValueId = u32;
+/// Identifies a basic block within a function.
+pub type BlockId = u32;
+/// Identifies a stack slot within a function.
+pub type SlotId = u32;
+/// Identifies a string constant within a module.
+pub type GlobalId = u32;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IrType {
+    Number,
+    BigInt,
+    Boolean,
+    String,
+    Array(Box<IrType>),
+    Object(Vec<(String, IrType)>),
+    Void,
+    /// A type whose layout is not fixed until the runtime phase.
+    Opaque,
+}
+
+impl IrType {
+    pub fn display(&self) -> String {
+        match self {
+            IrType::Number => "number".to_owned(),
+            IrType::BigInt => "bigint".to_owned(),
+            IrType::Boolean => "boolean".to_owned(),
+            IrType::String => "string".to_owned(),
+            IrType::Array(inner) => format!("{}[]", inner.display()),
+            IrType::Object(_) => "object".to_owned(),
+            IrType::Void => "void".to_owned(),
+            IrType::Opaque => "opaque".to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Value {
+    /// Function parameter, by index.
+    Param(u32),
+    Local(ValueId),
+    Number(f64),
+    BigInt(i64),
+    Bool(bool),
+    String(GlobalId),
+    Null,
+}

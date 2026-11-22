@@ -11,6 +11,9 @@ use nava_ast::Span;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Number,
+    /// The `bigint` primitive. Nava currently stores it as a signed 64-bit
+    /// integer; wider literals are diagnosed during parsing.
+    BigInt,
     String,
     Boolean,
     Void,
@@ -33,6 +36,7 @@ impl Type {
     pub fn display(&self) -> String {
         match self {
             Type::Number => "number".to_owned(),
+            Type::BigInt => "bigint".to_owned(),
             Type::String => "string".to_owned(),
             Type::Boolean => "boolean".to_owned(),
             Type::Void => "void".to_owned(),

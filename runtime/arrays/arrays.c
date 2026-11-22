@@ -29,6 +29,16 @@ double nava_array_get_f64(NavaArray *array, int64_t index) {
     return ((double *)array->slots)[index];
 }
 
+void nava_array_set_i64(NavaArray *array, int64_t index, int64_t value) {
+    check_index(array, index);
+    ((int64_t *)array->slots)[index] = value;
+}
+
+int64_t nava_array_get_i64(NavaArray *array, int64_t index) {
+    check_index(array, index);
+    return ((int64_t *)array->slots)[index];
+}
+
 void nava_array_set_bool(NavaArray *array, int64_t index, int value) {
     check_index(array, index);
     ((unsigned char *)array->slots)[index * 8] = (unsigned char)(value != 0);

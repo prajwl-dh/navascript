@@ -5,8 +5,9 @@ compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
 **Status:** Phase 6 (Language expansion) in progress — loops (with
-`break`/`continue`), the additional literals/operators, arrow functions and
-optional chaining are complete; the remaining expansion items are pending.
+`break`/`continue`), the additional literals/operators, arrow functions,
+optional chaining, bigint literals and optional calls are complete; the
+remaining expansion items are pending.
 
 ## Goals (tracked independently)
 
@@ -46,7 +47,7 @@ Compile to a native macOS executable that prints `55` without Node.js.
 ```
 compiler/    lexer, parser, ast, diagnostics, symbol, semantic, typechecker, ir,
              optimizer, codegen, driver
-runtime/     nava_runtime.h/.c plus memory/, strings/, arrays/, objects/,
+runtime/     nava_runtime.h/.c plus memory/, bigint/, strings/, arrays/, objects/,
              console/ sources (one concern per directory)
 tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
              driver, runtime (compatibility added in Phase 7)
@@ -59,7 +60,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 169 tests through Phase 6 (loops + jumps, operators, arrows, optional chaining)
+cargo test --workspace     # 192 tests through Phase 6 (loops + jumps, operators, arrows, optional chaining, bigint, optional calls)
 target/debug/nava --version
 target/debug/nava --help
 target/debug/nava build examples/fibonacci.ts -o fibonacci
@@ -89,7 +90,14 @@ fibonacci printing `55` without Node.js — is verified by
 - Optional chaining `a?.b` / `a?.[i]` for reference-typed results
   (`examples/optional.ts`).
 
-Still pending in Phase 6: optional calls (`a?.()`), bigint, generics, classes,
+- Bigint literals (`123n`, `0xffn`, `1_000n`) as a `bigint` type backed by a
+   signed 64-bit integer, with integer arithmetic, comparisons, `++`/`--`,
+   bigint arrays/objects and `console.log` (`examples/bigint.ts`).
+- Optional calls `a?.()` (`examples/optional_call.ts`) — parsed, type-checked
+   and lowered as direct calls; the null branch is unobservable until Nava has
+   nullable callable values.
+
+Still pending in Phase 6: generics, classes,
 structural typing, unions, modules, first-class function values/closures,
 exceptions (deferred from Phase 5 by ADR-0015) and async/await.
 

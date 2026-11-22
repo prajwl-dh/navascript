@@ -5,6 +5,7 @@
 pub enum TokenKind {
     Ident,
     Number,
+    BigInt,
     String,
     Let,
     Const,

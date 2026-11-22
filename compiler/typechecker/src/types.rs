@@ -21,6 +21,7 @@ fn resolve(expr: &TypeExpr, aliases: &AliasTable, depth: u8) -> Type {
     match expr {
         TypeExpr::Named(name) => match name.as_str() {
             "number" => Type::Number,
+            "bigint" => Type::BigInt,
             "string" => Type::String,
             "boolean" => Type::Boolean,
             "void" => Type::Void,

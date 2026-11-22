@@ -11,6 +11,9 @@ pub struct Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Number(f64),
+    /// A `123n` literal. Nava currently represents bigints as signed 64-bit
+    /// integers; wider values are diagnosed rather than silently wrapped.
+    BigInt(i64),
     String(String),
     Bool(bool),
     Null,
@@ -51,6 +54,9 @@ pub enum ExprKind {
     Call {
         callee: Box<Expr>,
         args: Vec<Expr>,
+        /// `a?.()` vs `a()`. The null branch is unobservable until nullable
+        /// callable values exist, so lowering treats both as a direct call.
+        optional: bool,
     },
     Index {
         object: Box<Expr>,

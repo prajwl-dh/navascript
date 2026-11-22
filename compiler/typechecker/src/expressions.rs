@@ -11,6 +11,7 @@ impl<'a> Checker<'a> {
     pub(super) fn infer_expr(&mut self, expr: &Expr) -> Type {
         let ty = match &expr.kind {
             ExprKind::Number(_) => Type::Number,
+            ExprKind::BigInt(_) => Type::BigInt,
             ExprKind::String(_) => Type::String,
             ExprKind::Bool(_) => Type::Boolean,
             ExprKind::Null => Type::Null,
@@ -30,11 +31,12 @@ impl<'a> Checker<'a> {
                 let ty = self.infer_expr(operand);
                 match op {
                     UnaryOp::Not => Type::Boolean,
+                    UnaryOp::Neg | UnaryOp::Pos if self.is_bigint(&ty) => Type::BigInt,
                     UnaryOp::Neg | UnaryOp::Pos if matches!(ty, Type::Number | Type::Unknown) => {
                         Type::Number
                     }
                     UnaryOp::Neg | UnaryOp::Pos => {
-                        self.error("unary operator expects a number", expr.span);
+                        self.error("unary operator expects a number or bigint", expr.span);
                         Type::Error
                     }
                 }
@@ -52,12 +54,7 @@ impl<'a> Checker<'a> {
                 result
             }
             ExprKind::Update { op, operand, .. } => {
-                let current = self.infer_expr(operand);
-                if !matches!(current, Type::Number | Type::Unknown | Type::Error) {
-                    self.error(format!("{} requires a number", op.symbol()), expr.span);
-                }
-                self.check_assign_target(operand, &Type::Number);
-                Type::Number
+                self.infer_update(op.symbol(), operand, expr.span)
             }
             ExprKind::Ternary {
                 condition,
@@ -91,7 +88,9 @@ impl<'a> Checker<'a> {
                 return_ty,
                 body,
             } => self.infer_arrow(params, return_ty, body),
-            ExprKind::Call { callee, args } => {
+            ExprKind::Call { callee, args, .. } => {
+                // `a?.()` uses the same callability and arity checks as `a()`;
+                // only the (currently unobservable) null branch differs.
                 let callee_ty = self.infer_expr(callee);
                 self.infer_call(&callee_ty, args, expr.span)
             }
@@ -211,6 +210,9 @@ impl<'a> Checker<'a> {
         rhs: &Type,
         span: Span,
     ) -> Type {
+        if let Some(ty) = self.infer_bigint_binary(op, lhs, rhs, span) {
+            return ty;
+        }
         match op {
             BinaryOp::Add if matches!(lhs, Type::String) || matches!(rhs, Type::String) => {
                 Type::String

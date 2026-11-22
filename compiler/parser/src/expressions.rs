@@ -4,7 +4,7 @@ use nava_ast::{BinaryOp, Expr, ExprKind, ObjectField, Span, UnaryOp};
 use nava_lexer::TokenKind;
 
 use super::parser::Parser;
-use super::parser::{decode_number, decode_string};
+use super::parser::{decode_bigint, decode_number, decode_string};
 
 impl<'a> Parser<'a> {
     pub(super) fn parse_expr(&mut self, min_prec: u8) -> Option<Expr> {
@@ -182,23 +182,7 @@ impl<'a> Parser<'a> {
                     };
                 }
                 TokenKind::LParen => {
-                    self.bump();
-                    let mut args = Vec::new();
-                    while self.kind() != TokenKind::RParen && self.kind() != TokenKind::Eof {
-                        args.push(self.parse_expr(0)?);
-                        if !self.eat(TokenKind::Comma) {
-                            break;
-                        }
-                    }
-                    let close = self.expect(TokenKind::RParen, "expected ')' after arguments")?;
-                    let span = Span::new(self.file, expr.span.start as usize, close.end as usize);
-                    expr = Expr {
-                        kind: ExprKind::Call {
-                            callee: Box::new(expr),
-                            args,
-                        },
-                        span,
-                    };
+                    expr = self.parse_call_tail(expr, false)?;
                 }
                 _ => break,
             }
@@ -213,6 +197,18 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let value = decode_number(&token.lexeme);
                 (ExprKind::Number(value), token.end)
+            }
+            TokenKind::BigInt => {
+                let span = self.current_span();
+                self.bump();
+                let value = match decode_bigint(&token.lexeme) {
+                    Some(value) => value,
+                    None => {
+                        self.error("bigint literal is out of the supported 64-bit range", span);
+                        0
+                    }
+                };
+                (ExprKind::BigInt(value), token.end)
             }
             TokenKind::String => {
                 self.bump();

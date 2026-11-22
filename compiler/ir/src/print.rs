@@ -87,13 +87,24 @@ fn print_instruction(instruction: &Instruction) -> String {
             value_name(lhs),
             value_name(rhs)
         ),
+        Instruction::BigIntBinary {
+            result,
+            op,
+            lhs,
+            rhs,
+        } => format!(
+            "%{result} = bigint.{} {}, {}",
+            op.symbol(),
+            value_name(lhs),
+            value_name(rhs)
+        ),
         Instruction::Unary {
             result,
             op,
             operand,
         } => {
             let symbol = match op {
-                super::ir::UnaryOp::Neg => "-",
+                super::ir::UnaryOp::Neg | super::ir::UnaryOp::NegBigInt => "-",
                 super::ir::UnaryOp::Not => "!",
             };
             format!("%{result} = {symbol}{}", value_name(operand))
@@ -213,6 +224,7 @@ fn value_name(value: &Value) -> String {
         Value::Param(index) => format!("%{index}"),
         Value::Local(index) => format!("%{index}"),
         Value::Number(value) => format!("{value}"),
+        Value::BigInt(value) => format!("{value}n"),
         Value::Bool(value) => value.to_string(),
         Value::String(global) => format!("@{global}"),
         Value::Null => "null".to_owned(),

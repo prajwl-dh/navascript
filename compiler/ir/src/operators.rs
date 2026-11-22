@@ -33,6 +33,13 @@ impl FunctionBuilder {
                 left: lhs,
                 right: rhs,
             });
+        } else if lhs_ty == IrType::BigInt || rhs_ty == IrType::BigInt {
+            self.emit(Instruction::BigIntBinary {
+                result,
+                op: BinaryOp::Add,
+                lhs,
+                rhs,
+            });
         } else {
             self.emit(Instruction::Binary {
                 result,
@@ -61,6 +68,13 @@ impl FunctionBuilder {
                 lowerer.expr_ty(value),
                 result,
             );
+        } else if lowerer.expr_ty(target) == IrType::BigInt {
+            self.emit(Instruction::BigIntBinary {
+                result,
+                op: to_ir_binary(op.binary_op()),
+                lhs: current,
+                rhs: operand,
+            });
         } else {
             self.emit(Instruction::Binary {
                 result,
@@ -83,13 +97,27 @@ impl FunctionBuilder {
     ) -> Value {
         let current = self.lower_expr(operand, lowerer);
         let result = self.fresh_value();
-        let delta = if op == UpdateOp::Inc { 1.0 } else { -1.0 };
-        self.emit(Instruction::Binary {
-            result,
-            op: BinaryOp::Add,
-            lhs: current.clone(),
-            rhs: Value::Number(delta),
-        });
+        let increment = op == UpdateOp::Inc;
+        if lowerer.expr_ty(operand) == IrType::BigInt {
+            self.emit(Instruction::BigIntBinary {
+                result,
+                op: if increment {
+                    BinaryOp::Add
+                } else {
+                    BinaryOp::Sub
+                },
+                lhs: current.clone(),
+                rhs: Value::BigInt(1),
+            });
+        } else {
+            let delta = if increment { 1.0 } else { -1.0 };
+            self.emit(Instruction::Binary {
+                result,
+                op: BinaryOp::Add,
+                lhs: current.clone(),
+                rhs: Value::Number(delta),
+            });
+        }
         let updated = Value::Local(result);
         self.lower_assign(operand, &updated, lowerer);
         if prefix { updated } else { current }

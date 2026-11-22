@@ -6,6 +6,7 @@
 //! involved.
 
 mod arrows;
+mod bigint;
 mod checker;
 mod declarations;
 mod expressions;

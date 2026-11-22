@@ -3,13 +3,14 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use nava_ir::{BinaryOp, Instruction, IrFunction, IrType, UnaryOp, Value, ValueId};
+use nava_ir::{Instruction, IrFunction, IrType, Value, ValueId};
 
 use super::CodegenError;
 
 pub(super) fn slot_suffix(ty: &IrType) -> &'static str {
     match ty {
         IrType::Number => "f64",
+        IrType::BigInt => "i64",
         IrType::Boolean => "bool",
         _ => "ptr",
     }
@@ -74,6 +75,7 @@ pub(super) fn require_type(
 pub(super) fn llvm_type(ty: &IrType) -> Result<String, String> {
     match ty {
         IrType::Number => Ok("double".to_owned()),
+        IrType::BigInt => Ok("i64".to_owned()),
         IrType::Boolean => Ok("i1".to_owned()),
         IrType::Void => Ok("void".to_owned()),
         IrType::String | IrType::Array(_) | IrType::Object(_) => Ok("ptr".to_owned()),
@@ -86,6 +88,7 @@ pub(super) fn llvm_value(value: &Value) -> String {
         Value::Param(index) => format!("%p{index}"),
         Value::Local(index) => format!("%v{index}"),
         Value::Number(value) => format!("{value:?}"),
+        Value::BigInt(value) => format!("{value}"),
         Value::Bool(value) => value.to_string(),
         Value::String(id) => format!("@g{id}"),
         Value::Null => "null".to_owned(),
@@ -95,6 +98,7 @@ pub(super) fn llvm_value(value: &Value) -> String {
 pub(super) fn value_type(value: &Value, types: &HashMap<ValueId, IrType>) -> IrType {
     match value {
         Value::Number(_) => IrType::Number,
+        Value::BigInt(_) => IrType::BigInt,
         Value::Bool(_) => IrType::Boolean,
         Value::String(_) | Value::Null => IrType::String,
         Value::Local(index) | Value::Param(index) => {
@@ -110,69 +114,35 @@ pub(super) fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
     }
     for block in &function.blocks {
         for instruction in &block.instructions {
-            match instruction {
-                Instruction::Load { result, ty, .. } => {
-                    types.insert(*result, ty.clone());
-                }
-                Instruction::Binary { result, op, .. } => {
-                    types.insert(
-                        *result,
-                        if op.is_comparison() || matches!(op, BinaryOp::And | BinaryOp::Or) {
-                            IrType::Boolean
-                        } else {
-                            IrType::Number
-                        },
-                    );
-                }
-                Instruction::Unary { result, op, .. } => {
-                    types.insert(
-                        *result,
-                        match op {
-                            UnaryOp::Neg => IrType::Number,
-                            UnaryOp::Not => IrType::Boolean,
-                        },
-                    );
-                }
-                Instruction::IsNull { result, .. }
+            if let Instruction::Call {
+                result: Some(result),
+                ..
+            } = instruction
+            {
+                types.insert(*result, instruction.result_type());
+                continue;
+            }
+            let result = match instruction {
+                Instruction::Load { result, .. }
+                | Instruction::Binary { result, .. }
+                | Instruction::Unary { result, .. }
+                | Instruction::BigIntBinary { result, .. }
+                | Instruction::IsNull { result, .. }
                 | Instruction::ToBool { result, .. }
+                | Instruction::StringConcat { result, .. }
+                | Instruction::NumberToString { result, .. }
                 | Instruction::StringEquals { result, .. }
-                | Instruction::NumberToString { result, .. } => {
-                    types.insert(*result, IrType::Boolean);
-                }
-                Instruction::StringConcat { result, .. }
-                | Instruction::StringCharAt { result, .. } => {
-                    types.insert(*result, IrType::String);
-                }
-                Instruction::StringLength { result, .. }
-                | Instruction::ArrayLength { result, .. } => {
-                    types.insert(*result, IrType::Number);
-                }
-                Instruction::ArrayNew {
-                    result, element_ty, ..
-                } => {
-                    types.insert(*result, IrType::Array(Box::new(element_ty.clone())));
-                }
-                Instruction::ArrayGet {
-                    result, element_ty, ..
-                }
-                | Instruction::ObjectGet {
-                    result,
-                    field_ty: element_ty,
-                    ..
-                } => {
-                    types.insert(*result, element_ty.clone());
-                }
-                Instruction::ObjectNew { result, fields } => {
-                    types.insert(*result, IrType::Object(fields.clone()));
-                }
-                Instruction::Call {
-                    result: Some(result),
-                    result_ty,
-                    ..
-                } => {
-                    types.insert(*result, result_ty.clone());
-                }
-                _ => {}
+                | Instruction::StringLength { result, .. }
+                | Instruction::StringCharAt { result, .. }
+                | Instruction::ArrayNew { result, .. }
+                | Instruction::ArrayGet { result, .. }
+                | Instruction::ArrayLength { result, .. }
+                | Instruction::ObjectNew { result, .. }
+                | Instruction::ObjectGet { result, .. } => Some(result),
+                _ => None,
+            };
+            if let Some(result) = result {
+                types.insert(*result, instruction.result_type());
             }
         }
     }

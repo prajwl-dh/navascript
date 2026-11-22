@@ -42,6 +42,17 @@ int nava_runtime_test_main(void) {
     assert(strcmp((const char *)nava_object_get_ptr(object, 1), "hello world") == 0);
     assert(nava_object_get_bool(object, 2) == 1);
 
+    NavaArray *bigints = nava_array_new(1);
+    nava_array_set_i64(bigints, 0, 123);
+    assert(nava_array_get_i64(bigints, 0) == 123);
+    NavaObject *boxed = nava_object_new(1, "v\0");
+    nava_object_set_i64(boxed, 0, -7);
+    assert(nava_object_get_i64(boxed, 0) == -7);
+    assert(nava_bigint_div(9, 2) == 4);
+    assert(nava_bigint_mod(9, 2) == 1);
+    assert(nava_bigint_pow(2, 10) == 1024);
+    assert(nava_bigint_pow(-3, 3) == -27);
+
     puts("runtime unit tests passed");
     return 0;
 }

@@ -33,6 +33,16 @@ double nava_object_get_f64(NavaObject *object, int64_t index) {
     return ((double *)object->slots)[index];
 }
 
+void nava_object_set_i64(NavaObject *object, int64_t index, int64_t value) {
+    check_field(object, index);
+    ((int64_t *)object->slots)[index] = value;
+}
+
+int64_t nava_object_get_i64(NavaObject *object, int64_t index) {
+    check_field(object, index);
+    return ((int64_t *)object->slots)[index];
+}
+
 void nava_object_set_bool(NavaObject *object, int64_t index, int value) {
     check_field(object, index);
     ((unsigned char *)object->slots)[index * 8] = (unsigned char)(value != 0);

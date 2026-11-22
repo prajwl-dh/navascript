@@ -9,6 +9,10 @@ void nava_console_log_f64(double value) {
     printf("%s\n", buffer);
 }
 
+void nava_console_log_i64(int64_t value) {
+    printf("%lld\n", (long long)value);
+}
+
 void nava_console_log_bool(int value) {
     printf("%s\n", value ? "true" : "false");
 }

@@ -206,6 +206,7 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
     match expr {
         TypeExpr::Named(name) => match name.as_str() {
             "number" => IrType::Number,
+            "bigint" => IrType::BigInt,
             "string" => IrType::String,
             "boolean" => IrType::Boolean,
             "void" => IrType::Void,
@@ -218,6 +219,7 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
 pub(super) fn ir_type_from_symbol(ty: &Type) -> IrType {
     match ty {
         Type::Number => IrType::Number,
+        Type::BigInt => IrType::BigInt,
         Type::String => IrType::String,
         Type::Boolean => IrType::Boolean,
         Type::Void => IrType::Void,

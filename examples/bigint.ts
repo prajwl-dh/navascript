@@ -1,0 +1,18 @@
+// Bigint literals and integer arithmetic (Nava stores bigints as i64).
+const a = 123n;
+const hex = 0xffn;
+console.log(a);
+console.log(hex);
+console.log(1_000n);
+console.log(a + 10n);
+console.log(a - 10n);
+console.log(a * 2n);
+console.log(a / 10n);
+console.log(a % 10n);
+console.log(2n ** 8n);
+console.log(a > 100n);
+console.log(a == 123n);
+console.log(-a);
+let counter = 1n;
+counter++;
+console.log(counter);

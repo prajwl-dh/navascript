@@ -10,6 +10,7 @@ impl FunctionBuilder {
     pub(super) fn lower_expr(&mut self, expr: &Expr, lowerer: &mut Lowerer) -> Value {
         match &expr.kind {
             ExprKind::Number(value) => Value::Number(*value),
+            ExprKind::BigInt(value) => Value::BigInt(*value),
             ExprKind::Bool(value) => Value::Bool(*value),
             ExprKind::Null => Value::Null,
             ExprKind::String(value) => {
@@ -31,6 +32,13 @@ impl FunctionBuilder {
                 let result = self.fresh_value();
                 if *op == AstBinaryOp::Add {
                     self.emit_add(lhs, rhs, lhs_ty, rhs_ty, result);
+                } else if lhs_ty == IrType::BigInt {
+                    self.emit(Instruction::BigIntBinary {
+                        result,
+                        op: super::operators::to_ir_binary(*op),
+                        lhs,
+                        rhs,
+                    });
                 } else if lhs_ty == IrType::String || rhs_ty == IrType::String {
                     // Equality on strings needs `ptr` operands.
                     let lhs = if lhs_ty == IrType::String {
@@ -78,6 +86,7 @@ impl FunctionBuilder {
                 Value::Local(result)
             }
             ExprKind::Unary { op, operand } => {
+                let operand_ty = lowerer.expr_ty(operand);
                 let operand = self.lower_expr(operand, lowerer);
                 match op {
                     AstUnaryOp::Pos => operand,
@@ -86,6 +95,9 @@ impl FunctionBuilder {
                         self.emit(Instruction::Unary {
                             result,
                             op: match op {
+                                AstUnaryOp::Neg if operand_ty == IrType::BigInt => {
+                                    UnaryOp::NegBigInt
+                                }
                                 AstUnaryOp::Neg => UnaryOp::Neg,
                                 _ => UnaryOp::Not,
                             },
@@ -123,7 +135,11 @@ impl FunctionBuilder {
                 );
                 Value::Null
             }
-            ExprKind::Call { callee, args } => self.lower_call(callee, args, lowerer),
+            ExprKind::Call {
+                callee,
+                args,
+                optional,
+            } => self.lower_call(callee, args, *optional, lowerer),
             ExprKind::Index {
                 object,
                 index,

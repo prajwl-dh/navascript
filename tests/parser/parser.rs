@@ -83,7 +83,7 @@ fn parses_calls_and_member_access() {
     let ItemKind::Expr(expr) = &output.program.items[0].kind else {
         panic!("expected an expression item");
     };
-    let ExprKind::Call { callee, args } = &expr.kind else {
+    let ExprKind::Call { callee, args, .. } = &expr.kind else {
         panic!("expected a call");
     };
     assert!(matches!(&callee.kind, ExprKind::Member { property, .. } if property == "log"));
@@ -484,5 +484,67 @@ fn parses_function_type_annotations() {
     assert!(matches!(
         &decl.ty.as_ref().unwrap().expr,
         TypeExpr::Function { .. }
+    ));
+}
+
+#[test]
+fn parses_bigint_literals_in_multiple_radices() {
+    let output = ok("let a = 123n; let b = 0xffn; let c = 1_000n;");
+    let values: Vec<i64> = output
+        .program
+        .items
+        .iter()
+        .filter_map(|item| match &item.kind {
+            ItemKind::Variable(decl) => match &decl.init.as_ref().unwrap().kind {
+                ExprKind::BigInt(value) => Some(*value),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(values, vec![123, 255, 1000]);
+}
+
+#[test]
+fn diagnoses_out_of_range_bigint_literals() {
+    let output = parse("let huge = 999999999999999999999999n;");
+    assert!(
+        output
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("64-bit range"))
+    );
+}
+
+#[test]
+fn parses_optional_calls() {
+    let output = ok("f?.(); f?.(1, \"two\");");
+    for item in &output.program.items {
+        let ItemKind::Expr(expr) = &item.kind else {
+            panic!("expected an expression item");
+        };
+        assert!(matches!(&expr.kind, ExprKind::Call { optional: true, .. }));
+    }
+    let ItemKind::Expr(second) = &output.program.items[1].kind else {
+        panic!("expected an expression item");
+    };
+    let ExprKind::Call { args, .. } = &second.kind else {
+        panic!("expected a call");
+    };
+    assert_eq!(args.len(), 2);
+}
+
+#[test]
+fn keeps_direct_calls_distinct_from_optional_calls() {
+    let output = ok("f(); f?.();");
+    let ItemKind::Expr(direct) = &output.program.items[0].kind else {
+        panic!("expected an expression item");
+    };
+    assert!(matches!(
+        &direct.kind,
+        ExprKind::Call {
+            optional: false,
+            ..
+        }
     ));
 }

@@ -235,6 +235,31 @@ fn new_operators_run_natively() {
 }
 
 #[test]
+fn bigints_run_natively() {
+    let Some(binary) = compile("bigint.ts", "bigint", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run bigint program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "123\n255\n1000\n133\n113\n246\n12\n3\n256\ntrue\ntrue\n-123\n2\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
+fn optional_calls_run_natively() {
+    let Some(binary) = compile("optional_call.ts", "optional-call", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run optional call program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "hi nava\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn release_mode_prints_the_same_result() {
     let Some(binary) = compile("fibonacci.ts", "fib-release", &["--release"]) else {
         return;

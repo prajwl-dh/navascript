@@ -71,7 +71,7 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
-| Runtime | `runtime/` | Allocator, strings, arrays, objects, console; closures/exceptions still pending in Phase 6 (ADR-0015) | codegen ABI contract |
+| Runtime | `runtime/` | Allocator, bigint helpers, strings, arrays, objects, console; closures/exceptions still pending in Phase 6 (ADR-0015) | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a
@@ -118,8 +118,8 @@ hardcoded to ARM64. The driver owns tool discovery and build errors.
 ```
 compiler/     source modules + Cargo crates (workspace); each crate has one
               public façade (lib.rs) and private implementation modules
-runtime/      nava_runtime.h/.c plus memory/, strings/, arrays/, objects/,
-              console/ — one source directory per runtime concern
+runtime/      nava_runtime.h/.c plus memory/, bigint/, strings/, arrays/,
+              objects/, console/ — one source directory per runtime concern
 tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
               driver, runtime; compatibility added in Phase 7
 docs/         this documentation set

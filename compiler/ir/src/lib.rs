@@ -15,7 +15,9 @@ mod loops;
 mod lower;
 mod operators;
 mod print;
+mod results;
 mod statements;
+mod values;
 mod verify;
 
 pub use ir::{

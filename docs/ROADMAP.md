@@ -244,8 +244,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Loops (`for`, `while`, `do-while`, `for-of`) — deferred from Phase 1, see the
   Phase 1 known limitations. **Delivered 2026-11-21** (status in `PROGRESS.md`).
 - Arrow functions and the additional literals/operators listed in
-  `docs/COMPATIBILITY.md` §6. **Delivered 2026-11-21** (status in `PROGRESS.md`;
-  optional calls and bigint remain pending).
+  `docs/COMPATIBILITY.md` §6. **Delivered 2026-11-21** (status in `PROGRESS.md`).
+- Optional calls (`a?.()`) and bigint literals (`123n`) — the remaining syntactic
+  rows in `COMPATIBILITY.md` §6. **Delivered 2026-11-21** (status in
+  `PROGRESS.md`).
 - Generics.
 - Classes and inheritance.
 - Interfaces and structural typing.
@@ -266,11 +268,14 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Decorators, namespaces, JSX/TSX deferred unless evidence demands otherwise.
 - Full `lib.d.ts` compatibility out of scope for this phase.
 - Loops (including `break`/`continue`) landed first, then the additional
-  literals/operators, arrow functions and optional member/index chaining (see
-  `PROGRESS.md`). Arrows are limited to annotated variable initialisers with no
-  captures; optional chaining is limited to reference-typed results and cannot
-  be observed as null yet. Optional calls, bigint and function values are not
-  implemented; iteration is limited to arrays/strings.
+  literals/operators, arrow functions, optional member/index chaining, bigint
+  and optional calls (see `PROGRESS.md`). Arrows are limited to annotated
+  variable initialisers with no captures; optional chaining is limited to
+  reference-typed results and cannot be observed as null yet. Optional calls
+  lower as direct calls because there are no nullable callable values. Bigint is
+  backed by a signed 64-bit integer: `+ - *` wrap on overflow while division,
+  modulo and power are checked; arbitrary precision is out of scope. Function
+  values are not implemented; iteration is limited to arrays/strings.
 
 ---
 

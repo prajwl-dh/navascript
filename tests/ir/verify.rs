@@ -35,6 +35,43 @@ fn accepts_a_well_formed_function() {
 }
 
 #[test]
+fn rejects_bigint_binary_with_number_operands() {
+    let mut function = function("f");
+    function.blocks[0]
+        .instructions
+        .push(Instruction::BigIntBinary {
+            result: 1,
+            op: BinaryOp::Add,
+            lhs: Value::Param(0),
+            rhs: Value::BigInt(1),
+        });
+    let errors = verify(&finish(function));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.message.contains("expected 'bigint', found 'number'")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_bigint_negation_of_a_number() {
+    let mut function = function("f");
+    function.blocks[0].instructions.push(Instruction::Unary {
+        result: 1,
+        op: nava_ir::UnaryOp::NegBigInt,
+        operand: Value::Param(0),
+    });
+    let errors = verify(&finish(function));
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.message.contains("expected 'bigint', found 'number'")),
+        "{errors:?}"
+    );
+}
+
+#[test]
 fn rejects_a_block_without_a_terminator() {
     let mut function = function("f");
     function.blocks[0].terminator = None;

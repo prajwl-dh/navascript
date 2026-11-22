@@ -73,7 +73,7 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/driver/` | CLI argument parsing and the real `nava` binary |
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 | `tests/codegen/` | Nava IR → LLVM IR translation |
-| `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, dynamic indices, runtime errors, debug/release) |
+| `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, bigint, optional calls, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
 `tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`
@@ -132,7 +132,7 @@ compiler/
 
 runtime/
   nava_runtime.h/.c         ABI header and process entry point
-  memory/ strings/ arrays/ objects/ console/   one source per concern
+  memory/ bigint/ strings/ arrays/ objects/ console/   one source per concern
 ```
 
 The front end (lexer → AST → type checker → IR) must not depend on LLVM. Only
@@ -162,6 +162,9 @@ code 1.
 - Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings,
   with `break`/`continue` for the innermost loop; general iterables are not
   implemented.
+- `bigint` is a signed 64-bit integer, not arbitrary precision: mixing it with
+  `number` is diagnosed, `+ - *` wrap on overflow, and div/mod/pow are checked;
+  optional calls lower as direct calls until nullable callables exist.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.

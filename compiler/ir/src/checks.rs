@@ -11,6 +11,7 @@ pub(super) fn values_in_instruction(instruction: &Instruction) -> Vec<&Value> {
         | Instruction::IsNull { value, .. }
         | Instruction::ToBool { value, .. } => vec![value],
         Instruction::Binary { lhs, rhs, .. }
+        | Instruction::BigIntBinary { lhs, rhs, .. }
         | Instruction::StringConcat {
             left: lhs,
             right: rhs,
@@ -133,6 +134,7 @@ pub(super) fn check_value(
 pub(super) fn value_type(value: &Value, defs: &HashMap<ValueId, (IrType, BlockId)>) -> IrType {
     match value {
         Value::Number(_) => IrType::Number,
+        Value::BigInt(_) => IrType::BigInt,
         Value::Bool(_) => IrType::Boolean,
         Value::String(_) => IrType::String,
         Value::Null => IrType::Opaque,
@@ -140,35 +142,5 @@ pub(super) fn value_type(value: &Value, defs: &HashMap<ValueId, (IrType, BlockId
             .get(index)
             .map(|(ty, _)| ty.clone())
             .unwrap_or(IrType::Opaque),
-    }
-}
-
-pub(super) fn instruction_type(instruction: &Instruction) -> IrType {
-    match instruction {
-        Instruction::Binary { op, .. } => {
-            if op.is_comparison() {
-                IrType::Boolean
-            } else {
-                IrType::Number
-            }
-        }
-        Instruction::Unary { op, .. } => match op {
-            super::ir::UnaryOp::Neg => IrType::Number,
-            super::ir::UnaryOp::Not => IrType::Boolean,
-        },
-        Instruction::Load { ty, .. } => ty.clone(),
-        Instruction::Call { result_ty, .. } => result_ty.clone(),
-        Instruction::ToBool { .. }
-        | Instruction::IsNull { .. }
-        | Instruction::StringEquals { .. } => IrType::Boolean,
-        Instruction::StringLength { .. } | Instruction::ArrayLength { .. } => IrType::Number,
-        Instruction::StringConcat { .. }
-        | Instruction::StringCharAt { .. }
-        | Instruction::NumberToString { .. } => IrType::String,
-        Instruction::ArrayNew { element_ty, .. } => IrType::Array(Box::new(element_ty.clone())),
-        Instruction::ArrayGet { element_ty, .. } => element_ty.clone(),
-        Instruction::ObjectNew { fields, .. } => IrType::Object(fields.clone()),
-        Instruction::ObjectGet { field_ty, .. } => field_ty.clone(),
-        _ => IrType::Opaque,
     }
 }

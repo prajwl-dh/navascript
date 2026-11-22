@@ -188,3 +188,58 @@ fn reports_unknown_character() {
     assert_eq!(lexed.errors.len(), 1);
     assert_eq!(lexed.errors[0].message, "unexpected character");
 }
+
+#[test]
+fn lexes_bigint_literals_with_prefixes_and_separators() {
+    let lexed = tokenize("123n 0xffn 1_000n 0b10n 0o17n 42");
+    assert!(lexed.errors.is_empty());
+    let kinds: Vec<TokenKind> = lexed.tokens.iter().map(|token| token.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            TokenKind::BigInt,
+            TokenKind::BigInt,
+            TokenKind::BigInt,
+            TokenKind::BigInt,
+            TokenKind::BigInt,
+            TokenKind::Number,
+            TokenKind::Eof,
+        ]
+    );
+    assert_eq!(lexed.tokens[0].lexeme, "123n");
+    assert_eq!(lexed.tokens[1].lexeme, "0xffn");
+}
+
+#[test]
+fn reports_bigint_suffix_on_a_fractional_literal() {
+    let lexed = tokenize("1.5n");
+    assert!(
+        lexed
+            .errors
+            .iter()
+            .any(|error| error.message.contains("bigint literals must be integers"))
+    );
+    assert_eq!(lexed.tokens[0].kind, TokenKind::Number);
+}
+
+#[test]
+fn does_not_treat_a_bigint_suffix_as_part_of_a_longer_identifier() {
+    let lexed = tokenize("123nfoo");
+    assert_eq!(lexed.tokens[0].kind, TokenKind::Number);
+    assert_eq!(lexed.tokens[1].kind, TokenKind::Ident);
+    assert_eq!(lexed.tokens[1].lexeme, "nfoo");
+}
+
+#[test]
+fn lexes_optional_calls() {
+    assert_eq!(
+        kinds("f?.()"),
+        vec![
+            TokenKind::Ident,
+            TokenKind::QuestionDot,
+            TokenKind::LParen,
+            TokenKind::RParen,
+            TokenKind::Eof,
+        ]
+    );
+}

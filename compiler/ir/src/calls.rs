@@ -7,10 +7,14 @@ use super::ir::{Instruction, IrType, Value};
 use super::lower::Lowerer;
 
 impl FunctionBuilder {
+    /// Lower `f(args)` and `f?.(args)`. Both become a direct call: Nava has no
+    /// first-class function values, so there is no callable value that could be
+    /// null and the optional branch is unobservable until that changes.
     pub(super) fn lower_call(
         &mut self,
         callee: &Expr,
         args: &[Expr],
+        _optional: bool,
         lowerer: &mut Lowerer,
     ) -> Value {
         let callee_name = match &callee.kind {
