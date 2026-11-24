@@ -157,15 +157,17 @@ code 1.
 
 - Runtime memory is a program-lifetime bump arena; nothing is reclaimed until
   process exit (ADR-0005).
-- Closures, function values and exceptions are still pending Phase 6 work
-  (ADR-0015; see `PROGRESS.md`); runtime bounds/field errors terminate the
-  process with a diagnostic.
+- Exceptions are still pending Phase 6 work (ADR-0015; see `PROGRESS.md`);
+  runtime bounds/field errors terminate the process with a diagnostic. Closures
+  and function values are supported: captured bindings are shared cells and
+  calls through a value use an indirect-call ABI (ADR-0027).
 - Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings,
   with `break`/`continue` for the innermost loop; general iterables are not
   implemented.
 - `bigint` is a signed 64-bit integer, not arbitrary precision: mixing it with
   `number` is diagnosed, `+ - *` wrap on overflow, and div/mod/pow are checked;
-  optional calls lower as direct calls until nullable callables exist.
+  optional calls lower as direct calls for named functions and indirect calls
+  through function values until nullable callables exist.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
 - Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.

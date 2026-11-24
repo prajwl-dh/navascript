@@ -187,6 +187,16 @@ impl FunctionBuilder {
 
     /// Load `this` (or `super`, which shares the same slot).
     pub(super) fn lower_self(&mut self, expr: &Expr, lowerer: &mut Lowerer) -> Value {
+        if let Some((index, ty)) = self.this_capture.clone() {
+            let result = self.fresh_value();
+            self.emit(Instruction::ObjectGet {
+                result,
+                object: Value::Param(0),
+                field_index: index,
+                field_ty: ty,
+            });
+            return Value::Local(result);
+        }
         match (self.this_slot, self.this_ty.clone()) {
             (Some(slot), Some(ty)) => self.load(slot, ty),
             _ => {

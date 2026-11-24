@@ -7,8 +7,9 @@ self-hosting.
 **Status:** Phase 6 (Language expansion) in progress — loops (with
 `break`/`continue`), the additional literals/operators, arrow functions,
 optional chaining, bigint literals, optional calls, generics, classes with
-inheritance, unions/intersections, full structural typing and modules are
-complete; the remaining expansion items are pending.
+inheritance, unions/intersections, full structural typing, modules and
+closures/higher-order functions are complete; exceptions and async/await are
+pending.
 
 ## Goals (tracked independently)
 
@@ -61,7 +62,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 248 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules)
+cargo test --workspace     # 258 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures)
 target/debug/navascript --version
 target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
@@ -86,8 +87,9 @@ fibonacci printing `55` without Node.js — is verified by
 - The additional literals/operators: compound assignment (`+= -= *= /= %=`),
   `++`/`--`, `**`, ternary, hex/binary/octal literals with `_` separators,
   Unicode identifiers and `\x`/`\u` escapes (`examples/operators.ns`).
-- Arrow functions as variable initialisers with annotated parameters and no
-  captured locals (`examples/arrows.ns`).
+- Arrow functions in any expression position with annotated parameters:
+  function values, captured bindings and higher-order calls
+  (`examples/arrows.ns`, `examples/closures.ns`; ADR-0027).
 - Optional chaining `a?.b` / `a?.[i]` for reference-typed results
   (`examples/optional.ns`).
 
@@ -95,7 +97,8 @@ fibonacci printing `55` without Node.js — is verified by
    signed 64-bit integer, with integer arithmetic, comparisons, `++`/`--`,
    bigint arrays/objects and `console.log` (`examples/bigint.ns`).
 - Optional calls `a?.()` (`examples/optional_call.ns`) — parsed, type-checked
-   and lowered as direct calls; the null branch is unobservable until NavaScript has
+   and lowered as a direct call for named functions or an indirect call through
+   a function value; the null branch is unobservable until NavaScript has
    nullable callable values.
 - Generics (`examples/generics.ns`) — generic functions and interfaces with
    inferred or explicit type arguments, lowered by monomorphization.
@@ -107,9 +110,12 @@ fibonacci printing `55` without Node.js — is verified by
    narrowing, merged intersection layouts, optional object fields (ADR-0025).
 - Modules (`examples/modules.ns` + `examples/math.ns`) — `import`/`export`
    syntax and import-graph resolution from the entry file (ADR-0026).
+- Closures and higher-order functions (`examples/closures.ns`) — first-class
+   function values, shared captured bindings, nested closures, named functions
+   passed as values and indirect calls through the closure ABI (ADR-0027).
 
-Still pending in Phase 6: first-class function values/closures,
-exceptions (deferred from Phase 5 by ADR-0015) and async/await.
+Still pending in Phase 6: exceptions (deferred from Phase 5 by ADR-0015) and
+async/await.
 
 ## Documentation
 

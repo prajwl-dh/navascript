@@ -27,6 +27,11 @@ pub(super) fn values_in_instruction(instruction: &Instruction) -> Vec<&Value> {
         | Instruction::NumberToString { value: operand, .. } => vec![operand],
         Instruction::StringCharAt { value, index, .. } => vec![value, index],
         Instruction::Call { args, .. } => args.iter().collect(),
+        Instruction::CallIndirect { callee, args, .. } => {
+            let mut values = vec![callee];
+            values.extend(args.iter());
+            values
+        }
         Instruction::ArrayGet { array, index, .. } => vec![array, index],
         Instruction::ArraySet {
             array,
@@ -37,6 +42,11 @@ pub(super) fn values_in_instruction(instruction: &Instruction) -> Vec<&Value> {
         Instruction::ArrayLength { array, .. } => vec![array],
         Instruction::ObjectGet { object, .. } => vec![object],
         Instruction::ObjectSet { object, value, .. } => vec![object, value],
+        Instruction::ClosureNew { code, captures, .. } => {
+            let mut values = vec![code];
+            values.extend(captures.iter().map(|(_, _, value)| value));
+            values
+        }
         Instruction::Alloc { .. }
         | Instruction::Load { .. }
         | Instruction::ArrayNew { .. }
@@ -137,6 +147,7 @@ pub(super) fn value_type(value: &Value, defs: &HashMap<ValueId, (IrType, BlockId
         Value::BigInt(_) => IrType::BigInt,
         Value::Bool(_) => IrType::Boolean,
         Value::String(_) => IrType::String,
+        Value::Function { ty, .. } => (**ty).clone(),
         Value::Null => IrType::Opaque,
         Value::Param(index) | Value::Local(index) => defs
             .get(index)

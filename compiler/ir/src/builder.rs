@@ -1,7 +1,8 @@
 //! Per-function construction state: blocks, slots and value numbering.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
+use super::bindings::Captured;
 use super::ir::{
     BasicBlock, BlockId, Instruction, IrFunction, IrParam, IrType, SlotId, Terminator, Value,
     ValueId,
@@ -28,6 +29,14 @@ pub(super) struct FunctionBuilder {
     /// The `this` stack slot and its object type inside a class member.
     pub(super) this_slot: Option<SlotId>,
     pub(super) this_ty: Option<IrType>,
+    /// Environment fields of this closure, keyed by captured name.
+    pub(super) captures: HashMap<String, (u32, Captured)>,
+    /// Locals and parameters whose bindings are shared cells.
+    pub(super) boxed: HashMap<String, (SlotId, IrType, IrType)>,
+    /// Names captured by arrows inside this function; these bindings are boxed.
+    pub(super) captured_names: HashSet<String>,
+    /// `this` captured from an enclosing method, if any.
+    pub(super) this_capture: Option<(u32, IrType)>,
 }
 
 impl FunctionBuilder {
@@ -50,7 +59,15 @@ impl FunctionBuilder {
             loops: Vec::new(),
             this_slot: None,
             this_ty: None,
+            captures: HashMap::new(),
+            boxed: HashMap::new(),
+            captured_names: HashSet::new(),
+            this_capture: None,
         }
+    }
+
+    pub(super) fn set_captured_names(&mut self, names: HashSet<String>) {
+        self.captured_names = names;
     }
 
     pub(super) fn finish(self) -> IrFunction {
@@ -116,22 +133,21 @@ impl FunctionBuilder {
         }
     }
 
+    pub(super) fn slot_type(&self, slot: SlotId) -> Option<IrType> {
+        self.function
+            .blocks
+            .iter()
+            .flat_map(|block| block.instructions.iter())
+            .find_map(|instruction| match instruction {
+                Instruction::Alloc { slot: found, ty } if *found == slot => Some(ty.clone()),
+                _ => None,
+            })
+    }
+
     pub(super) fn lookup(&self, name: &str) -> Option<(SlotId, IrType)> {
         for scope in self.scopes.iter().rev() {
             if let Some(&slot) = scope.get(name) {
-                let ty = self
-                    .function
-                    .blocks
-                    .iter()
-                    .flat_map(|block| block.instructions.iter())
-                    .find_map(|instruction| match instruction {
-                        Instruction::Alloc { slot: found, ty } if *found == slot => {
-                            Some(ty.clone())
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or(IrType::Opaque);
-                return Some((slot, ty));
+                return Some((slot, self.slot_type(slot).unwrap_or(IrType::Opaque)));
             }
         }
         None

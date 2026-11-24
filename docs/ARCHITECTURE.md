@@ -71,7 +71,7 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
-| Runtime | `runtime/` | Allocator, bigint helpers, strings, arrays, objects, console; closures/exceptions still pending in Phase 6 (ADR-0015) | codegen ABI contract |
+| Runtime | `runtime/` | Allocator, bigint helpers, strings, arrays, objects, console; closure environments reuse the object ABI (ADR-0027); exceptions still pending in Phase 6 (ADR-0015) | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a

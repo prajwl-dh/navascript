@@ -351,6 +351,21 @@ fn optional_calls_run_natively() {
 }
 
 #[test]
+fn closures_and_higher_order_functions_run_natively() {
+    let Some(binary) = compile("closures.ns", "closures", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run closures program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "15\n42\n8\n7\n13\n1\n2\n2\n2\n6\n7\n10\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn release_mode_prints_the_same_result() {
     let Some(binary) = compile("fibonacci.ns", "fib-release", &["--release"]) else {
         return;

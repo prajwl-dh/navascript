@@ -9,7 +9,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
   chaining, bigint literals, optional calls, generics, classes with inheritance,
-  unions/intersections, full structural typing and modules complete
+  unions/intersections, full structural typing, modules and closures/higher-order
+  functions complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -28,7 +29,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -37,8 +38,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
-calls, generics, classes, unions/intersections, structural typing and modules
-delivered; remaining expansion items pending).
+calls, generics, classes, unions/intersections, structural typing, modules and
+closures delivered; exceptions and async/await pending).
 
 ---
 
@@ -175,7 +176,7 @@ limitations for every milestone.
 - [x] Arrays: literals, indexing, assignment, `length` (numbers, booleans, refs)
 - [x] Objects: literals, field get/set with runtime field validation
 - [x] Runtime error reporting (fatal bounds/field errors with clear messages)
-- [ ] Closures / function values — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
+- [ ] Closures / function values — deferred from Phase 5 to Phase 6; delivered there by ADR-0027 on 2026-11-24
 - [ ] Exceptions (`throw`/`try`) — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
 - **Exit condition met:** nontrivial programs using strings, collections and
   objects run natively without Node.js; runtime errors are reported.
@@ -190,11 +191,12 @@ limitations for every milestone.
 - [x] Additional literals/operators: compound assignment (`+= -= *= /= %=`),
   `++`/`--`, `**`, ternary, hex/binary/octal literals, `_` separators,
   non-ASCII identifiers, `\x`/`\u` escapes — done 2026-11-21
-- [x] Arrow functions as variable initialisers (annotated parameters, no
-  captures) — done 2026-11-21
+- [x] Arrow functions (annotated parameters; any expression position; captures
+  and function values since ADR-0027) — done 2026-11-21, extended 2026-11-24
 - [x] Optional chaining (`a?.b`, `a?.[i]`; reference-typed results) — done 2026-11-21
-- [x] Optional call (`a?.()`) — parsed, type-checked and lowered as a direct
-  call; null branch unobservable without nullable callables — done 2026-11-21
+- [x] Optional call (`a?.()`) — parsed and type-checked; direct call for named
+  functions, indirect call through a function value (ADR-0027); null branch
+  unobservable without nullable callables — done 2026-11-21, extended 2026-11-24
 - [x] Bigint literals (`123n`, `0xffn`, `1_000n`) with a `bigint` type, integer
   arithmetic/comparisons, `++`/`--`, i64 collection slots and `console.log` —
   done 2026-11-21
@@ -207,17 +209,19 @@ limitations for every milestone.
 - [x] Union / intersection types with null narrowing — done 2026-11-21
 - [x] Modules, imports, exports — import-graph resolution and export validation
   from the entry file; module-wide namespace — done 2026-11-24
-- [ ] Closures, higher-order functions
+- [x] Closures, higher-order functions — first-class function values, shared
+  captured bindings, nested closures, named function values and indirect calls;
+  done 2026-11-24 (ADR-0027)
 - [ ] Async/await, promises
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (248 passed, 0 failed) succeed;
+  `cargo test --workspace` (258 passed, 0 failed) succeed;
   `examples/loops.ns`, `examples/for_of.ns`, `examples/break_continue.ns`,
   `examples/operators.ns`, `examples/arrows.ns`, `examples/optional.ns`,
   `examples/bigint.ns`, `examples/optional_call.ns`, `examples/generics.ns`,
-  `examples/classes.ns`, `examples/unions.ns` and `examples/modules.ns` run
-  natively.
+  `examples/classes.ns`, `examples/unions.ns`, `examples/modules.ns` and
+  `examples/closures.ns` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -851,15 +855,48 @@ limitations for every milestone.
 - Added `examples/modules.ns` and `examples/math.ns`. Suite grew from 243 to
   248 tests; fmt and clippy clean.
 
+### 2026-11-24 — Phase 6 (closures and higher-order functions increment)
+- Implemented the next Phase 6 priority item from `ROADMAP.md`: first-class
+  function values, captured environments and indirect calls (ADR-0027).
+- IR gains `IrType::Function`, `Instruction::ClosureNew` and
+  `Instruction::CallIndirect`. A function value is a runtime object whose slot
+  0 is the code pointer and whose remaining slots are captured bindings in
+  sorted name order; the object is passed as a hidden first parameter to the
+  generated closure function. No new runtime ABI was needed — closure
+  environments reuse the typed object slot accessors.
+- Captured bindings are shared one-slot cells, so writes from a closure and
+  from its enclosing frame are visible on both sides (JavaScript binding
+  semantics), including across nested closures. `this` is captured by value.
+  Named functions used as values get zero-capture thunks with the same calling
+  convention. Arrows now lower in any expression position; the old
+  "named initialiser only" rule (ADR-0019) is superseded.
+- New private modules `ir/closure_names.rs` (free-name/capture analysis),
+  `ir/bindings.rs` (resolution and shared cells) and the reduced
+  `ir/closures.rs` keep each file within ADR-0016's size guidance; call
+  emission stays in `ir/calls.rs` and result typing stays in `ir/results.rs`.
+- Two-axis code review of the working-tree diff was applied: a shared
+  `closure_fields` layout helper in codegen, `Instruction::result_type()` as
+  the single source for call results, and clearer names. The Spec axis caught
+  that the first implementation snapshotted captures; it was replaced with
+  shared cells and covered by native and IR tests.
+- Tests added in `tests/parser/`, `tests/typechecker/`, `tests/ir/`,
+  `tests/codegen/` and `tests/driver/native.rs` cover higher-order calls,
+  arrow arguments, shared mutable captures, nested closures, named function
+  values, indirect-call LLVM emission and negative callable diagnostics.
+- Added `examples/closures.ns`. Suite grew from 248 to 258 tests;
+  fmt and clippy clean. All current-state documents were re-synced; earlier
+  work-log entries describe the state at their respective dates.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: closures and exceptions (ADR-0015), async/await. Loops
-   (including `break`/`continue`), the additional literals/operators, arrow
-   functions, optional chaining, bigint, optional calls, generics, classes,
-   unions/intersections, structural typing and modules are done.
+   `ROADMAP.md`: exceptions (ADR-0015) and async/await. Loops (including
+   `break`/`continue`), the additional literals/operators, arrow functions,
+   optional chaining, bigint, optional calls, generics, classes,
+   unions/intersections, structural typing, modules and closures (ADR-0027)
+   are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

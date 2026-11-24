@@ -9,6 +9,7 @@ use navascript_symbol::Type;
 use navascript_typechecker::TypedProgram;
 
 use super::builder::FunctionBuilder;
+use super::closure_names::{captures_in_block, captures_in_items};
 use super::ir::{GlobalId, IrGlobal, IrModule, IrParam, IrType, Terminator, Value};
 
 /// The result of lowering: an owned module plus diagnostics in the same shape
@@ -31,9 +32,11 @@ pub fn lower(program: &Program, typed: &TypedProgram, source: &str) -> LowerOutp
         lines: LineIndex::new(source),
         typed,
         next_global: 0,
+        next_closure: 0,
         program,
         current_subst: HashMap::new(),
         specializations: HashMap::new(),
+        function_values: HashMap::new(),
     };
     lowerer.lower_program(program);
     for error in super::verify::verify(&lowerer.module) {
@@ -55,11 +58,15 @@ pub(super) struct Lowerer<'a> {
     pub(super) lines: LineIndex,
     pub(super) typed: &'a TypedProgram,
     pub(super) next_global: GlobalId,
+    /// Counter for generated closure functions and function-value thunks.
+    pub(super) next_closure: u32,
     pub(super) program: &'a Program,
     /// Type parameters of the generic function currently being specialized.
     pub(super) current_subst: HashMap<String, IrType>,
     /// Monomorphized functions already emitted, keyed by base name + type args.
     pub(super) specializations: HashMap<(String, Vec<IrType>), String>,
+    /// Zero-capture thunks already emitted for named functions used as values.
+    pub(super) function_values: HashMap<String, String>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -96,6 +103,7 @@ impl<'a> Lowerer<'a> {
 
     pub(super) fn lower_main(&mut self, items: &[&navascript_ast::Item]) {
         let mut builder = FunctionBuilder::new("main".to_owned(), Vec::new(), IrType::Void);
+        builder.set_captured_names(captures_in_items(items));
         for item in items {
             match item.kind.unwrap_export() {
                 ItemKind::Variable(decl) => builder.lower_variable(decl, self),
@@ -158,13 +166,18 @@ impl<'a> Lowerer<'a> {
             .collect();
         let return_ty = ir_type_from_symbol(&ret_ty, &self.current_subst);
         let mut builder = FunctionBuilder::new(name, params, return_ty.clone());
+        builder.set_captured_names(captures_in_block(&decl.body));
 
         let entry = builder.function.entry;
         for (index, param) in decl.params.iter().enumerate() {
             let ty = ir_type_from_symbol(&param_types[index], &self.current_subst);
-            let slot = builder.alloc(ty.clone());
-            builder.store(slot, ty, Value::Param(index as u32));
-            builder.declare(&param.name, slot);
+            if builder.captured_names.contains(&param.name.name) {
+                builder.bind_cell(&param.name, Value::Param(index as u32), ty);
+            } else {
+                let slot = builder.alloc(ty.clone());
+                builder.store(slot, ty, Value::Param(index as u32));
+                builder.declare(&param.name, slot);
+            }
         }
 
         let end = builder.lower_block(&decl.body, self, entry);
@@ -187,8 +200,23 @@ impl<'a> Lowerer<'a> {
         self.current_subst = previous_subst;
     }
 
-    /// Emit an arrow function initialiser as a named IR function. Calls use the
-    /// binding name directly, so no first-class function value is needed.
+    /// Allocate a distinct name for a generated closure or function-value thunk.
+    pub(super) fn fresh_closure_name(&mut self, prefix: &str) -> String {
+        let name = format!("{prefix}{}", self.next_closure);
+        self.next_closure += 1;
+        name
+    }
+
+    /// The checked result type of a call expression, used for both direct and
+    /// indirect calls.
+    pub(super) fn call_result_type(&self, span: Span) -> IrType {
+        self.typed
+            .types
+            .get(&span)
+            .map(|ty| ir_type_from_symbol(ty, &self.current_subst))
+            .unwrap_or(IrType::Opaque)
+    }
+
     pub(super) fn string_global(&mut self, value: &str) -> GlobalId {
         let id = self.next_global;
         self.next_global += 1;
@@ -209,18 +237,6 @@ impl<'a> Lowerer<'a> {
 
     pub(super) fn is_known_builtin(name: &str) -> bool {
         matches!(name, "console.log")
-    }
-
-    /// Return type of an arrow expression, taken from its checked function type.
-    pub(super) fn arrow_return_type(&self, expr: &Expr) -> IrType {
-        self.typed
-            .types
-            .get(&expr.span)
-            .map(|ty| match ty {
-                Type::Function { ret, .. } => ir_type_from_symbol(ret, &self.current_subst),
-                _ => IrType::Opaque,
-            })
-            .unwrap_or(IrType::Opaque)
     }
 
     pub(super) fn expr_ty(&self, expr: &Expr) -> IrType {
@@ -260,10 +276,11 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
         TypeExpr::Intersection(members) => {
             members.first().map(ir_type_expr).unwrap_or(IrType::Opaque)
         }
-        TypeExpr::Generic { .. }
-        | TypeExpr::Array(_)
-        | TypeExpr::Object(_)
-        | TypeExpr::Function { .. } => IrType::Opaque,
+        TypeExpr::Function { params, ret } => IrType::Function {
+            params: params.iter().map(ir_type_expr).collect(),
+            ret: Box::new(ir_type_expr(ret)),
+        },
+        TypeExpr::Generic { .. } | TypeExpr::Array(_) | TypeExpr::Object(_) => IrType::Opaque,
     }
 }
 
@@ -317,6 +334,13 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
                 IrType::Object(fields)
             }
         }
+        Type::Function { params, ret } => IrType::Function {
+            params: params
+                .iter()
+                .map(|param| ir_type_from_symbol(param, subst))
+                .collect(),
+            ret: Box::new(ir_type_from_symbol(ret, subst)),
+        },
         Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner, subst))),
         Type::Object(fields) => IrType::Object(
             fields

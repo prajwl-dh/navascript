@@ -236,7 +236,7 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0015 — Phase 5 scope: closures and exceptions deferred
 
 - **Date:** 2026-11-21
-- **Status:** Accepted
+- **Status:** Accepted (closures delivered in Phase 6 by ADR-0027; exceptions still deferred)
 - **Context:** The Phase 5 roadmap lists closures/function values and
   exceptions alongside strings, arrays and objects. Closures require first-
   class function values, captured environments and an indirect-call ABI;
@@ -336,7 +336,8 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0019 — Arrow functions as named initialisers
 
 - **Date:** 2026-11-21
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0027 (the named-initialiser restriction and the
+  "captured locals are diagnosed" rule no longer apply)
 - **Context:** Phase 6 adds arrow expressions, but IR supports only direct
   named calls, and ADR-0015 defers captured environments and function values.
   Inferring an unannotated arrow parameter as `Unknown` let a wrong argument
@@ -348,9 +349,11 @@ a new number and references the old one. Keep entries short and factual.
   return type is scoped to arrow lowering rather than changing the general
   type-to-IR mapping. `parser/arrows.rs` and `typechecker/arrows.rs` keep the
   touched files within ADR-0016's size guidance.
-- **Consequences:** First-class function values, higher-order functions and
-  closures remain unsupported (ADR-0015) and are recorded in `COMPATIBILITY.md`.
-  No new LLVM declarations or runtime ABI were needed.
+- **Consequences:** At the time, first-class function values, higher-order
+  functions and closures remained unsupported and were recorded in
+  `COMPATIBILITY.md`. No new LLVM declarations or runtime ABI were needed.
+  ADR-0027 supersedes the named-initialiser restriction: arrows now lower to
+  closure values in any expression position.
 
 ---
 
@@ -430,8 +433,9 @@ a new number and references the old one. Keep entries short and factual.
   is diagnosed rather than coerced, and `+ - *` wrap on overflow. Optional calls
   have no null branch until first-class callable values exist. The unified
   result-type mapping also corrected a pre-existing `And`/`Or` divergence
-  between verifier and codegen. Arbitrary precision, nullable callables and
-  first-class functions remain out of scope.
+  between verifier and codegen. Arbitrary precision and nullable callables
+  remain out of scope; first-class functions were delivered later in Phase 6 by
+  ADR-0027 (optional calls on a function value are still non-nullable).
 
 ---
 
@@ -550,6 +554,43 @@ a new number and references the old one. Keep entries short and factual.
   point into combined text rather than the originating file. Resolution covers
   relative `.ns`/extensionless paths only; `.d.ts`, packages and per-file
   namespaces are out of scope and recorded in `COMPATIBILITY.md`.
+
+---
+
+## ADR-0027 — First-class functions and closures
+
+- **Date:** 2026-11-24
+- **Status:** Accepted (supersedes ADR-0019's named-initialiser restriction)
+- **Context:** The next Phase 6 priority item after modules is closures and
+  higher-order functions (ADR-0015). ADR-0019 lowered arrow initialisers to
+  named functions with direct calls, which cannot express a function stored in
+  a variable, passed as an argument, returned from a call or placed in a
+  collection, nor an arrow that captures a surrounding local. IR had no
+  function type and no indirect call.
+- **Decision:** A function value is an arena-allocated NavaScript object: slot 0
+  holds the code pointer and the remaining slots hold captured bindings in
+  sorted name order. `IrType::Function` maps to LLVM `ptr`; `Instruction::ClosureNew`
+  allocates the object and `Instruction::CallIndirect` casts slot 0 to the
+  statically known function signature and passes the object as a hidden first
+  parameter. Captured bindings are shared one-slot cells, so writes from a
+  closure and its enclosing frame are mutually visible; nested closures share
+  the same cell. `this` is captured by value (it is never reassigned). Named
+  functions used as values get zero-capture thunks that adapt the ordinary
+  signature to the closure convention. Arrows lower in any expression position;
+  the checked function type supplies parameter and return types. All lowering
+  stays behind the unchanged `lower` seam, split across `ir/closures.rs`,
+  `ir/closure_names.rs` and `ir/bindings.rs` (ADR-0016), and codegen reuses the
+  existing object slot accessors with no new runtime ABI.
+- **Consequences:** Higher-order functions, returned closures, function values
+  in arrays/object fields, nested closures and shared mutable captures run
+  natively (`examples/closures.ns`, ADR tests in `tests/`). Calls through a
+  non-function value, wrong argument types and unannotated arrow parameters are
+  diagnosed. Function values are not nullable, so optional calls still emit no
+  null branch; recursion via a captured `const` arrow binding is unsupported
+  because the binding is not initialised when the arrow is created — use a
+  named function. `console.log` of a function value is diagnosed by the backend
+  rather than printing raw bytes. Parenthesised nested function types in return
+  annotations need a type alias due to a parser ambiguity.
 
 ---
 

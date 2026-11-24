@@ -230,8 +230,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - The arena allocator never reclaims memory during execution; a tracing
   collector or reference counting is a later upgrade (ADR-0005).
 - Closures, function values and `throw`/`try` were deferred from Phase 5 to
-  Phase 6 (ADR-0015) and are still pending there. Runtime errors terminate the
-  process with a diagnostic.
+  Phase 6 (ADR-0015). Closures and function values were delivered in Phase 6 by
+  ADR-0027; `throw`/`try` remain pending. Runtime errors terminate the process
+  with a diagnostic.
 
 ---
 
@@ -262,6 +263,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   the entry file, contextual `from`, validated exports. **Delivered 2026-11-24**
   (status in `PROGRESS.md`; ADR-0026).
 - Closures and higher-order functions (with runtime from Phase 5).
+  **Delivered 2026-11-24** (status in `PROGRESS.md`; ADR-0027).
 - Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
 - Async/await and promises.
 
@@ -277,10 +279,12 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Full `lib.d.ts` compatibility out of scope for this phase.
 - Loops (including `break`/`continue`) landed first, then the additional
   literals/operators, arrow functions, optional member/index chaining, bigint,
-  optional calls, generics and classes (see `PROGRESS.md`). Arrows are limited to annotated
-  variable initialisers with no captures; optional chaining is limited to
-  reference-typed results and cannot be observed as null yet. Optional calls
-  lower as direct calls because there are no nullable callable values. Bigint is
+  optional calls, generics, classes, modules and closures (see `PROGRESS.md`).
+  Arrows require annotated parameters but may appear in any expression position;
+  captures are shared cells. Optional chaining is limited to reference-typed
+  results and cannot be observed as null yet. Optional calls lower as direct
+  calls for named functions and indirect calls through function values, with no
+  null branch because there are no nullable callable values. Bigint is
   backed by a signed 64-bit integer: `+ - *` wrap on overflow while division,
   modulo and power are checked; arbitrary precision is out of scope. Generics
   cover functions and interfaces only: generic type aliases are out of scope,
@@ -296,8 +300,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   flow. Modules share one namespace (no per-file scoping), resolve relative
   `.ns` paths (extensionless specifiers get `.ns`), and render diagnostics
   against the concatenated source rather than the originating file; `.d.ts`
-  and package resolution are out of scope. Function values are not
-  implemented; iteration is limited to arrays/strings.
+  and package resolution are out of scope. Closures capture shared cells
+  (ADR-0027), but a binding cannot be captured before it is initialised, so
+  recursion must use a named function; parenthesised nested function types in
+  annotations need a type alias. Iteration is limited to arrays/strings.
 
 ---
 

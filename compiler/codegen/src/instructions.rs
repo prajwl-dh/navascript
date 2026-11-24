@@ -7,7 +7,7 @@ use navascript_ir::{BinaryOp, Instruction, IrType, UnaryOp, Value, ValueId};
 
 use super::CodegenError;
 use super::runtime::encode_field_names;
-use super::types::{bool_to_i32, index_arg, llvm_type, llvm_value, require_type};
+use super::types::{bool_to_i32, closure_fields, index_arg, llvm_type, llvm_value, require_type};
 use super::types::{slot_suffix, value_type};
 
 pub(super) fn emit_instruction(
@@ -223,6 +223,56 @@ pub(super) fn emit_instruction(
                 }
             }
         }
+        Instruction::CallIndirect {
+            result,
+            callee,
+            args,
+            fn_ty,
+            ..
+        } => {
+            let (params, ret) = match fn_ty {
+                IrType::Function { params, ret } => (params, ret),
+                other => {
+                    return Err(CodegenError {
+                        message: format!(
+                            "indirect call needs a function type, found '{}'",
+                            other.display()
+                        ),
+                    });
+                }
+            };
+            let ret_llvm = llvm_type(ret).map_err(|message| CodegenError { message })?;
+            let param_tys = params
+                .iter()
+                .map(|ty| llvm_type(ty).map_err(|message| CodegenError { message }))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut signature = vec!["ptr".to_owned()];
+            signature.extend(param_tys);
+            let fn_ptr_ty = format!("{ret_llvm} ({})*", signature.join(", "));
+            let code_ptr = format!("code{}", out.len());
+            let _ = writeln!(
+                out,
+                "  %{code_ptr} = call ptr @navascript_object_get_ptr(ptr {}, i64 0)",
+                llvm_value(callee)
+            );
+            let fn_ptr = format!("fp{code_ptr}");
+            let _ = writeln!(out, "  %{fn_ptr} = bitcast ptr %{code_ptr} to {fn_ptr_ty}");
+            let mut llvm_args = vec![format!("ptr {}", llvm_value(callee))];
+            for arg in args {
+                let ty = value_type(arg, types);
+                let llvm = llvm_type(&ty).map_err(|message| CodegenError { message })?;
+                llvm_args.push(format!("{} {}", llvm, llvm_value(arg)));
+            }
+            let call_args = llvm_args.join(", ");
+            match result {
+                Some(result) => {
+                    let _ = writeln!(out, "  %v{result} = call {ret_llvm} %{fn_ptr}({call_args})");
+                }
+                None => {
+                    let _ = writeln!(out, "  call {ret_llvm} %{fn_ptr}({call_args})");
+                }
+            }
+        }
         Instruction::StringConcat {
             result,
             left,
@@ -408,6 +458,46 @@ pub(super) fn emit_instruction(
                 arg_ty,
                 arg
             );
+        }
+        Instruction::ClosureNew {
+            result,
+            code,
+            fn_ty,
+            captures,
+        } => {
+            let fields = closure_fields(fn_ty, captures);
+            let encoded = encode_field_names(&fields);
+            let names_global = object_globals.get(&encoded).ok_or_else(|| CodegenError {
+                message: "missing object field-name global for closure".to_owned(),
+            })?;
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @navascript_object_new(i64 {}, ptr {names_global})",
+                fields.len()
+            );
+            let _ = writeln!(
+                out,
+                "  call void @navascript_object_set_ptr(ptr %v{result}, i64 0, ptr {})",
+                llvm_value(code)
+            );
+            for (index, (_, field_ty, value)) in captures.iter().enumerate() {
+                let suffix = slot_suffix(field_ty);
+                let (arg_ty, arg) = if *field_ty == IrType::Boolean {
+                    ("i32".to_owned(), bool_to_i32(&llvm_value(value), out))
+                } else {
+                    (
+                        llvm_type(field_ty).map_err(|message| CodegenError { message })?,
+                        llvm_value(value),
+                    )
+                };
+                let _ = writeln!(
+                    out,
+                    "  call void @navascript_object_set_{}(ptr %v{result}, i64 {}, {} {arg})",
+                    suffix,
+                    index + 1,
+                    arg_ty
+                );
+            }
         }
     }
     Ok(())

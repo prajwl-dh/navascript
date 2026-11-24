@@ -20,12 +20,9 @@ impl FunctionBuilder {
                 let global = lowerer.string_global(value);
                 Value::String(global)
             }
-            ExprKind::Ident(name) => match self.lookup(name) {
-                Some((slot, ty)) => self.load(slot, ty),
-                None => {
-                    lowerer.error(format!("unknown value '{name}' in IR"), expr.span);
-                    Value::Number(0.0)
-                }
+            ExprKind::Ident(name) => match self.lookup_binding(name) {
+                Some(binding) => self.load_binding(&binding),
+                None => self.named_function_value(name, expr.span, lowerer),
             },
             ExprKind::Binary { op, left, right } => {
                 let lhs_ty = lowerer.expr_ty(left);
@@ -158,13 +155,7 @@ impl FunctionBuilder {
                 let ty = lowerer.expr_ty(expr);
                 self.lower_ternary(condition, then_expr, else_expr, ty, lowerer)
             }
-            ExprKind::Arrow { .. } => {
-                lowerer.error(
-                    "arrow functions are only supported as variable initialisers",
-                    expr.span,
-                );
-                Value::Null
-            }
+            ExprKind::Arrow { params, body, .. } => self.lower_arrow(expr, params, body, lowerer),
             ExprKind::Call {
                 callee,
                 args,

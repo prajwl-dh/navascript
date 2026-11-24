@@ -17,6 +17,13 @@ pub enum IrType {
     String,
     Array(Box<IrType>),
     Object(Vec<(String, IrType)>),
+    /// A first-class function value: a pointer to a closure object whose first
+    /// slot holds the (adapted) code pointer and whose remaining slots hold
+    /// captured variables (ADR-0027).
+    Function {
+        params: Vec<IrType>,
+        ret: Box<IrType>,
+    },
     Void,
     /// A type whose layout is not fixed until the runtime phase.
     Opaque,
@@ -31,6 +38,15 @@ impl IrType {
             IrType::String => "string".to_owned(),
             IrType::Array(inner) => format!("{}[]", inner.display()),
             IrType::Object(_) => "object".to_owned(),
+            IrType::Function { params, ret } => format!(
+                "({}) => {}",
+                params
+                    .iter()
+                    .map(IrType::display)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                ret.display()
+            ),
             IrType::Void => "void".to_owned(),
             IrType::Opaque => "opaque".to_owned(),
         }
@@ -46,5 +62,11 @@ pub enum Value {
     BigInt(i64),
     Bool(bool),
     String(GlobalId),
+    /// Address of a generated NavaScript function, used as the code pointer of
+    /// a closure object. The type is carried so call arguments can be typed.
+    Function {
+        name: String,
+        ty: Box<IrType>,
+    },
     Null,
 }

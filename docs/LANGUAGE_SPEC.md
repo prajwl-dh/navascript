@@ -41,9 +41,10 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Optional chaining (`a?.b`, `a?.[i]`) — Phase 6; reference-typed results
   only. The null branch is currently unobservable because no null object/array
   can be constructed; the result is typed as `T` until union types land.
-- [x] Optional calls (`a?.()`) — Phase 6; parsed, type-checked for callability
-  and arity, and lowered as direct calls. No null branch is emitted because
-  NavaScript has no nullable callable values (ADR-0020).
+- [x] Optional calls (`a?.()`) — Phase 6; parsed and type-checked for callability
+  and arity. Named callees lower as direct calls; function values lower as
+  indirect calls (ADR-0027). No null branch is emitted because NavaScript has no
+  nullable callable values (ADR-0020).
 - [x] Comments: `//` and `/* */`.
 - [x] Every token carries byte offsets; diagnostics derive 1-based line and
   column from them.
@@ -71,7 +72,11 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Object types `{ x: number }` — type-checked with structural field checks;
   native field layout works (Phase 5).
 - [x] Function signatures `(a: number) => string` — type-checked; arity and
-  argument types checked at calls.
+  argument types checked at calls. Function types are first-class values
+  (ADR-0027): they may be stored in variables, arrays and object fields,
+  passed as arguments and returned; `console.log` of a function value is
+  diagnosed. A nested function type in an annotation needs a type alias
+  because of a parser ambiguity.
 - [x] Type aliases `type Foo = ...`, including chains and cycle diagnostics.
 - [x] Interfaces `interface Foo { ... }`, with structural field checking.
 
@@ -110,13 +115,16 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
 - [x] Optional member/index access `a?.b` / `a?.[i]` (Phase 6; reference-typed
   results only)
-- [x] Optional calls `a?.()` (Phase 6; lowered as direct calls — see above)
+- [x] Optional calls `a?.()` (Phase 6; direct or indirect depending on the
+  callee — see above)
 - [x] `new C(...)`, `this` and `super(...)` (Phase 6; inside class members)
 - [x] Object literals (parsed, type-checked; native layout works — Phase 5)
 - [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
-  `(a: T): R => { ... }`; supported as variable initialisers with annotated
-  parameters and no captured locals
-- [ ] Closures / captured environments (Phase 6; ADR-0015)
+  `(a: T): R => { ... }`; any expression position, with annotated parameters.
+  Unannotated shorthand arrows are diagnosed by the checker.
+- [x] Closures / captured environments (Phase 6; ADR-0027) — captured bindings
+  are shared cells, so closures observe assignments in the enclosing frame and
+  vice versa; nested closures share the same cell. `this` is captured by value.
 - [ ] Template literals (Phase 6)
 - [x] Ternary `cond ? a : b` (Phase 6)
 - [x] Exponentiation `a ** b` (right-associative, Phase 6)
@@ -145,8 +153,12 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Inference for return types
 - [x] Generic functions with inferred or explicit type arguments (Phase 6)
 - [x] Recursion — the fibonacci acceptance program runs natively
-- [ ] Nested functions / closures (Phase 6; ADR-0015)
-- [ ] Higher-order functions (Phase 6)
+- [x] Nested functions / closures (Phase 6; ADR-0027) — arrows capture shared
+  bindings from enclosing functions; `examples/closures.ns` runs natively.
+- [x] Higher-order functions (Phase 6; ADR-0027) — function values pass through
+  parameters, returns, arrays and object fields and are called via an indirect
+  ABI. Recursive self-capture of an arrow binding is unsupported; use a named
+  function.
 - [ ] Async functions and promises (Phase 6)
 
 ## 7. Modules
@@ -167,7 +179,10 @@ and the intent to grow toward broad compatibility. Status values mirror
   indexing and equality work natively.
 - [x] Arrays and objects at runtime: typed slot accessors with bounds and field
   validation; fatal diagnostics on invalid access.
-- [ ] Closures (Phase 6, ADR-0015)
+- [x] Closures (Phase 6, ADR-0027) — function values are runtime objects with
+  a code pointer and captured bindings; closures receive the object as a hidden
+  parameter and use the typed object slot accessors. Allocations live in the
+  program-lifetime arena.
 - [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
   terminate the process with a diagnostic (Phase 6, ADR-0015).
 - [~] `console.log` — numbers, booleans, strings and bigints print natively;

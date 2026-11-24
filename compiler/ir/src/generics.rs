@@ -16,6 +16,11 @@ fn type_key(ty: &IrType) -> String {
         IrType::String => "string".to_owned(),
         IrType::Void => "void".to_owned(),
         IrType::Opaque => "opaque".to_owned(),
+        IrType::Function { params, ret } => format!(
+            "fn{}_{}",
+            params.iter().map(type_key).collect::<Vec<_>>().join("_"),
+            type_key(ret)
+        ),
         IrType::Array(inner) => format!("{}_array", type_key(inner)),
         IrType::Object(fields) => {
             let fields: Vec<String> = fields

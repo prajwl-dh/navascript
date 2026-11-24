@@ -349,6 +349,24 @@ fn parses_optional_member_and_index() {
 }
 
 #[test]
+fn parses_arrows_as_arguments_and_function_type_annotations() {
+    let output = ok(
+        "function apply(f: (n: number) => number, n: number): number { return f(n); } let n = apply((x: number): number => x + 1, 2);",
+    );
+    let ItemKind::Function(apply) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    assert!(apply.params[0].ty.is_some());
+    let ItemKind::Variable(binding) = &output.program.items[1].kind else {
+        panic!("expected a variable");
+    };
+    let ExprKind::Call { args, .. } = &binding.init.as_ref().unwrap().kind else {
+        panic!("expected a call");
+    };
+    assert!(matches!(args[0].kind, ExprKind::Arrow { .. }));
+}
+
+#[test]
 fn parses_arrow_function_forms() {
     let output = ok(
         "let add = (a: number, b: number): number => a + b; let sq = x => x * x; let f = () => { return 1; };",

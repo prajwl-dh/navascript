@@ -121,6 +121,18 @@ fn print_instruction(instruction: &Instruction) -> String {
                 None => format!("call {callee}({args})"),
             }
         }
+        Instruction::CallIndirect {
+            result,
+            callee,
+            args,
+            ..
+        } => {
+            let args = args.iter().map(value_name).collect::<Vec<_>>().join(", ");
+            match result {
+                Some(result) => format!("%{result} = call_indirect {}({args})", value_name(callee)),
+                None => format!("call_indirect {}({args})", value_name(callee)),
+            }
+        }
         Instruction::IsNull { result, value } => {
             format!("%{result} = is_null {}", value_name(value))
         }
@@ -197,6 +209,21 @@ fn print_instruction(instruction: &Instruction) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
+        Instruction::ClosureNew {
+            result,
+            code,
+            fn_ty,
+            captures,
+        } => format!(
+            "%{result} = closure_new {} as {}({})",
+            value_name(code),
+            fn_ty.display(),
+            captures
+                .iter()
+                .map(|(name, _, value)| format!("{}={}", name, value_name(value)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         Instruction::ObjectGet {
             result,
             object,
@@ -227,6 +254,7 @@ fn value_name(value: &Value) -> String {
         Value::BigInt(value) => format!("{value}n"),
         Value::Bool(value) => value.to_string(),
         Value::String(global) => format!("@{global}"),
+        Value::Function { name, .. } => format!("fn @{name}"),
         Value::Null => "null".to_owned(),
     }
 }

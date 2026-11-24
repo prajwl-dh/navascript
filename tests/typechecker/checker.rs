@@ -269,6 +269,40 @@ fn infers_arrow_function_types() {
 }
 
 #[test]
+fn type_checks_function_values_and_higher_order_calls() {
+    let (output, _) = check_source(
+        "function apply(f: (n: number) => number, n: number): number { return f(n); } let twice = (x: number): number => x * 2; let result = apply(twice, 4);",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_wrong_argument_type_for_a_function_value() {
+    let (output, _) = check_source("let f = (x: number): number => x; f(\"wrong\");");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("argument has type")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn rejects_wrong_argument_type_for_a_function_parameter() {
+    let (output, _) = check_source(
+        "function apply(f: (n: number) => number, n: number): number { return f(n); } apply(\"not a function\", 1);",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("argument has type")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
 fn requires_arrow_parameter_annotations() {
     let (output, _) = check_source("let sq = x => x * x;");
     assert!(

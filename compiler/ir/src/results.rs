@@ -26,7 +26,9 @@ impl Instruction {
                 UnaryOp::Not => IrType::Boolean,
             },
             Instruction::Load { ty, .. } => ty.clone(),
-            Instruction::Call { result_ty, .. } => result_ty.clone(),
+            Instruction::Call { result_ty, .. } | Instruction::CallIndirect { result_ty, .. } => {
+                result_ty.clone()
+            }
             Instruction::IsNull { .. }
             | Instruction::ToBool { .. }
             | Instruction::StringEquals { .. }
@@ -40,6 +42,7 @@ impl Instruction {
                 ..
             } => element_ty.clone(),
             Instruction::ObjectNew { fields, .. } => IrType::Object(fields.clone()),
+            Instruction::ClosureNew { fn_ty, .. } => fn_ty.clone(),
             _ => IrType::Opaque,
         }
     }

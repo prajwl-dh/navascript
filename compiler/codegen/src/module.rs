@@ -8,7 +8,7 @@ use navascript_ir::{Instruction, IrFunction, IrModule, IrType, Terminator, Value
 use super::CodegenError;
 use super::instructions::emit_instruction;
 use super::runtime::{RUNTIME_DECLS, encode_field_names, escape_llvm_string, llvm_string_bytes};
-use super::types::{llvm_type, llvm_value, value_types};
+use super::types::{closure_fields, llvm_type, llvm_value, value_types};
 
 pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<String, CodegenError> {
     let mut out = String::new();
@@ -37,12 +37,17 @@ pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<Stri
     for function in &module.functions {
         for block in &function.blocks {
             for instruction in &block.instructions {
-                if let Instruction::ObjectNew { fields, .. } = instruction {
-                    let encoded = encode_field_names(fields);
-                    if !object_globals.contains_key(&encoded) {
-                        let name = format!("@obj_names_{}", object_globals.len());
-                        object_globals.insert(encoded, name);
-                    }
+                let fields: Vec<(String, IrType)> = match instruction {
+                    Instruction::ObjectNew { fields, .. } => fields.clone(),
+                    Instruction::ClosureNew {
+                        fn_ty, captures, ..
+                    } => closure_fields(fn_ty, captures),
+                    _ => continue,
+                };
+                let encoded = encode_field_names(&fields);
+                if !object_globals.contains_key(&encoded) {
+                    let name = format!("@obj_names_{}", object_globals.len());
+                    object_globals.insert(encoded, name);
                 }
             }
         }

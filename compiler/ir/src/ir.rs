@@ -113,12 +113,23 @@ pub enum Instruction {
         result: ValueId,
         value: Value,
     },
-    /// Direct call. Indirect calls are not supported in Phase 3.
+    /// Direct call to a named function.
     Call {
         result: Option<ValueId>,
         result_ty: IrType,
         callee: String,
         args: Vec<Value>,
+    },
+    /// Call through a first-class function value. `fn_ty` records the static
+    /// signature so the backend can cast the code pointer to the right LLVM
+    /// function type; the closure object itself is passed as a hidden first
+    /// argument carrying captured variables (ADR-0027).
+    CallIndirect {
+        result: Option<ValueId>,
+        result_ty: IrType,
+        callee: Value,
+        args: Vec<Value>,
+        fn_ty: IrType,
     },
     /// Concatenate two runtime strings.
     StringConcat {
@@ -183,6 +194,15 @@ pub enum Instruction {
         field_index: u32,
         value: Value,
         field_ty: IrType,
+    },
+    /// Allocate a closure object: slot 0 is `code`, the rest are captured
+    /// values in sorted name order. The result is a first-class function value
+    /// (ADR-0027).
+    ClosureNew {
+        result: ValueId,
+        code: Value,
+        fn_ty: IrType,
+        captures: Vec<(String, IrType, Value)>,
     },
 }
 

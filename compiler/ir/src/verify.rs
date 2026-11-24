@@ -171,6 +171,7 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 | Instruction::ArrayGet { result, .. }
                 | Instruction::ArrayLength { result, .. }
                 | Instruction::ObjectNew { result, .. }
+                | Instruction::ClosureNew { result, .. }
                 | Instruction::ObjectGet { result, .. } => {
                     if defs
                         .insert(*result, (instruction.result_type(), block.id))
@@ -179,17 +180,16 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                         errors.push(error(function, Some(block.id), "duplicate value id"));
                     }
                 }
-                Instruction::Call {
-                    result: Some(result),
-                    result_ty,
-                    ..
-                } if defs
-                    .insert(*result, (result_ty.clone(), block.id))
-                    .is_some() =>
-                {
-                    errors.push(error(function, Some(block.id), "duplicate value id"));
+                instruction => {
+                    if let Some(result) = call_result(instruction) {
+                        if defs
+                            .insert(result, (instruction.result_type(), block.id))
+                            .is_some()
+                        {
+                            errors.push(error(function, Some(block.id), "duplicate value id"));
+                        }
+                    }
                 }
-                _ => {}
             }
         }
     }
@@ -298,6 +298,20 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                         available_values.insert(*result);
                     }
                 }
+                Instruction::CallIndirect {
+                    result,
+                    callee,
+                    args,
+                    ..
+                } => {
+                    check_value(callee, &available_values, function, block.id, errors);
+                    for arg in args {
+                        check_value(arg, &available_values, function, block.id, errors);
+                    }
+                    if let Some(result) = result {
+                        available_values.insert(*result);
+                    }
+                }
                 Instruction::IsNull { result, value }
                 | Instruction::ToBool { result, value }
                 | Instruction::StringLength { result, value }
@@ -335,6 +349,18 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                     available_values.insert(*result);
                 }
                 Instruction::ArrayNew { result, .. } | Instruction::ObjectNew { result, .. } => {
+                    available_values.insert(*result);
+                }
+                Instruction::ClosureNew {
+                    result,
+                    code,
+                    captures,
+                    ..
+                } => {
+                    check_value(code, &available_values, function, block.id, errors);
+                    for (_, _, value) in captures {
+                        check_value(value, &available_values, function, block.id, errors);
+                    }
                     available_values.insert(*result);
                 }
                 Instruction::ArraySet {
@@ -403,6 +429,15 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 }
             }
         }
+    }
+}
+
+/// The produced value of a call, if it has one. Call instructions carry their
+/// result type in two places; `Instruction::result_type` is the single source.
+fn call_result(instruction: &Instruction) -> Option<ValueId> {
+    match instruction {
+        Instruction::Call { result, .. } | Instruction::CallIndirect { result, .. } => *result,
+        _ => None,
     }
 }
 

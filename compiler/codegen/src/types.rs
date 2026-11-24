@@ -47,6 +47,22 @@ pub(super) fn index_arg(
     }
 }
 
+/// Field layout of a closure object: code pointer first, then captures.
+/// Shared by field-name collection and closure allocation so the two cannot
+/// disagree about slot indices (ADR-0027).
+pub(super) fn closure_fields(
+    fn_ty: &IrType,
+    captures: &[(String, IrType, Value)],
+) -> Vec<(String, IrType)> {
+    let mut fields = vec![("__code".to_owned(), fn_ty.clone())];
+    fields.extend(
+        captures
+            .iter()
+            .map(|(name, ty, _)| (name.clone(), ty.clone())),
+    );
+    fields
+}
+
 pub(super) fn bool_to_i32(value: &str, out: &mut String) -> String {
     let bool_temp = format!("bool{}", out.len());
     let int_temp = format!("int{}", out.len() + 1);
@@ -78,7 +94,9 @@ pub(super) fn llvm_type(ty: &IrType) -> Result<String, String> {
         IrType::BigInt => Ok("i64".to_owned()),
         IrType::Boolean => Ok("i1".to_owned()),
         IrType::Void => Ok("void".to_owned()),
-        IrType::String | IrType::Array(_) | IrType::Object(_) => Ok("ptr".to_owned()),
+        IrType::String | IrType::Array(_) | IrType::Object(_) | IrType::Function { .. } => {
+            Ok("ptr".to_owned())
+        }
         IrType::Opaque => Err("cannot lower an opaque type to LLVM".to_owned()),
     }
 }
@@ -91,6 +109,7 @@ pub(super) fn llvm_value(value: &Value) -> String {
         Value::BigInt(value) => format!("{value}"),
         Value::Bool(value) => value.to_string(),
         Value::String(id) => format!("@g{id}"),
+        Value::Function { name, .. } => format!("@navascript_{name}"),
         Value::Null => "null".to_owned(),
     }
 }
@@ -101,6 +120,7 @@ pub(super) fn value_type(value: &Value, types: &HashMap<ValueId, IrType>) -> IrT
         Value::BigInt(_) => IrType::BigInt,
         Value::Bool(_) => IrType::Boolean,
         Value::String(_) | Value::Null => IrType::String,
+        Value::Function { ty, .. } => (**ty).clone(),
         Value::Local(index) | Value::Param(index) => {
             types.get(index).cloned().unwrap_or(IrType::Opaque)
         }
@@ -114,12 +134,14 @@ pub(super) fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
     }
     for block in &function.blocks {
         for instruction in &block.instructions {
-            if let Instruction::Call {
-                result: Some(result),
-                ..
-            } = instruction
-            {
-                types.insert(*result, instruction.result_type());
+            let call_result = match instruction {
+                Instruction::Call { result, .. } | Instruction::CallIndirect { result, .. } => {
+                    *result
+                }
+                _ => None,
+            };
+            if let Some(result) = call_result {
+                types.insert(result, instruction.result_type());
                 continue;
             }
             let result = match instruction {
@@ -138,6 +160,7 @@ pub(super) fn value_types(function: &IrFunction) -> HashMap<ValueId, IrType> {
                 | Instruction::ArrayGet { result, .. }
                 | Instruction::ArrayLength { result, .. }
                 | Instruction::ObjectNew { result, .. }
+                | Instruction::ClosureNew { result, .. }
                 | Instruction::ObjectGet { result, .. } => Some(result),
                 _ => None,
             };

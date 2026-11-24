@@ -119,14 +119,14 @@ fn lower_supports_collection_literals() {
 }
 
 #[test]
-fn reports_unknown_member_calls_instead_of_lowering_them() {
+fn reports_unknown_values_used_as_callables() {
     let source = "let x = console; x.unknown();";
     let parsed = parse(source);
     let typed = check(&parsed.program, source);
     let lowered = lower(&parsed.program, &typed.typed, source);
     assert!(lowered.diagnostics.has_errors());
     let rendered = lowered.diagnostics.render(source);
-    assert!(rendered.contains("unsupported call target"), "{rendered}");
+    assert!(rendered.contains("not a callable value"), "{rendered}");
 }
 
 #[test]
@@ -239,27 +239,67 @@ fn optional_access_lowers_to_a_null_check() {
 }
 
 #[test]
-fn arrow_captures_and_value_aliases_are_diagnosed() {
-    let source = "let base = 10; let add = (x: number): number => x + base;";
-    let parsed = parse(source);
-    let typed = check(&parsed.program, source);
-    let lowered = lower(&parsed.program, &typed.typed, source);
-    assert!(lowered.diagnostics.has_errors());
-
-    let source = "let f = (x: number): number => x; let g = f;";
-    let parsed = parse(source);
-    let typed = check(&parsed.program, source);
-    let lowered = lower(&parsed.program, &typed.typed, source);
-    assert!(lowered.diagnostics.has_errors());
+fn arrow_captures_are_stored_in_the_closure_environment() {
+    let (module, _) =
+        lower_source("let base = 10; let add = (x: number): number => x + base; add(1);");
+    assert!(navascript_ir::verify(&module).is_empty());
+    let arrow = module
+        .functions
+        .iter()
+        .find(|function| function.name.starts_with("arrow_"))
+        .expect("generated closure function");
+    assert_eq!(
+        arrow.params.len(),
+        2,
+        "hidden environment plus one user param"
+    );
+    assert!(arrow.params[0].ty == navascript_ir::IrType::Object(vec![]));
+    assert!(arrow.blocks.iter().any(|block| {
+        block.instructions.iter().any(|instruction| {
+            matches!(
+                instruction,
+                navascript_ir::Instruction::ObjectGet { field_index: 1, .. }
+            )
+        })
+    }));
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(|block| {
+        block.instructions.iter().any(|instruction| {
+            matches!(
+                instruction,
+                navascript_ir::Instruction::ClosureNew { captures, .. } if !captures.is_empty()
+            )
+        })
+    }));
 }
 
 #[test]
-fn arrow_initializers_lower_to_named_functions() {
+fn function_values_can_be_aliased_and_called() {
+    let (module, _) = lower_source("let f = (x: number): number => x; let g = f; let n = g(1);");
+    assert!(navascript_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(|block| {
+        block.instructions.iter().any(|instruction| {
+            matches!(instruction, navascript_ir::Instruction::CallIndirect { .. })
+        })
+    }));
+}
+
+#[test]
+fn arrow_values_lower_to_closure_functions_and_indirect_calls() {
     let (module, _) =
         lower_source("let add = (a: number, b: number): number => a + b; let n = add(1, 2);");
     assert!(navascript_ir::verify(&module).is_empty());
-    let function = module.function("add").expect("named arrow function");
-    assert_eq!(function.params.len(), 2);
+    let function = module
+        .functions
+        .iter()
+        .find(|function| function.name.starts_with("arrow_"))
+        .expect("generated closure function");
+    assert_eq!(
+        function.params.len(),
+        3,
+        "hidden environment plus two params"
+    );
     assert_eq!(function.return_ty, navascript_ir::IrType::Number);
 }
 
@@ -576,6 +616,73 @@ fn optional_calls_lower_to_direct_calls() {
             .iter()
             .any(|block| block.label.starts_with("optional."))
     );
+}
+
+#[test]
+fn named_functions_used_as_values_get_a_closure_thunk() {
+    let (module, _) = lower_source(
+        "function twice(x: number): number { return x * 2; } function apply(f: (n: number) => number, n: number): number { return f(n); } console.log(apply(twice, 3));",
+    );
+    assert!(navascript_ir::verify(&module).is_empty());
+    assert!(
+        module
+            .functions
+            .iter()
+            .any(|function| function.name.starts_with("fnvalue_twice_")),
+        "expected a thunk for the named function value"
+    );
+    let apply = module.function("apply").expect("apply");
+    assert!(apply.blocks.iter().any(|block| {
+        block
+            .instructions
+            .iter()
+            .any(|instruction| matches!(instruction, Instruction::CallIndirect { .. }))
+    }));
+}
+
+#[test]
+fn captured_bindings_are_boxed_into_shared_cells() {
+    let source = "let x = 1; let read = (): number => x; let bump = (): number => { x = x + 1; return x; }; console.log(bump()); console.log(x); console.log(read());";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(|block| {
+        block.instructions.iter().any(|instruction| {
+            matches!(
+                instruction,
+                Instruction::ObjectNew { fields, .. }
+                    if fields.iter().any(|(name, _)| name == "__value")
+            )
+        })
+    }));
+    let arrow = module
+        .functions
+        .iter()
+        .find(|function| function.name.starts_with("arrow_"))
+        .expect("closure function");
+    let gets = arrow
+        .blocks
+        .iter()
+        .flat_map(|block| &block.instructions)
+        .filter(|instruction| matches!(instruction, Instruction::ObjectGet { .. }))
+        .count();
+    assert!(
+        gets >= 2,
+        "expected an environment read and a cell read in the closure"
+    );
+}
+
+#[test]
+fn nested_closures_capture_environment_fields() {
+    let source = "type Inner = () => number; type Outer = () => Inner; function outer(a: number): Outer { let b = a + 1; return (): Inner => { return (): number => b + a; }; } console.log(outer(1)()());";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+    let arrows = module
+        .functions
+        .iter()
+        .filter(|function| function.name.starts_with("arrow_"))
+        .count();
+    assert_eq!(arrows, 2, "one function per arrow expression");
 }
 
 #[test]

@@ -1,9 +1,9 @@
 //! Statement and control-flow lowering into basic blocks.
 
-use navascript_ast::{ArrowBody, Block, Expr, ExprKind, Param, Span, Stmt, StmtKind};
+use navascript_ast::{Block, Expr, ExprKind, Stmt, StmtKind};
 
 use super::builder::FunctionBuilder;
-use super::ir::{BlockId, Instruction, IrFunction, IrParam, IrType, Terminator, Value};
+use super::ir::{BlockId, Instruction, IrType, Terminator, Value};
 use super::lower::{Lowerer, ir_type, ir_type_from_symbol};
 
 impl FunctionBuilder {
@@ -67,21 +67,6 @@ impl FunctionBuilder {
         decl: &navascript_ast::VariableDecl,
         lowerer: &mut Lowerer,
     ) {
-        if let Some(init) = &decl.init {
-            if let ExprKind::Arrow { params, body, .. } = &init.kind {
-                let result_ty = lowerer.arrow_return_type(init);
-                let function = FunctionBuilder::lower_arrow_function(
-                    &decl.name.name,
-                    params,
-                    body,
-                    result_ty,
-                    init.span,
-                    lowerer,
-                );
-                lowerer.module.functions.push(function);
-                return;
-            }
-        }
         // Prefer the checker's final declared type: aliases and optional
         // properties may give the variable a wider layout than its initializer.
         let mut ty = lowerer
@@ -101,10 +86,18 @@ impl FunctionBuilder {
                     .unwrap_or(IrType::Opaque);
             }
         }
+        let value = decl
+            .init
+            .as_ref()
+            .map(|init| self.lower_expr(init, lowerer));
+        if self.captured_names.contains(&decl.name.name) {
+            let initial = value.unwrap_or_else(|| default_value(&ty));
+            self.bind_cell(&decl.name, initial, ty);
+            return;
+        }
         let slot = self.alloc(ty.clone());
         self.declare(&decl.name, slot);
-        if let Some(init) = &decl.init {
-            let value = self.lower_expr(init, lowerer);
+        if let Some(value) = value {
             self.store(slot, ty, value);
         }
     }
@@ -181,8 +174,8 @@ impl FunctionBuilder {
 
     pub(super) fn lower_assign(&mut self, target: &Expr, value: &Value, lowerer: &mut Lowerer) {
         match &target.kind {
-            ExprKind::Ident(name) => match self.lookup(name) {
-                Some((slot, ty)) => self.store(slot, ty, value.clone()),
+            ExprKind::Ident(name) => match self.lookup_binding(name) {
+                Some(binding) => self.store_binding(&binding, value.clone()),
                 None => lowerer.error(format!("unknown value '{name}' in IR"), target.span),
             },
             ExprKind::Index {
@@ -242,52 +235,15 @@ impl FunctionBuilder {
             _ => lowerer.error("unsupported assignment target in IR", target.span),
         }
     }
-    /// Build the IR function for an arrow initialiser. All builder work stays
-    /// inside `FunctionBuilder`; the lowerer is only used for diagnostics.
-    pub(super) fn lower_arrow_function(
-        name: &str,
-        params: &[Param],
-        body: &ArrowBody,
-        return_ty: IrType,
-        span: Span,
-        lowerer: &mut Lowerer,
-    ) -> IrFunction {
-        let ir_params: Vec<IrParam> = params
-            .iter()
-            .map(|param| IrParam {
-                name: param.name.name.clone(),
-                ty: ir_type(&param.ty),
-            })
-            .collect();
-        let mut builder =
-            FunctionBuilder::new(name.to_owned(), ir_params.clone(), return_ty.clone());
-        let entry = builder.function.entry;
-        for (index, (param, ir_param)) in params.iter().zip(&ir_params).enumerate() {
-            let ty = ir_param.ty.clone();
-            let slot = builder.alloc(ty.clone());
-            builder.store(slot, ty, Value::Param(index as u32));
-            builder.declare(&param.name, slot);
-        }
-        let fallthrough = match body {
-            ArrowBody::Block(block) => builder.lower_block(block, lowerer, entry),
-            ArrowBody::Expr(expr) => {
-                let value = builder.lower_expr(expr, lowerer);
-                builder.set_terminator(entry, Terminator::Return(Some(value)));
-                None
-            }
-        };
-        if let Some(block) = fallthrough {
-            let value = if return_ty == IrType::Void {
-                None
-            } else {
-                lowerer.error(
-                    format!("arrow function '{name}' may fall through without returning"),
-                    span,
-                );
-                Some(Value::Null)
-            };
-            builder.set_terminator(block, Terminator::Return(value));
-        }
-        builder.finish()
+}
+
+/// Neutral initial value for a captured binding declared without an
+/// initialiser; avoids leaving an arbitrary byte pattern in its cell.
+fn default_value(ty: &IrType) -> Value {
+    match ty {
+        IrType::Number => Value::Number(0.0),
+        IrType::BigInt => Value::BigInt(0),
+        IrType::Boolean => Value::Bool(false),
+        _ => Value::Null,
     }
 }

@@ -191,6 +191,17 @@ fn emits_monomorphized_generic_functions() {
 }
 
 #[test]
+fn emits_indirect_calls_for_function_values() {
+    let ir = generate_source(
+        "function apply(f: (n: number) => number, n: number): number { return f(n); } let g = (x: number): number => x + 1; console.log(apply(g, 4));",
+    );
+    assert!(ir.contains("bitcast ptr %code"), "{ir}");
+    assert!(ir.contains("call double %fpcode"), "{ir}");
+    assert!(ir.contains("call void @navascript_object_set_ptr"), "{ir}");
+    assert!(ir.contains("define double @navascript_arrow_0("), "{ir}");
+}
+
+#[test]
 fn emits_optional_calls_as_direct_calls() {
     let ir = generate_source("function f(x: number): number { return x; } console.log(f?.(1));");
     assert!(ir.contains("call double @navascript_f(double"), "{ir}");
