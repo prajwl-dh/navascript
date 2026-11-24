@@ -5,7 +5,7 @@ use nava_ast::{
 };
 use nava_lexer::TokenKind;
 
-use super::parser::{Parser, token_span};
+use super::parser::{Parser, decode_string, token_span};
 
 impl<'a> Parser<'a> {
     pub(super) fn parse_item(&mut self) -> Option<Item> {
@@ -16,6 +16,19 @@ impl<'a> Parser<'a> {
             }
             TokenKind::Function => ItemKind::Function(self.parse_function()?),
             TokenKind::Class => ItemKind::Class(self.parse_class()?),
+            TokenKind::Import => {
+                let (names, source, source_span) = self.parse_import()?;
+                ItemKind::Import {
+                    names,
+                    source,
+                    source_span,
+                }
+            }
+            TokenKind::Export => {
+                self.bump();
+                let inner = self.parse_item()?;
+                ItemKind::Export(Box::new(inner))
+            }
             TokenKind::Type => ItemKind::TypeAlias(self.parse_type_alias()?),
             TokenKind::Interface => ItemKind::Interface(self.parse_interface()?),
             TokenKind::While
@@ -97,6 +110,40 @@ impl<'a> Parser<'a> {
         }
         self.expect(TokenKind::RParen, "expected ')' after parameters")?;
         Some(params)
+    }
+
+    fn parse_import(&mut self) -> Option<(Vec<Ident>, String, Span)> {
+        self.bump(); // `import`
+        self.expect(TokenKind::LBrace, "expected '{' after 'import'")?;
+        let mut names = Vec::new();
+        while self.kind() != TokenKind::RBrace && self.kind() != TokenKind::Eof {
+            names.push(self.parse_ident("expected an imported name")?);
+            if !self.eat(TokenKind::Comma) {
+                break;
+            }
+        }
+        self.expect(TokenKind::RBrace, "expected '}' after imported names")?;
+        // `from` is contextual: it is only special in an import statement so
+        // `const from = 1` remains valid (ADR-0026).
+        if self.kind() != TokenKind::Ident || self.current().lexeme != "from" {
+            self.error("expected 'from' after imported names", self.current_span());
+            return None;
+        }
+        self.bump();
+        let token = match self.kind() {
+            TokenKind::String => self.current().clone(),
+            _ => {
+                self.error("expected a module path string", self.current_span());
+                return None;
+            }
+        };
+        self.bump();
+        self.expect_semicolon();
+        Some((
+            names,
+            decode_string(&token.lexeme),
+            token_span(&token, self.file),
+        ))
     }
 
     pub(super) fn parse_class(&mut self) -> Option<ClassDecl> {

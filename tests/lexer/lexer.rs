@@ -231,6 +231,30 @@ fn does_not_treat_a_bigint_suffix_as_part_of_a_longer_identifier() {
 }
 
 #[test]
+fn lexes_module_keywords() {
+    assert_eq!(
+        kinds("import { a } from \"./m.ts\"; export function f() {}"),
+        vec![
+            TokenKind::Import,
+            TokenKind::LBrace,
+            TokenKind::Ident,
+            TokenKind::RBrace,
+            TokenKind::Ident,
+            TokenKind::String,
+            TokenKind::Semicolon,
+            TokenKind::Export,
+            TokenKind::Function,
+            TokenKind::Ident,
+            TokenKind::LParen,
+            TokenKind::RParen,
+            TokenKind::LBrace,
+            TokenKind::RBrace,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn lexes_union_and_intersection_type_operators() {
     assert_eq!(
         kinds("string | null & X"),

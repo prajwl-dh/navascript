@@ -22,12 +22,43 @@ pub enum ItemKind {
     Variable(VariableDecl),
     Function(FunctionDecl),
     Class(ClassDecl),
+    /// `import { name, ... } from "path";`
+    Import {
+        names: Vec<Ident>,
+        source: String,
+        source_span: Span,
+    },
+    /// `export <item>` — the wrapped item is checked and lowered normally.
+    Export(Box<Item>),
     TypeAlias(TypeAliasDecl),
     Interface(InterfaceDecl),
     Expr(Expr),
     /// A statement at program scope (e.g. a loop or a block), lowered into the
     /// synthetic `main` function alongside expression items.
     Stmt(Stmt),
+}
+
+impl ItemKind {
+    /// Look through `export` wrappers so declaration passes can treat an
+    /// exported item exactly like a local one.
+    pub fn unwrap_export(&self) -> &ItemKind {
+        match self {
+            ItemKind::Export(inner) => inner.kind.unwrap_export(),
+            other => other,
+        }
+    }
+
+    /// The binding introduced by a declaration item, if any.
+    pub fn declared_name(&self) -> Option<&str> {
+        match self.unwrap_export() {
+            ItemKind::Variable(decl) => Some(&decl.name.name),
+            ItemKind::Function(decl) => Some(&decl.name.name),
+            ItemKind::Class(decl) => Some(&decl.name.name),
+            ItemKind::TypeAlias(decl) => Some(&decl.name.name),
+            ItemKind::Interface(decl) => Some(&decl.name.name),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

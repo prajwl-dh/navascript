@@ -19,8 +19,8 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 
 Status: **accepted and implemented through Phase 6 (loops with
 `break`/`continue`, additional literals/operators, arrow functions, optional
-chaining, bigint, optional calls, generics, classes, unions and structural
-typing)**. The front-end seam (`parse`),
+chaining, bigint, optional calls, generics, classes, unions, structural typing
+and modules)**. The front-end seam (`parse`),
 the shared diagnostics leaf, the type-checker seam (`check`), the IR seam
 (`lower`) and the backend seam (`generate`) are all in use by the driver pipeline
 and covered by tests in `tests/`. Loop, operator, call, optional-access, bigint
@@ -113,7 +113,7 @@ diagnostics or a type checker streaming into the same sink).
 | --- | --- |
 | Facade in `nava_driver::front_end` | Couples the front end to the CLI crate; a future language server would depend on the driver. |
 | `parse(&[Source], &mut dyn DiagnosticSink)` now | Larger interface before a second adapter or a module system exists. |
-| `FileId`-threading through every phase now | Phase 6/7 module support is a real need but not a current one; `Span` already carries `FileId(0)` so the change is contained when it arrives. |
+| `FileId`-threading through every phase now | Phase 6 modules concatenate files into one program and still parse with `FileId(0)`; per-file spans/diagnostics remain deferred (ADR-0026). `Span` already carries `FileId`, so the change is contained when it arrives. |
 | Flags/options for recovery policy or incremental ranges | Speculative generality; use a separate function when a real second caller appears. |
 
 ## 5. Consequences for other modules

@@ -26,7 +26,7 @@ impl Checker<'_> {
     /// Register class names, then resolve their members (base classes first).
     pub(super) fn collect_classes(&mut self) {
         for item in &self.program.items {
-            if let ItemKind::Class(decl) = &item.kind {
+            if let ItemKind::Class(decl) = item.kind.unwrap_export() {
                 self.classes.insert(
                     decl.name.name.clone(),
                     ClassInfo {
@@ -52,7 +52,7 @@ impl Checker<'_> {
                 .program
                 .items
                 .iter()
-                .find_map(|item| match &item.kind {
+                .find_map(|item| match item.kind.unwrap_export() {
                     ItemKind::Class(decl) if &decl.name.name == name => Some(decl),
                     _ => None,
                 })
@@ -67,10 +67,14 @@ impl Checker<'_> {
         if self.class_resolved.contains(name) {
             return;
         }
-        let decl = self.program.items.iter().find_map(|item| match &item.kind {
-            ItemKind::Class(decl) if decl.name.name == name => Some(decl.clone()),
-            _ => None,
-        });
+        let decl = self
+            .program
+            .items
+            .iter()
+            .find_map(|item| match item.kind.unwrap_export() {
+                ItemKind::Class(decl) if decl.name.name == name => Some(decl.clone()),
+                _ => None,
+            });
         let Some(decl) = decl else {
             return;
         };

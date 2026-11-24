@@ -68,30 +68,36 @@ impl<'a> Lowerer<'a> {
             .push(Diagnostic::error(message, span, &self.lines));
     }
 
-    pub(super) fn lower_program(&mut self, program: &Program) {
+    pub(super) fn lower_program(&mut self, program: &nava_ast::Program) {
         let mut main_body = Vec::new();
         for item in &program.items {
-            match &item.kind {
-                ItemKind::Function(decl) if decl.type_params.is_empty() => {
-                    self.lower_function(decl, None)
-                }
-                ItemKind::Function(_) => {} // emitted on demand as a specialization
-                ItemKind::Class(decl) => self.lower_class(decl),
-                ItemKind::Variable(_) | ItemKind::Expr(_) | ItemKind::Stmt(_) => {
-                    main_body.push(item)
-                }
-                ItemKind::TypeAlias(_) | ItemKind::Interface(_) => {}
-            }
+            self.lower_program_item(item, &mut main_body);
         }
         if !main_body.is_empty() {
             self.lower_main(&main_body);
         }
     }
 
+    fn lower_program_item<'p>(
+        &mut self,
+        item: &'p nava_ast::Item,
+        main_body: &mut Vec<&'p nava_ast::Item>,
+    ) {
+        match item.kind.unwrap_export() {
+            ItemKind::Function(decl) if decl.type_params.is_empty() => {
+                self.lower_function(decl, None)
+            }
+            ItemKind::Function(_) => {} // emitted on demand as a specialization
+            ItemKind::Class(decl) => self.lower_class(decl),
+            ItemKind::Variable(_) | ItemKind::Expr(_) | ItemKind::Stmt(_) => main_body.push(item),
+            _ => {}
+        }
+    }
+
     pub(super) fn lower_main(&mut self, items: &[&nava_ast::Item]) {
         let mut builder = FunctionBuilder::new("main".to_owned(), Vec::new(), IrType::Void);
         for item in items {
-            match &item.kind {
+            match item.kind.unwrap_export() {
                 ItemKind::Variable(decl) => builder.lower_variable(decl, self),
                 ItemKind::Expr(expr) => {
                     builder.lower_expr(expr, self);

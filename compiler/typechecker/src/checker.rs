@@ -43,6 +43,7 @@ pub fn check(program: &Program, source: &str) -> CheckOutput {
     checker.check_alias_cycles();
     checker.collect_classes();
     checker.collect_declarations();
+    checker.check_imports();
     for item in &program.items {
         checker.check_item(item);
     }
@@ -122,8 +123,43 @@ impl<'a> Checker<'a> {
             .push(Diagnostic::error(message, span, &self.lines));
     }
 
+    /// Imported names must be exported by some module. Exported classes and
+    /// type declarations live in separate registries, so this checks the
+    /// `export` wrappers rather than only the symbol table.
+    pub(super) fn check_imports(&mut self) {
+        let exported: std::collections::HashSet<String> = self
+            .program
+            .items
+            .iter()
+            .filter(|item| matches!(item.kind, ItemKind::Export(_)))
+            .filter_map(|item| item.kind.declared_name().map(str::to_owned))
+            .collect();
+        let mut errors: Vec<(Span, String)> = Vec::new();
+        for item in &self.program.items {
+            if let ItemKind::Import {
+                names, source_span, ..
+            } = item.kind.unwrap_export()
+            {
+                if names.is_empty() {
+                    errors.push((*source_span, "import list is empty".to_owned()));
+                }
+                for name in names {
+                    if !exported.contains(&name.name) {
+                        errors.push((
+                            name.span,
+                            format!("imported name '{}' is not exported", name.name),
+                        ));
+                    }
+                }
+            }
+        }
+        for (span, message) in errors {
+            self.error(message, span);
+        }
+    }
+
     pub(super) fn check_item(&mut self, item: &Item) {
-        match &item.kind {
+        match item.kind.unwrap_export() {
             ItemKind::Variable(decl) => self.check_variable(decl, true),
             ItemKind::Function(decl) => self.check_function(decl),
             ItemKind::Class(decl) => self.check_class(decl),
@@ -131,7 +167,10 @@ impl<'a> Checker<'a> {
                 self.infer_expr(expr);
             }
             ItemKind::Stmt(stmt) => self.check_stmt(stmt, None),
-            ItemKind::TypeAlias(_) | ItemKind::Interface(_) => {}
+            ItemKind::TypeAlias(_)
+            | ItemKind::Interface(_)
+            | ItemKind::Import { .. }
+            | ItemKind::Export(_) => {}
         }
     }
 }

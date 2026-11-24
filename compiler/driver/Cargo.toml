@@ -16,6 +16,7 @@ name = "nava"
 path = "src/main.rs"
 
 [dependencies]
+nava-ast = { path = "../ast" }
 nava-codegen = { path = "../codegen" }
 nava-ir = { path = "../ir" }
 nava-parser = { path = "../parser" }

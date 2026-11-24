@@ -14,7 +14,7 @@ literals/operators (compound assignment, `++`/`--`, `**`, ternary,
 hex/binary/octal, Unicode identifiers and `\x`/`\u` escapes), arrow functions
 as variable initialisers, optional member/index chaining, bigint literals and
 optional calls, generics, classes, unions/intersections and full structural
-typing. Modules, closures and exceptions are still pending (ADR-0015).
+typing and modules. Closures and exceptions are still pending (ADR-0015).
 
 ## 1. Syntax
 
@@ -44,7 +44,7 @@ typing. Modules, closures and exceptions are still pending (ADR-0015).
 | Optional properties (`field?: T`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolve to `T | null`, may be omitted from object literals; omitted reference fields are null-initialized |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
 | Unions / intersections | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; nullable reference unions, intersection field merging, `== null`/`!= null` narrowing; mixed-representation unions are diagnosed (ADR-0025) |
-| Modules (`import`/`export`) | [ ] | — | Phase 6/7 |
+| Modules (`import`/`export`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; import-graph resolution from the entry file with validated exports; one module-wide namespace, relative `.ts` paths only; diagnostics rendered against combined source (ADR-0026) |
 | Async/await, promises | [ ] | — | Phase 6 |
 | Decorators | [-] | — | Deferred; not in initial scope |
 | JSX / `.tsx` | [-] | — | Deferred |
@@ -115,6 +115,9 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
+| Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | Phase 6 (pending) |
+| `.d.ts` and package resolution | only relative `.ts`/extensionless paths are resolved from the entry file | Phase 7 |
+| Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | Phase 6 (pending) |
 | Mixed-representation unions | `number | string` and nullable primitives are diagnosed because values are unboxed and untagged | Phase 6 (diagnosed, not miscompiled) |
 | Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | Phase 6 (pending) |
 | Optional non-reference field defaults | omitted optional numeric/bigint/boolean fields are zero-initialized rather than `undefined` | Phase 6 (documented) |

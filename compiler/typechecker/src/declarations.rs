@@ -11,7 +11,7 @@ use super::types::{Subst, resolve_named_type, union_layout_error};
 impl<'a> Checker<'a> {
     pub(super) fn collect_aliases(&mut self) {
         for item in &self.program.items {
-            match &item.kind {
+            match item.kind.unwrap_export() {
                 ItemKind::TypeAlias(alias) => {
                     let ty = self.resolve(&alias.ty, &Subst::new(), alias.span);
                     self.aliases.insert(alias.name.name.clone(), ty);
@@ -37,7 +37,7 @@ impl<'a> Checker<'a> {
 
     pub(super) fn check_alias_cycles(&mut self) {
         for item in &self.program.items {
-            if let ItemKind::TypeAlias(alias) = &item.kind {
+            if let ItemKind::TypeAlias(alias) = item.kind.unwrap_export() {
                 let resolved =
                     resolve_named_type(&Type::Named(alias.name.name.clone()), &self.aliases);
                 if resolved == Type::Error {
@@ -67,7 +67,7 @@ impl<'a> Checker<'a> {
 
     pub(super) fn collect_declarations(&mut self) {
         for item in &self.program.items {
-            match &item.kind {
+            match item.kind.unwrap_export() {
                 ItemKind::Variable(decl) => {
                     let ty = decl
                         .ty

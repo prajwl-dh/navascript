@@ -527,6 +527,32 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0026 — Modules by concatenation
+
+- **Date:** 2026-11-24
+- **Status:** Accepted
+- **Context:** Phase 6 adds modules. The compiler's seams (`parse`, `check`,
+  `lower`, `generate`) all accept one program and one source string; threading
+  `FileId` and per-file diagnostics through every phase would be a much larger
+  change than this increment warrants.
+- **Decision:** The driver resolves the import graph from the entry file before
+  compilation. Each file is parsed once to discover its imports, visited paths
+  are deduplicated (so cycles and diamonds terminate), extensionless specifiers
+  gain `.ts`, and file texts are concatenated in dependency order. The existing
+  seams then see one program. `import { ... } from "..."` and `export
+  <declaration>` are AST items; exported declarations are collected from
+  `export` wrappers and imports are validated against them. `from` stays
+  contextual so it remains a valid identifier outside import statements. The
+  loader lives in `compiler/driver/src/modules.rs` behind the build pipeline.
+- **Consequences:** All files share one namespace — non-exported names are
+  visible across files, and two modules declaring the same name collide.
+  Diagnostics are rendered against the concatenated source, so line/column
+  point into combined text rather than the originating file. Resolution covers
+  relative `.ts`/extensionless paths only; `.d.ts`, packages and per-file
+  namespaces are out of scope and recorded in `COMPATIBILITY.md`.
+
+---
+
 ## Template for new decisions
 
 ```

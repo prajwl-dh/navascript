@@ -369,6 +369,32 @@ fn checks_optional_calls_like_direct_calls() {
 }
 
 #[test]
+fn checks_exported_declarations_and_imported_names() {
+    let (output, _) = check_source(
+        "import { f } from \"./m.ts\"; export function f(): number { return 1; } console.log(f());",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source("import { missing } from \"./m.ts\";");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("imported name 'missing' is not exported")),
+        "{:?}",
+        messages(&output)
+    );
+    let (output, _) = check_source(
+        "export class C {} export interface I {} export type T = number; import { C, I, T } from \"./m.ts\";",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source("const hidden = 1; import { hidden } from \"./m.ts\";");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("imported name 'hidden' is not exported"))
+    );
+}
+
+#[test]
 fn accepts_union_and_intersection_assignments() {
     let (output, _) = check_source(
         "interface A { a: number; } interface B { b: string; } let u: string | null = \"x\"; let v: string | null = null; let i: A & B = { a: 1, b: \"x\" };",

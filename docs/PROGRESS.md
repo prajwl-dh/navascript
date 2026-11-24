@@ -5,11 +5,11 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 [Work log](#work-log) explaining what is happening.
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
-- **Last updated:** 2026-11-21
+- **Last updated:** 2026-11-24
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
   chaining, bigint literals, optional calls, generics, classes with inheritance,
-  unions/intersections and full structural typing complete
+  unions/intersections, full structural typing and modules complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -28,7 +28,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -37,8 +37,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
-calls, generics, classes, unions/intersections and structural typing delivered;
-remaining expansion items pending).
+calls, generics, classes, unions/intersections, structural typing and modules
+delivered; remaining expansion items pending).
 
 ---
 
@@ -205,17 +205,19 @@ limitations for every milestone.
 - [x] Interfaces / structural typing (full) — union/intersection-aware
    assignability, optional properties and merged object layouts — done 2026-11-21
 - [x] Union / intersection types with null narrowing — done 2026-11-21
-- [ ] Modules, imports, exports
+- [x] Modules, imports, exports — import-graph resolution and export validation
+  from the entry file; module-wide namespace — done 2026-11-24
 - [ ] Closures, higher-order functions
 - [ ] Async/await, promises
 - [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (243 passed, 0 failed) succeed;
+  `cargo test --workspace` (248 passed, 0 failed) succeed;
   `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
   `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
   `examples/bigint.ts`, `examples/optional_call.ts`, `examples/generics.ts`,
-  `examples/classes.ts` and `examples/unions.ts` run natively.
+  `examples/classes.ts`, `examples/unions.ts` and `examples/modules.ts` run
+  natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -828,15 +830,36 @@ limitations for every milestone.
   codegen/native surfaces. Suite grew from 227 to 243 tests; fmt and clippy
   clean.
 
+### 2026-11-24 — Phase 6 (modules increment)
+- Added `import { ... } from "..."` and `export <declaration>` syntax. `from`
+  stays contextual, so `const from = 1` still lexes (ADR-0026).
+- `nava_driver::modules::load` walks the import graph from the entry file,
+  deduplicates visited paths (handling cycles and diamonds), resolves
+  extensionless specifiers to `.ts`, and concatenates sources in dependency
+  order. The compiler's parse/check/lower/generate seams still see one program.
+- Exported declarations are collected from `export` wrappers and imports are
+  validated against them; classes, interfaces and aliases are checked too, not
+  just symbol-table entries.
+- Two-axis code review of `8ce8397...HEAD` (working tree) was applied: made
+  `from` contextual, added export validation and extensionless resolution,
+  fixed exported alias cycle checking, cached sources during graph discovery,
+  and added module tests (lexer/parser/checker/IR/native plus a transitive
+  extensionless build).
+- Known limitations recorded in ADR-0026: one module-wide namespace, no
+  `.d.ts`/package resolution, and diagnostics rendered against the combined
+  source rather than the originating file.
+- Added `examples/modules.ts` and `examples/math.ts`. Suite grew from 243 to
+  248 tests; fmt and clippy clean.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: modules, closures and exceptions (ADR-0015), async/await.
-   Loops (including `break`/`continue`), the additional literals/operators,
-   arrow functions, optional chaining, bigint, optional calls, generics,
-   classes, unions/intersections and structural typing are done.
+   `ROADMAP.md`: closures and exceptions (ADR-0015), async/await. Loops
+   (including `break`/`continue`), the additional literals/operators, arrow
+   functions, optional chaining, bigint, optional calls, generics, classes,
+   unions/intersections, structural typing and modules are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

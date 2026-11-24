@@ -10,7 +10,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 ## 1. Source files
 
 - `.ts` is the initial source extension. `.tsx` is planned for a later phase.
-- One module per file initially; module resolution comes in Phase 6/7.
+- One module per file; the driver resolves the import graph from the entry file
+  and compiles all modules as one program (Phase 6, ADR-0026). Names share a
+  module-wide namespace.
 - Encoding: UTF-8.
 
 ## 2. Lexical structure
@@ -18,7 +20,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
   `true`, `false`, `null`, `void`, `type`, `interface`, `while`, `do`, `for`,
   `break`, `continue`.
-- [ ] Keywords `switch`, `class`, `import`, `export`, `async`, `await`, `throw`,
+- [ ] Keywords `switch`, `async`, `await`, `throw`,
   `try`, `catch`, `finally` (their features are unimplemented; not yet
   recognized by the lexer). `of` in `for-of` is contextual, not a keyword.
 - [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
@@ -148,8 +150,12 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 7. Modules
 
-- [ ] `import` / `export` syntax (Phase 6/7)
-- [ ] Module resolution rules compatible with TypeScript where practical
+- [x] `import { name } from "./path"` and `export <declaration>` (Phase 6).
+   `from` is contextual, and imported names must be exported.
+- [~] Module resolution rules compatible with TypeScript where practical —
+   Phase 6 resolves relative paths and extensionless `.ts` specifiers from the
+   entry file, deduplicates visited files and handles cycles; `.d.ts`, package
+   resolution and per-file namespaces are not implemented (ADR-0026).
 - [ ] JavaScript interop (Phase 7, best effort)
 
 ## 8. Runtime semantics

@@ -258,7 +258,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   properties, merged object layouts. **Delivered 2026-11-21** (ADR-0025).
 - Union and intersection types — nullable reference unions with control-flow
   narrowing. **Delivered 2026-11-21** (ADR-0025).
-- Modules, imports, exports, module resolution.
+- Modules, imports, exports, module resolution — import-graph resolution from
+  the entry file, contextual `from`, validated exports. **Delivered 2026-11-24**
+  (status in `PROGRESS.md`; ADR-0026).
 - Closures and higher-order functions (with runtime from Phase 5).
 - Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
 - Async/await and promises.
@@ -291,8 +293,11 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   primitives (`number | null`) are diagnosed, not silently miscompiled; only
   nullable reference types are usable today. Narrowing covers null tests in
   `if`, `while`, `&&`/`||` and branch bodies, not ternary or post-assignment
-  flow. Function values are not implemented; iteration is limited to
-  arrays/strings.
+  flow. Modules share one namespace (no per-file scoping), resolve relative
+  `.ts` paths (extensionless specifiers get `.ts`), and render diagnostics
+  against the concatenated source rather than the originating file; `.d.ts`
+  and package resolution are out of scope. Function values are not
+  implemented; iteration is limited to arrays/strings.
 
 ---
 

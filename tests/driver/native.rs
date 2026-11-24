@@ -248,6 +248,53 @@ fn bigints_run_natively() {
 }
 
 #[test]
+fn transitive_extensionless_imports_resolve() {
+    if !nava_driver::build::native_tools_available() {
+        return;
+    }
+    let dir = std::env::temp_dir().join(format!("nava-modules-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    std::fs::write(
+        dir.join("a.ts"),
+        "export function offset(): number { return 5; }",
+    )
+    .expect("write a.ts");
+    std::fs::write(
+        dir.join("b.ts"),
+        "import { offset } from \"./a\";\nexport function addOffset(x: number): number { return x + offset(); }",
+    )
+    .expect("write b.ts");
+    let main = dir.join("main.ts");
+    std::fs::write(
+        &main,
+        "import { offset } from \"./a\";\nimport { addOffset } from \"./b\";\nconsole.log(offset());\nconsole.log(addOffset(10));",
+    )
+    .expect("write main.ts");
+    let output = dir.join("main-bin");
+    let status = Command::new(env!("CARGO_BIN_EXE_nava"))
+        .arg("build")
+        .arg(&main)
+        .arg("-o")
+        .arg(&output)
+        .status()
+        .expect("run nava build");
+    assert!(status.success(), "nava build failed for transitive imports");
+    let run = Command::new(&output).output().expect("run module program");
+    assert_eq!(String::from_utf8_lossy(&run.stdout), "5\n15\n");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn modules_resolve_and_link_natively() {
+    let Some(binary) = compile("modules.ts", "modules", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run modules program");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "42\n3\n");
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn unions_and_intersections_run_natively() {
     let Some(binary) = compile("unions.ts", "unions", &[]) else {
         return;

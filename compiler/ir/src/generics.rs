@@ -110,10 +110,14 @@ impl Lowerer<'_> {
             .collect();
         let key = (name.to_owned(), concrete);
         if !self.specializations.contains_key(&key) {
-            let decl = self.program.items.iter().find_map(|item| match &item.kind {
-                ItemKind::Function(decl) if decl.name.name == name => Some(decl.clone()),
-                _ => None,
-            });
+            let decl = self
+                .program
+                .items
+                .iter()
+                .find_map(|item| match item.kind.unwrap_export() {
+                    ItemKind::Function(decl) if decl.name.name == name => Some(decl.clone()),
+                    _ => None,
+                });
             let Some(decl) = decl else {
                 self.error(format!("unknown generic function '{name}'"), span);
                 return (name.to_owned(), IrType::Opaque);

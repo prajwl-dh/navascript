@@ -143,13 +143,14 @@ fn dispatch(command: Command) -> i32 {
             emit_ir,
             release,
         } => {
-            let source = match std::fs::read_to_string(&input) {
-                Ok(source) => source,
+            let loaded = match super::modules::load(&input) {
+                Ok(loaded) => loaded,
                 Err(error) => {
-                    eprintln!("nava: could not read '{}': {error}", input.display());
+                    eprintln!("nava: {error}");
                     return 1;
                 }
             };
+            let source = loaded.source;
             let parsed = nava_parser::parse(&source);
             if parsed.diagnostics.has_errors() {
                 eprint!("{}", parsed.diagnostics.render(&source));

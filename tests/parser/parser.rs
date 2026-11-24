@@ -535,6 +535,24 @@ fn parses_optional_calls() {
 }
 
 #[test]
+fn parses_imports_and_exports() {
+    let output = ok(
+        "import { a, b } from \"./m.ts\"; export function f(): number { return 1; } export const n = 2;",
+    );
+    let ItemKind::Import { names, source, .. } = &output.program.items[0].kind else {
+        panic!("expected an import");
+    };
+    assert_eq!(names.len(), 2);
+    assert_eq!(source, "./m.ts");
+    assert!(
+        matches!(&output.program.items[1].kind, ItemKind::Export(inner) if matches!(inner.kind, ItemKind::Function(_)))
+    );
+    assert!(
+        matches!(&output.program.items[2].kind, ItemKind::Export(inner) if matches!(inner.kind, ItemKind::Variable(_)))
+    );
+}
+
+#[test]
 fn parses_union_intersection_and_optional_property_types() {
     let output = ok(
         "interface P { name: string; nickname?: string; } let u: string | null; let i: P & { age: number };",
