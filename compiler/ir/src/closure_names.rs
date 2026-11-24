@@ -228,6 +228,14 @@ impl FreeNameCollector {
                 self.block(&stmt.body);
                 self.bound = outer;
             }
+            StmtKind::Throw(expr) => self.expr(expr),
+            StmtKind::Try(try_stmt) => {
+                self.block(&try_stmt.body);
+                self.block(&try_stmt.catch_body);
+                if let Some(finally) = &try_stmt.finally_body {
+                    self.block(finally);
+                }
+            }
             StmtKind::Block(block) => self.block(block),
             StmtKind::Break | StmtKind::Continue | StmtKind::Empty => {}
         }

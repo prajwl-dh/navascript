@@ -35,7 +35,9 @@ impl<'a> Parser<'a> {
             | TokenKind::Do
             | TokenKind::For
             | TokenKind::Break
-            | TokenKind::Continue => ItemKind::Stmt(self.parse_stmt()?),
+            | TokenKind::Continue
+            | TokenKind::Throw
+            | TokenKind::Try => ItemKind::Stmt(self.parse_stmt()?),
             _ => {
                 let expr = self.parse_expr(0)?;
                 self.expect_semicolon();

@@ -1,8 +1,8 @@
 //! Statement and control-flow parsing.
 
 use navascript_ast::{
-    Block, ElseBranch, ExprKind, ForOfStmt, ForStmt, Ident, IfStmt, Span, Stmt, StmtKind,
-    VariableDecl, WhileStmt,
+    Block, ElseBranch, ExprKind, ForOfStmt, ForStmt, Ident, IfStmt, Param, Span, Stmt, StmtKind,
+    TryStmt, VariableDecl, WhileStmt,
 };
 use navascript_lexer::TokenKind;
 
@@ -74,6 +74,13 @@ impl<'a> Parser<'a> {
                 self.expect_semicolon();
                 StmtKind::Continue
             }
+            TokenKind::Throw => {
+                self.bump();
+                let value = self.parse_expr(0)?;
+                self.expect_semicolon();
+                StmtKind::Throw(value)
+            }
+            TokenKind::Try => StmtKind::Try(self.parse_try()?),
             TokenKind::LBrace => StmtKind::Block(self.parse_block()?),
             TokenKind::Let | TokenKind::Const | TokenKind::Var => {
                 StmtKind::Variable(self.parse_variable_decl()?)
@@ -237,5 +244,51 @@ impl<'a> Parser<'a> {
             update,
             body,
         }))
+    }
+
+    /// Parse `try { ... } catch (e: T) { ... } [finally { ... }]`. The catch
+    /// binding needs an annotation, like arrow parameters, so lowering has a
+    /// concrete slot type for the thrown value.
+    pub(super) fn parse_try(&mut self) -> Option<TryStmt> {
+        self.bump(); // `try`
+        let body = self.parse_block()?;
+        if !self.eat(TokenKind::Catch) {
+            self.error(
+                "expected 'catch' after 'try' body (a catch clause is required)",
+                self.current_span(),
+            );
+            return None;
+        }
+        self.expect(TokenKind::LParen, "expected '(' after 'catch'")?;
+        let start = self.current().start as usize;
+        let name = self.parse_ident("expected a catch binding name")?;
+        let ty = if self.eat(TokenKind::Colon) {
+            Some(self.parse_type_annotation()?)
+        } else {
+            self.error(
+                "catch bindings require a type annotation",
+                Span::new(self.file, start, self.previous_end(start)),
+            );
+            None
+        };
+        self.expect(TokenKind::RParen, "expected ')' after catch binding")?;
+        let end = self.previous_end(start);
+        let catch_param = Param {
+            name,
+            ty,
+            span: Span::new(self.file, start, end),
+        };
+        let catch_body = self.parse_block()?;
+        let finally_body = if self.eat(TokenKind::Finally) {
+            Some(self.parse_block()?)
+        } else {
+            None
+        };
+        Some(TryStmt {
+            body,
+            catch_param,
+            catch_body,
+            finally_body,
+        })
     }
 }

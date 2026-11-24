@@ -57,6 +57,8 @@ impl FunctionBuilder {
             StmtKind::Break | StmtKind::Continue => {
                 self.lower_break_or_continue(statement, lowerer, current)
             }
+            StmtKind::Throw(expr) => self.lower_throw(expr, statement.span, lowerer),
+            StmtKind::Try(try_stmt) => self.lower_try(try_stmt, lowerer, current),
             StmtKind::Block(block) => self.lower_block(block, lowerer, current),
             StmtKind::Empty => Some(current),
         }

@@ -14,6 +14,9 @@ impl Checker<'_> {
         body: &ArrowBody,
     ) -> Type {
         self.symbols.enter_scope();
+        // An arrow is a separate function: a `throw` inside it cannot use a
+        // handler from the enclosing function (ADR-0028).
+        let outer_exceptions = self.suspend_exception_context();
         let mut param_types = Vec::new();
         for param in params {
             let Some(annotation) = &param.ty else {
@@ -41,6 +44,7 @@ impl Checker<'_> {
                 inferred
             }
         };
+        self.restore_exception_context(outer_exceptions);
         self.symbols.leave_scope();
         let ret = return_ty
             .as_ref()

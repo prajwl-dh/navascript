@@ -136,6 +136,10 @@ pub enum StmtKind {
     ForOf(ForOfStmt),
     Break,
     Continue,
+    /// `throw expr;` — only valid inside a `try` in the same function (ADR-0028).
+    Throw(Expr),
+    /// `try { ... } catch (e: T) { ... } finally { ... }` (ADR-0028).
+    Try(TryStmt),
     Block(Block),
     Empty,
 }
@@ -151,6 +155,15 @@ pub struct IfStmt {
 pub enum ElseBranch {
     If(Box<IfStmt>),
     Block(Block),
+}
+
+/// A `try` statement with an annotated catch binding and an optional `finally`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TryStmt {
+    pub body: Block,
+    pub catch_param: Param,
+    pub catch_body: Block,
+    pub finally_body: Option<Block>,
 }
 
 /// Shared shape for `while (c) b` and `do b while (c)`.

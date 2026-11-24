@@ -8,6 +8,8 @@ use navascript_symbol::{Symbol, SymbolKind, Type};
 use super::checker::Checker;
 use super::types::{Subst, is_assignable, resolve_named_type, union_layout_error};
 
+use super::exceptions::ExceptionContext;
+
 impl<'a> Checker<'a> {
     pub(super) fn check_variable(&mut self, decl: &VariableDecl, top_level: bool) {
         let declared = decl
@@ -67,6 +69,7 @@ impl<'a> Checker<'a> {
 
     pub(super) fn check_function(&mut self, decl: &FunctionDecl) {
         self.symbols.enter_scope();
+        let outer_exceptions: ExceptionContext = self.suspend_exception_context();
         let subst = self.type_param_subst(&decl.type_params);
         for param in &decl.type_params {
             self.symbols.insert(Symbol {
@@ -96,6 +99,7 @@ impl<'a> Checker<'a> {
             .unwrap_or_else(|| self.infer_return_type(&decl.body));
 
         self.check_block(&decl.body, Some(&expected_ret));
+        self.restore_exception_context(outer_exceptions);
         self.symbols.leave_scope();
 
         // Refresh the *global* signature so later functions and IR lowering
@@ -129,6 +133,7 @@ impl<'a> Checker<'a> {
     pub(super) fn check_stmt(&mut self, statement: &Stmt, expected_ret: Option<&Type>) {
         match &statement.kind {
             StmtKind::Return(value) => {
+                self.reject_abrupt("return", statement.span);
                 let actual = value
                     .as_ref()
                     .map(|expr| self.infer_expr(expr))
@@ -152,13 +157,16 @@ impl<'a> Checker<'a> {
             StmtKind::DoWhile(stmt) => self.check_while(stmt, expected_ret),
             StmtKind::For(stmt) => self.check_for(stmt, expected_ret),
             StmtKind::ForOf(stmt) => self.check_for_of(stmt, expected_ret),
+            StmtKind::Throw(expr) => self.check_throw(expr, statement.span),
+            StmtKind::Try(try_stmt) => self.check_try(try_stmt),
             StmtKind::Break | StmtKind::Continue => {
+                let word = if matches!(statement.kind, StmtKind::Break) {
+                    "break"
+                } else {
+                    "continue"
+                };
+                self.reject_abrupt(word, statement.span);
                 if self.loop_depth == 0 {
-                    let word = if matches!(statement.kind, StmtKind::Break) {
-                        "break"
-                    } else {
-                        "continue"
-                    };
                     self.error(format!("{word} outside a loop"), statement.span);
                 }
             }

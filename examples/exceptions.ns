@@ -1,0 +1,31 @@
+// Exceptions: same-function try/catch/finally (Phase 6, ADR-0028).
+try {
+    let x = 1;
+    throw "bad value";
+} catch (e: string) {
+    console.log(e);
+} finally {
+    console.log("cleanup");
+}
+console.log("after");
+
+// Nested try: the innermost catch handles the throw.
+try {
+    try {
+        throw "inner";
+    } catch (e: string) {
+        console.log(e);
+    }
+    console.log("outer continues");
+} catch (e: string) {
+    console.log("outer catch");
+}
+
+// A try with no throw still runs its body and finally, then continues.
+try {
+    console.log("normal");
+} catch (e: string) {
+    console.log("not reached");
+} finally {
+    console.log("normal cleanup");
+}

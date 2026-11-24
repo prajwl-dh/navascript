@@ -232,9 +232,9 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - The arena allocator never reclaims memory during execution; a tracing
   collector or reference counting is a later upgrade (ADR-0005).
 - Closures, function values and `throw`/`try` were deferred from Phase 5 to
-  Phase 6 (ADR-0015). Closures and function values were delivered in Phase 6 by
-  ADR-0027; `throw`/`try` remain pending. Runtime errors terminate the process
-  with a diagnostic.
+  Phase 6 (ADR-0015). Closures and function values were delivered by ADR-0027;
+  `throw`/`try`/`catch`/`finally` were delivered by ADR-0028. Runtime errors
+  still terminate the process with a diagnostic.
 
 ---
 
@@ -267,6 +267,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Closures and higher-order functions (with runtime from Phase 5).
   **Delivered 2026-11-24** (status in `PROGRESS.md`; ADR-0027).
 - Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
+  **Delivered 2026-11-24** (status in `PROGRESS.md`; ADR-0028).
 - Async/await and promises.
 
 **Tests**
@@ -307,7 +308,11 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   and package resolution are out of scope. Closures capture shared cells
   (ADR-0027), but a binding cannot be captured before it is initialised, so
   recursion must use a named function; parenthesised nested function types in
-  annotations need a type alias. Iteration is limited to arrays/strings.
+  annotations need a type alias. Exceptions are handled within one function
+  (ADR-0028): a `throw` cannot cross a function boundary, `return`/`break`/
+  `continue` out of protected regions and `throw` in catch/finally are
+  diagnosed, catch bindings require a type annotation, and `try` requires a
+  catch clause. Iteration is limited to arrays/strings.
 
 ---
 

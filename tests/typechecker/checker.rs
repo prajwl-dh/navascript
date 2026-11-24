@@ -717,6 +717,76 @@ fn infers_returns_inside_loops() {
 }
 
 #[test]
+fn checks_throw_against_the_catch_type() {
+    let (output, _) = check_source(
+        "try { throw \"bad\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); }",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_unsupported_exception_forms() {
+    let (output, _) = check_source("throw \"outside\";");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("requires an enclosing try"))
+    );
+    let (output, _) = check_source("try { throw 1; } catch (e: string) {}");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign 'number' to 'string'"))
+    );
+    let (output, _) =
+        check_source("function f(): number { try { return 1; } catch (e: string) { return 2; } }");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("return inside try/catch/finally"))
+    );
+    let (output, _) = check_source("let g = (): void => { throw \"arrow\"; };");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cross-function unwinding"))
+    );
+}
+
+#[test]
+fn rejects_break_continue_and_nested_throw_in_protected_regions() {
+    let (output, _) =
+        check_source("while (true) { try { break; continue; } catch (e: string) {} }");
+    let found = messages(&output);
+    assert!(
+        found
+            .iter()
+            .any(|message| message.contains("break inside try/catch/finally"))
+    );
+    assert!(
+        found
+            .iter()
+            .any(|message| message.contains("continue inside try/catch/finally"))
+    );
+    let (output, _) = check_source(
+        "try { throw \"x\"; } catch (e: string) { try { throw \"y\"; } catch (f: string) {} finally { console.log(\"done\"); } }",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("throw inside catch/finally"))
+    );
+}
+
+#[test]
+fn accepts_alias_catch_types() {
+    let (output, _) = check_source(
+        "type Failure = string; try { throw \"bad\"; } catch (e: Failure) { console.log(e); }",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
 fn rejects_comparisons_of_non_orderable_types() {
     let (output, _) = check_source("let x = true < false;");
     assert!(

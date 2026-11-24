@@ -14,8 +14,8 @@ and fatal error reporting; Phase 6 has delivered loops with
 `++`/`--`, `**`, ternary, hex/binary/octal, Unicode identifiers and `\x`/`\u`
 escapes), arrow functions, optional member/index chaining, bigint literals and
 optional calls, generics, classes, unions/intersections, full structural
-typing, modules and closures/higher-order functions (ADR-0027). Exceptions and
-async/await are still pending.
+typing, modules, closures/higher-order functions (ADR-0027) and same-function
+exceptions (ADR-0028). Async/await is still pending.
 
 ## 1. Syntax
 
@@ -35,6 +35,7 @@ async/await are still pending.
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
 | Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; IR emits an `IsNull` branch, but a nullable receiver (`T | null`) is diagnosed by the checker, so the null branch is not reachable through `?.` yet (ADR-0025); scalar results are diagnosed and `undefined` does not exist |
+| Exceptions (`throw`, `try`/`catch`/`finally`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; same-function handling with ordinary IR branches, nested try, optional `finally`; catch bindings need a type annotation; cross-function throws, abrupt control flow out of protected regions and throw in catch/finally are diagnosed (ADR-0028) |
 | Optional call (`a?.()`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; type-checked for callability/arity; named callees lower as direct calls and function values as indirect calls (ADR-0027); no null branch because NavaScript has no nullable callable values |
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; any expression position, annotated parameters required, shared captures and first-class values (ADR-0027); unannotated shorthand arrows are diagnosed |
 | Function type annotations (`(n: T) => R`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolved to `Type::Function`/`IrType::Function`; usable in variables, parameters, returns, arrays and object fields |
@@ -79,7 +80,7 @@ async/await are still pending.
 | Strings | [x] | `tests/driver/native.rs` | literal, `+`, `length`, indexing, `==`, `console.log` |
 | Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
 | Closures / function values | [x] | `tests/driver/native.rs`, `examples/closures.ns` | Phase 6; shared captured bindings, higher-order calls and nested closures run natively (ADR-0027) |
-| Exceptions | [ ] | — | Phase 6 (ADR-0015); runtime errors are currently fatal |
+| Exceptions | [~] | `tests/driver/native.rs`, `examples/exceptions.ns` | Phase 6; same-function `throw`/`try`/`catch`/`finally` run natively without a runtime ABI (ADR-0028); runtime bounds/field errors are still fatal |
 | `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
 | Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
 
@@ -129,5 +130,8 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Recursion via a captured arrow binding | a `const`/`let` arrow binding is not initialised when the arrow is created, so self-capture is unsupported; use a named function | Phase 6 (documented) |
 | Nullable function values | optional calls have no null branch because a callable value cannot be null; `console.log` of a function value is diagnosed | Phase 6 (documented) |
 | Nested function types in annotations | `() => (() => number)` hits a parser ambiguity; introduce a type alias (`type F = () => number`) instead | Phase 6 (documented) |
-| `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 (pending) |
+| Cross-function exception unwinding | a `throw` must have a handler in the same function; throwing inside a called function or an arrow is diagnosed (ADR-0028) | deferred |
+| Abrupt control flow in protected regions | `return`/`break`/`continue` inside try/catch/finally and `throw` inside catch/finally are diagnosed; `try` needs a catch clause | deferred |
+| Catch bindings | a type annotation is required and constrains throw types, unlike JavaScript's untyped `catch (e)` | deferred |
+| Runtime errors | bounds/field/runtime failures still terminate the process; they are not catchable exceptions | deferred |
 | `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | deferred |

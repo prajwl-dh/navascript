@@ -32,6 +32,10 @@ pub enum TokenKind {
     For,
     Break,
     Continue,
+    Throw,
+    Try,
+    Catch,
+    Finally,
     LParen,
     RParen,
     LBrace,
@@ -140,6 +144,10 @@ pub(super) fn keyword(word: &str) -> TokenKind {
         "for" => TokenKind::For,
         "break" => TokenKind::Break,
         "continue" => TokenKind::Continue,
+        "throw" => TokenKind::Throw,
+        "try" => TokenKind::Try,
+        "catch" => TokenKind::Catch,
+        "finally" => TokenKind::Finally,
         _ => TokenKind::Ident,
     }
 }

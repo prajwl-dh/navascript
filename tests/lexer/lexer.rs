@@ -289,6 +289,20 @@ fn lexes_class_keywords() {
 }
 
 #[test]
+fn recognizes_exception_keywords() {
+    assert_eq!(
+        kinds("throw try catch finally"),
+        vec![
+            TokenKind::Throw,
+            TokenKind::Try,
+            TokenKind::Catch,
+            TokenKind::Finally,
+            TokenKind::Eof,
+        ]
+    );
+}
+
+#[test]
 fn lexes_optional_calls() {
     assert_eq!(
         kinds("f?.()"),

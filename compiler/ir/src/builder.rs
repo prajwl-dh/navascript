@@ -9,6 +9,16 @@ use super::ir::{
 };
 use navascript_ast::Ident;
 
+/// A `throw` in the current function targets the innermost enclosing catch.
+#[derive(Debug, Clone)]
+pub(super) struct TryContext {
+    pub(super) value_slot: SlotId,
+    pub(super) value_ty: IrType,
+    pub(super) catch_block: BlockId,
+    /// Set by `throw` so an unreachable catch block can be omitted.
+    pub(super) catch_used: bool,
+}
+
 /// Targets for `break` and `continue` in the innermost active loop.
 #[derive(Debug, Clone)]
 pub(super) struct LoopContext {
@@ -26,6 +36,7 @@ pub(super) struct FunctionBuilder {
     pub(super) next_block: BlockId,
     pub(super) scopes: Vec<HashMap<String, SlotId>>,
     pub(super) loops: Vec<LoopContext>,
+    pub(super) tries: Vec<TryContext>,
     /// The `this` stack slot and its object type inside a class member.
     pub(super) this_slot: Option<SlotId>,
     pub(super) this_ty: Option<IrType>,
@@ -57,6 +68,7 @@ impl FunctionBuilder {
             next_block: 1,
             scopes: vec![HashMap::new()],
             loops: Vec::new(),
+            tries: Vec::new(),
             this_slot: None,
             this_ty: None,
             captures: HashMap::new(),

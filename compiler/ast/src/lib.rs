@@ -12,7 +12,7 @@ mod types;
 pub use expr::{ArrowBody, AssignOp, BinaryOp, Expr, ExprKind, ObjectField, UnaryOp, UpdateOp};
 pub use item::{
     Block, ClassDecl, ClassMember, ElseBranch, ForOfStmt, ForStmt, FunctionDecl, IfStmt, Item,
-    ItemKind, Param, Program, Stmt, StmtKind, VariableDecl, WhileStmt,
+    ItemKind, Param, Program, Stmt, StmtKind, TryStmt, VariableDecl, WhileStmt,
 };
 pub use span::{FileId, Span};
 pub use types::{Ident, InterfaceDecl, TypeAliasDecl, TypeAnnotation, TypeExpr, TypeField};

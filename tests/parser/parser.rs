@@ -349,6 +349,26 @@ fn parses_optional_member_and_index() {
 }
 
 #[test]
+fn parses_try_catch_finally_and_throw() {
+    let output = ok(
+        "try { throw \"boom\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); }",
+    );
+    let navascript_ast::ItemKind::Stmt(stmt) = &output.program.items[0].kind else {
+        panic!("expected a statement item");
+    };
+    let navascript_ast::StmtKind::Try(try_stmt) = &stmt.kind else {
+        panic!("expected a try statement");
+    };
+    assert!(matches!(
+        try_stmt.body.statements[0].kind,
+        navascript_ast::StmtKind::Throw(_)
+    ));
+    assert_eq!(try_stmt.catch_param.name.name, "e");
+    assert!(try_stmt.catch_param.ty.is_some());
+    assert!(try_stmt.finally_body.is_some());
+}
+
+#[test]
 fn parses_arrows_as_arguments_and_function_type_annotations() {
     let output = ok(
         "function apply(f: (n: number) => number, n: number): number { return f(n); } let n = apply((x: number): number => x + 1, 2);",

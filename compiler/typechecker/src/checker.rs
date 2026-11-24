@@ -69,6 +69,15 @@ pub(super) struct Checker<'a> {
     pub(super) diagnostics: Vec<Diagnostic>,
     pub(super) types: HashMap<Span, Type>,
     pub(super) loop_depth: u32,
+    /// Catch types of enclosing `try` statements in the current function. A
+    /// `throw` in a different function (e.g. an arrow body) has no handler.
+    pub(super) catch_types: Vec<Type>,
+    /// Depth of `try`/`catch`/`finally` bodies, where abrupt control flow is
+    /// not supported yet (ADR-0028).
+    pub(super) protected_depth: u32,
+    /// Depth of catch/finally bodies, where `throw` is unsupported because it
+    /// would bypass the finally block (ADR-0028).
+    pub(super) throw_forbidden: u32,
     pub(super) generic_params: HashMap<String, Vec<String>>,
     pub(super) call_instantiations: HashMap<Span, Vec<Type>>,
     pub(super) classes: HashMap<String, ClassInfo>,
@@ -89,6 +98,9 @@ impl<'a> Checker<'a> {
             diagnostics: Vec::new(),
             types: HashMap::new(),
             loop_depth: 0,
+            catch_types: Vec::new(),
+            protected_depth: 0,
+            throw_forbidden: 0,
             generic_params: HashMap::new(),
             call_instantiations: HashMap::new(),
             classes: HashMap::new(),

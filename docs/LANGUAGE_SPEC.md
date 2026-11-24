@@ -21,10 +21,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
   `true`, `false`, `null`, `void`, `type`, `interface`, `import`, `export`,
   `class`, `extends`, `new`, `this`, `super`, `while`, `do`, `for`, `break`,
-  `continue`.
-- [ ] Keywords `switch`, `async`, `await`, `throw`,
-  `try`, `catch`, `finally` (their features are unimplemented; not yet
-  recognized by the lexer). `of` in `for-of` and `from` in imports are
+  `continue`, `throw`, `try`, `catch`, `finally`.
+- [ ] Keywords `switch`, `async`, `await` (their features are unimplemented;
+  not yet recognized by the lexer). `of` in `for-of` and `from` in imports are
   contextual, not keywords.
 - [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
 - [x] Numeric literals: decimal integers and floats (including exponents),
@@ -148,7 +147,11 @@ and the intent to grow toward broad compatibility. Status values mirror
   `for (x of xs)` are accepted. `break` and `continue` exit/skip the innermost
   loop; `continue` in a C-style `for` runs the update expression. Iteration over
   other iterables is not implemented.
-- [ ] `throw` / `try` / `catch` / `finally` (Phase 6; ADR-0015)
+- [x] `throw` / `try` / `catch` / `finally` (Phase 6; ADR-0028) — `throw expr;`
+  and `try { ... } catch (e: T) { ... } [finally { ... }]`; same-function
+  handling with ordinary IR branches, nested try and optional finally. A catch
+  binding needs a type annotation; cross-function throws, `return`/`break`/
+  `continue` out of protected regions and `throw` in catch/finally are diagnosed.
 - [ ] `switch`
 
 ## 6. Functions
@@ -188,8 +191,9 @@ and the intent to grow toward broad compatibility. Status values mirror
   a code pointer and captured bindings; closures receive the object as a hidden
   parameter and use the typed object slot accessors. Allocations live in the
   program-lifetime arena.
-- [ ] Exceptions — `throw`/`try` are unparsed; runtime errors currently
-  terminate the process with a diagnostic (Phase 6, ADR-0015).
+- [x] Exceptions (Phase 6, ADR-0028) — same-function `throw`/`try`/`catch`/
+  `finally` work natively; the catch type constrains thrown values. Runtime
+  bounds/field errors still terminate the process (they are not catchable).
 - [~] `console.log` — numbers, booleans, strings and bigints print natively;
   object and array values are not meaningfully supported (their raw bytes are
   printed). No fix is scheduled in the current Phase 6 increment.

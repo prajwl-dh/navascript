@@ -366,6 +366,21 @@ fn closures_and_higher_order_functions_run_natively() {
 }
 
 #[test]
+fn exceptions_run_natively() {
+    let Some(binary) = compile("exceptions.ns", "exceptions", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary)
+        .output()
+        .expect("run exceptions program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "bad value\ncleanup\nafter\ninner\nouter continues\nnormal\nnormal cleanup\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn release_mode_prints_the_same_result() {
     let Some(binary) = compile("fibonacci.ns", "fib-release", &["--release"]) else {
         return;

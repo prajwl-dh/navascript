@@ -12,6 +12,7 @@ mod checks;
 mod classes;
 mod closure_names;
 mod closures;
+mod exceptions;
 mod expressions;
 mod for_of;
 mod generics;

@@ -686,6 +686,55 @@ fn nested_closures_capture_environment_fields() {
 }
 
 #[test]
+fn try_catch_finally_lowers_to_branches_and_a_value_slot() {
+    let source = "try { throw \"bad\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); } console.log(\"after\");";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    let labels: Vec<&str> = main
+        .blocks
+        .iter()
+        .map(|block| block.label.as_str())
+        .collect();
+    assert!(labels.iter().any(|label| label.starts_with("catch.")));
+    assert!(labels.iter().any(|label| label.starts_with("finally.")));
+    assert!(labels.iter().any(|label| label.starts_with("try.end.")));
+    let stores = main
+        .blocks
+        .iter()
+        .flat_map(|block| &block.instructions)
+        .filter(|instruction| matches!(instruction, Instruction::Store { .. }))
+        .count();
+    assert!(
+        stores >= 2,
+        "thrown value and catch binding should be stored"
+    );
+}
+
+#[test]
+fn resolved_alias_catch_types_lower_to_concrete_slots() {
+    let source =
+        "type Failure = string; try { throw \"bad\"; } catch (e: Failure) { console.log(e); }";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+}
+
+#[test]
+fn a_catch_without_a_throw_is_omitted() {
+    let source = "try { console.log(1); } catch (e: string) { console.log(e); } console.log(2);";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+    let main = module.function("main").expect("main");
+    assert!(
+        !main
+            .blocks
+            .iter()
+            .any(|block| block.label.starts_with("catch.")),
+        "an unreachable catch block must not be emitted"
+    );
+}
+
+#[test]
 fn every_lowered_module_verifies() {
     let sources = [
         "let x = 1 + 2;",

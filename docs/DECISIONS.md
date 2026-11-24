@@ -236,7 +236,7 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0015 — Phase 5 scope: closures and exceptions deferred
 
 - **Date:** 2026-11-21
-- **Status:** Accepted (closures delivered in Phase 6 by ADR-0027; exceptions still deferred)
+- **Status:** Accepted (closures delivered by ADR-0027; exceptions by ADR-0028)
 - **Context:** The Phase 5 roadmap lists closures/function values and
   exceptions alongside strings, arrays and objects. Closures require first-
   class function values, captured environments and an indirect-call ABI;
@@ -247,9 +247,10 @@ a new number and references the old one. Keep entries short and factual.
   recording them in `COMPATIBILITY.md`. Runtime bounds/field errors terminate
   the process with a diagnostic; this is a documented divergence from JS
   exceptions.
-- **Consequences:** No claim of exception support is made. `throw`/`try` are
-  still unparsed, so there is no silent miscompilation. Adding them later will
-  extend the IR and backend behind the existing `lower`/`generate` seams.
+- **Consequences:** At the time no claim of exception support was made and
+  `throw`/`try` were unparsed, so there was no silent miscompilation. ADR-0028
+  later delivered same-function exceptions behind the existing `lower`/
+  `generate` seams; cross-frame unwinding remains out of scope.
 
 ---
 
@@ -596,6 +597,37 @@ a new number and references the old one. Keep entries short and factual.
   named function. `console.log` of a function value is diagnosed by the backend
   rather than printing raw bytes. Parenthesised nested function types in return
   annotations need a type alias due to a parser ambiguity.
+
+---
+
+## ADR-0028 — Same-function exceptions
+
+- **Date:** 2026-11-24
+- **Status:** Accepted (supersedes ADR-0015's "no exception support" consequence)
+- **Context:** The next Phase 6 priority item after closures is exceptions
+  (ADR-0015). Full JavaScript exceptions require unwinding across generated
+  frames, which the IR and backend do not support; adding `setjmp`/`longjmp` or
+  landing pads would be a much larger change than this increment warrants.
+- **Decision:** `throw`/`try`/`catch`/`finally` lower as ordinary IR control
+  flow inside one function. A `throw` stores its value in the enclosing try's
+  typed slot and branches to the catch block; the try body and catch converge
+  through `finally` into a join block. A catch whose block has no throwing
+  predecessor is omitted so unreachable blocks cannot fail verification. The
+  resolved catch type is recorded on the catch binding's span so aliases lower
+  to concrete IR types. Exception context is suspended when entering a named
+  function or arrow, so a handler from an enclosing function cannot catch a
+  throw there. Checking lives in private `typechecker/exceptions.rs` and
+  lowering in private `ir/exceptions.rs`, both behind the existing `check` and
+  `lower` seams (ADR-0016). No new runtime ABI or LLVM instructions were added.
+- **Consequences:** Nested try/catch/finally with same-function throws runs
+  natively (`examples/exceptions.ns`). Unsupported cases are diagnosed rather
+  than silently miscompiled: throwing without a handler in the same function,
+  `throw` in catch/finally (which would bypass `finally`), `return`/`break`/
+  `continue` out of protected regions, unannotated catch bindings, and thrown
+  values that do not match the catch type. `try` requires a catch clause;
+  `finally`-only try and untyped/anonymous `catch (e)` are not supported.
+  Runtime bounds/field errors remain fatal (not catchable), and cross-function
+  unwinding is deferred until the IR has a real unwind model.
 
 ---
 

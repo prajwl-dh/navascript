@@ -11,6 +11,7 @@ mod checker;
 mod class_check;
 mod classes;
 mod declarations;
+mod exceptions;
 mod expressions;
 mod generics;
 mod narrowing;

@@ -74,7 +74,7 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 | `tests/codegen/` | NavaScript IR → LLVM IR translation |
 | `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, bigint, optional calls, generics, classes/inheritance, unions/intersections, modules, closures/higher-order functions with shared
-captures, dynamic indices, runtime errors, debug/release) |
+captures, exceptions, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
 `tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`
@@ -158,10 +158,12 @@ code 1.
 
 - Runtime memory is a program-lifetime bump arena; nothing is reclaimed until
   process exit (ADR-0005).
-- Exceptions are still pending Phase 6 work (ADR-0015; see `PROGRESS.md`);
-  runtime bounds/field errors terminate the process with a diagnostic. Closures
-  and function values are supported: captured bindings are shared cells and
-  calls through a value use an indirect-call ABI (ADR-0027).
+- Exceptions work within one function (ADR-0028): `throw` targets the innermost
+  enclosing catch and body/catch converge through `finally`. Cross-function
+  throws, abrupt control flow out of protected regions and unannotated catch
+  bindings are diagnosed. Runtime bounds/field errors still terminate the
+  process. Closures and function values are supported: captured bindings are
+  shared cells and calls through a value use an indirect-call ABI (ADR-0027).
 - Loops support `while`, `do-while`, `for` and `for-of` over arrays/strings,
   with `break`/`continue` for the innermost loop; general iterables are not
   implemented.

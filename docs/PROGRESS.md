@@ -9,8 +9,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 - **Current phase:** Phase 6 (Language expansion) in progress — loops (with
   `break`/`continue`), additional literals/operators, arrow functions, optional
   chaining, bigint literals, optional calls, generics, classes with inheritance,
-  unions/intersections, full structural typing, modules and closures/higher-order
-  functions complete
+  unions/intersections, full structural typing, modules, closures/higher-order
+  functions and same-function exceptions complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -29,7 +29,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -38,8 +38,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
-calls, generics, classes, unions/intersections, structural typing, modules and
-closures delivered; exceptions and async/await pending).
+calls, generics, classes, unions/intersections, structural typing, modules,
+closures and exceptions delivered; async/await pending).
 
 ---
 
@@ -177,7 +177,7 @@ limitations for every milestone.
 - [x] Objects: literals, field get/set with runtime field validation
 - [x] Runtime error reporting (fatal bounds/field errors with clear messages)
 - [x] Closures / function values — deferred from Phase 5, delivered in Phase 6 by ADR-0027 on 2026-11-24
-- [ ] Exceptions (`throw`/`try`) — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
+- [x] Exceptions (`throw`/`try`) — deferred from Phase 5, delivered in Phase 6 by ADR-0028 on 2026-11-24
 - **Exit condition met:** nontrivial programs using strings, collections and
   objects run natively without Node.js; runtime errors are reported.
 - **Verification:** `cargo test --workspace` (120 passed, 0 failed), fmt and
@@ -213,15 +213,16 @@ limitations for every milestone.
   captured bindings, nested closures, named function values and indirect calls;
   done 2026-11-24 (ADR-0027)
 - [ ] Async/await, promises
-- [ ] Exceptions (`throw`/`try`/`catch`/`finally`) — deferred from Phase 5 (ADR-0015)
+- [x] Exceptions (`throw`/`try`/`catch`/`finally`) — same-function handling with
+  diagnosed unsupported cases; deferred from Phase 5, done 2026-11-24 (ADR-0028)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (258 passed, 0 failed) succeed;
+  `cargo test --workspace` (268 passed, 0 failed) succeed;
   `examples/loops.ns`, `examples/for_of.ns`, `examples/break_continue.ns`,
   `examples/operators.ns`, `examples/arrows.ns`, `examples/optional.ns`,
   `examples/bigint.ns`, `examples/optional_call.ns`, `examples/generics.ns`,
-  `examples/classes.ns`, `examples/unions.ns`, `examples/modules.ns` and
-  `examples/closures.ns` run natively.
+  `examples/classes.ns`, `examples/unions.ns`, `examples/modules.ns`,
+  `examples/closures.ns` and `examples/exceptions.ns` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -910,16 +911,41 @@ limitations for every milestone.
 - No compiler code changed; `cargo test --workspace` still passes 258 tests,
   fmt and clippy remain clean.
 
+### 2026-11-24 — Phase 6 (exceptions increment)
+- Implemented the next Phase 6 priority item: `throw`, `try`/`catch`/`finally`
+  with same-function handling (ADR-0028, superseding ADR-0015's "no exception
+  support" consequence). No runtime ABI or new LLVM instructions were needed:
+  a `throw` stores its value in the try's slot and branches to the catch block,
+  and body/catch converge through `finally` into a join block. An unreachable
+  catch (no `throw` targets it) is omitted so the verifier stays clean.
+- Checker support lives in private `typechecker/exceptions.rs`; the resolved
+  catch type is recorded on the binding's span so aliases lower to concrete IR
+  slots. Exception context is suspended at named-function and arrow boundaries,
+  so a throw cannot use a handler from a different function.
+- Unsupported cases are diagnosed, never silently miscompiled: throwing with no
+  handler in the current function, `throw` inside catch/finally (which would
+  bypass `finally`), `return`/`break`/`continue` out of a protected region,
+  unannotated catch bindings and thrown values that do not match the catch
+  type.
+- Two-axis code review of `ecbb8f0...HEAD` (working tree) was applied before
+  docs: the Spec axis found two real bugs — `finally` was skipped when a
+  nested catch threw, and alias catch types fell back to opaque IR — both fixed
+  with tests. The Standards axis prompted splitting oversized checker code into
+  `typechecker/exceptions.rs`, adding the missing negative tests, and a shared
+  exception-context guard.
+- Added `examples/exceptions.ns` and tests across lexer/parser/typechecker/IR/
+  native surfaces. Suite grew from 258 to 268 tests; fmt and clippy clean.
+  All current-state documents were re-synced for this feature.
+
 ---
 
 ## 6. Next actions (in order)
 
 1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: exceptions (ADR-0015) and async/await. Loops (including
-   `break`/`continue`), the additional literals/operators, arrow functions,
-   optional chaining, bigint, optional calls, generics, classes,
-   unions/intersections, structural typing, modules and closures (ADR-0027)
-   are done.
+   `ROADMAP.md`: async/await and promises. Loops (including `break`/`continue`),
+   the additional literals/operators, arrow functions, optional chaining,
+   bigint, optional calls, generics, classes, unions/intersections, structural
+   typing, modules, closures (ADR-0027) and exceptions (ADR-0028) are done.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

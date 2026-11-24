@@ -7,9 +7,9 @@ self-hosting.
 **Status:** Phase 6 (Language expansion) in progress — loops (with
 `break`/`continue`), the additional literals/operators, arrow functions,
 optional chaining, bigint literals, optional calls, generics, classes with
-inheritance, unions/intersections, full structural typing, modules and
-closures/higher-order functions are complete; exceptions and async/await are
-pending.
+inheritance, unions/intersections, full structural typing, modules,
+closures/higher-order functions and same-function exceptions are complete;
+async/await is pending.
 
 ## Goals (tracked independently)
 
@@ -62,7 +62,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 258 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures)
+cargo test --workspace     # 268 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions)
 target/debug/navascript --version
 target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
@@ -112,9 +112,11 @@ fibonacci printing `55` without Node.js — is verified by
 - Closures and higher-order functions (`examples/closures.ns`) — first-class
    function values, shared captured bindings, nested closures, named functions
    passed as values and indirect calls through the closure ABI (ADR-0027).
+- Exceptions (`examples/exceptions.ns`) — `throw`/`try`/`catch`/`finally` with
+   same-function handling; cross-function unwinding, abrupt control flow out of
+   protected regions and unannotated catch bindings are diagnosed (ADR-0028).
 
-Still pending in Phase 6: exceptions (deferred from Phase 5 by ADR-0015) and
-async/await.
+Still pending in Phase 6: async/await.
 
 ## Documentation
 
