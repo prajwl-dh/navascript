@@ -1,12 +1,12 @@
 //! Tests for textual IR output.
 
-use nava_ir::{lower, print};
-use nava_parser::parse;
-use nava_typechecker::check;
+use navascript_ir::{lower, print};
+use navascript_parser::parse;
+use navascript_typechecker::check;
 
 #[test]
 fn prints_the_fibonacci_module() {
-    let source = include_str!("../../examples/fibonacci.ts");
+    let source = include_str!("../../examples/fibonacci.ns");
     let parsed = parse(source);
     let typed = check(&parsed.program, source);
     let lowered = lower(&parsed.program, &typed.typed, source);

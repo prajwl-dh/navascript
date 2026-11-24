@@ -1,7 +1,7 @@
 //! Shared postfix call parsing (`f(args)`, `f<T>(args)` and `f?.(args)`).
 
-use nava_ast::{Expr, ExprKind, Span, TypeExpr};
-use nava_lexer::TokenKind;
+use navascript_ast::{Expr, ExprKind, Span, TypeExpr};
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 

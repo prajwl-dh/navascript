@@ -1,4 +1,4 @@
-//! Nava compiler driver.
+//! NavaScript compiler driver.
 //!
 //! This crate contains the command-line interface and, in later phases, the
 //! orchestration of the compiler pipeline. Front-end and back-end code live in

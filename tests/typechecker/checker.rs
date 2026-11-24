@@ -1,9 +1,9 @@
 //! Tests for the type checker's public `check` seam.
 
-use nava_ast::{ItemKind, Program};
-use nava_parser::parse;
-use nava_symbol::Type;
-use nava_typechecker::{CheckOutput, check};
+use navascript_ast::{ItemKind, Program};
+use navascript_parser::parse;
+use navascript_symbol::Type;
+use navascript_typechecker::{CheckOutput, check};
 
 fn check_source(source: &str) -> (CheckOutput, Program) {
     let parsed = parse(source);
@@ -371,10 +371,10 @@ fn checks_optional_calls_like_direct_calls() {
 #[test]
 fn checks_exported_declarations_and_imported_names() {
     let (output, _) = check_source(
-        "import { f } from \"./m.ts\"; export function f(): number { return 1; } console.log(f());",
+        "import { f } from \"./m.ns\"; export function f(): number { return 1; } console.log(f());",
     );
     assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
-    let (output, _) = check_source("import { missing } from \"./m.ts\";");
+    let (output, _) = check_source("import { missing } from \"./m.ns\";");
     assert!(
         messages(&output)
             .iter()
@@ -383,10 +383,10 @@ fn checks_exported_declarations_and_imported_names() {
         messages(&output)
     );
     let (output, _) = check_source(
-        "export class C {} export interface I {} export type T = number; import { C, I, T } from \"./m.ts\";",
+        "export class C {} export interface I {} export type T = number; import { C, I, T } from \"./m.ns\";",
     );
     assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
-    let (output, _) = check_source("const hidden = 1; import { hidden } from \"./m.ts\";");
+    let (output, _) = check_source("const hidden = 1; import { hidden } from \"./m.ns\";");
     assert!(
         messages(&output)
             .iter()

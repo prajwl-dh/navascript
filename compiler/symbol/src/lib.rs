@@ -1,17 +1,17 @@
-//! Nava types and lexical scopes — the symbol-table internal seam.
+//! NavaScript types and lexical scopes — the symbol-table internal seam.
 //!
-//! This crate is a dependency-free leaf (apart from `nava-ast`) so the type
+//! This crate is a dependency-free leaf (apart from `navascript-ast`) so the type
 //! checker can own one `SymbolTable` behind its own external interface.
 
 use std::collections::{BTreeMap, HashMap};
 
-use nava_ast::Span;
+use navascript_ast::Span;
 
 /// The type language of the Phase 2 checker.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Number,
-    /// The `bigint` primitive. Nava currently stores it as a signed 64-bit
+    /// The `bigint` primitive. NavaScript currently stores it as a signed 64-bit
     /// integer; wider literals are diagnosed during parsing.
     BigInt,
     String,

@@ -4,7 +4,7 @@
 //! stack slots allocated in the entry block (ADR-0013), so no phi nodes are
 //! needed when a value crosses a loop header.
 
-use nava_ast::{Block, Expr, ExprKind, ForStmt, Stmt, WhileStmt};
+use navascript_ast::{Block, Expr, ExprKind, ForStmt, Stmt, WhileStmt};
 
 use super::builder::{FunctionBuilder, LoopContext};
 use super::ir::{BlockId, Terminator, Value};
@@ -67,7 +67,7 @@ impl FunctionBuilder {
         fallback: BlockId,
     ) -> Option<BlockId> {
         let block = self.current.unwrap_or(fallback);
-        let is_break = matches!(statement.kind, nava_ast::StmtKind::Break);
+        let is_break = matches!(statement.kind, navascript_ast::StmtKind::Break);
         let target = self.loops.last().map(|ctx| {
             if is_break {
                 ctx.break_target

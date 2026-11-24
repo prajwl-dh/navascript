@@ -1,14 +1,14 @@
-//! End-to-end tests: compile a `.ts` file to a native executable and run it.
+//! End-to-end tests: compile a `.ns` file to a native executable and run it.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn output_path(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("nava-native-{}-{name}", std::process::id()))
+    std::env::temp_dir().join(format!("navascript-native-{}-{name}", std::process::id()))
 }
 
 fn compile(source: &str, name: &str, extra: &[&str]) -> Option<PathBuf> {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         eprintln!("skipping native test: LLVM toolchain not available");
         return None;
     }
@@ -16,21 +16,21 @@ fn compile(source: &str, name: &str, extra: &[&str]) -> Option<PathBuf> {
         .join("../../examples")
         .join(source);
     let output = output_path(name);
-    let status = Command::new(env!("CARGO_BIN_EXE_nava"))
+    let status = Command::new(env!("CARGO_BIN_EXE_navascript"))
         .arg("build")
         .arg(&source)
         .arg("-o")
         .arg(&output)
         .args(extra)
         .status()
-        .expect("run nava build");
-    assert!(status.success(), "nava build failed for {name}");
+        .expect("run navascript build");
+    assert!(status.success(), "navascript build failed for {name}");
     Some(output)
 }
 
 #[test]
 fn fibonacci_prints_55_natively() {
-    let Some(binary) = compile("fibonacci.ts", "fib", &[]) else {
+    let Some(binary) = compile("fibonacci.ns", "fib", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run fibonacci");
@@ -45,7 +45,7 @@ fn fibonacci_prints_55_natively() {
 
 #[test]
 fn multiple_functions_with_distinct_value_id_ranges_compile() {
-    let Some(binary) = compile("multifunction.ts", "multi", &[]) else {
+    let Some(binary) = compile("multifunction.ns", "multi", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -62,7 +62,7 @@ fn multiple_functions_with_distinct_value_id_ranges_compile() {
 
 #[test]
 fn booleans_print_as_true_or_false() {
-    let Some(binary) = compile("booleans.ts", "booleans", &[]) else {
+    let Some(binary) = compile("booleans.ns", "booleans", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -77,7 +77,7 @@ fn booleans_print_as_true_or_false() {
 
 #[test]
 fn numbers_print_without_precision_loss() {
-    let Some(binary) = compile("numbers.ts", "numbers", &[]) else {
+    let Some(binary) = compile("numbers.ns", "numbers", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run numbers program");
@@ -90,7 +90,7 @@ fn numbers_print_without_precision_loss() {
 
 #[test]
 fn strings_run_natively() {
-    let Some(binary) = compile("strings.ts", "strings", &[]) else {
+    let Some(binary) = compile("strings.ns", "strings", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run strings program");
@@ -103,7 +103,7 @@ fn strings_run_natively() {
 
 #[test]
 fn arrays_run_natively() {
-    let Some(binary) = compile("arrays.ts", "arrays", &[]) else {
+    let Some(binary) = compile("arrays.ns", "arrays", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run arrays program");
@@ -113,7 +113,7 @@ fn arrays_run_natively() {
 
 #[test]
 fn objects_run_natively() {
-    let Some(binary) = compile("objects.ts", "objects", &[]) else {
+    let Some(binary) = compile("objects.ns", "objects", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run objects program");
@@ -123,7 +123,7 @@ fn objects_run_natively() {
 
 #[test]
 fn dynamic_indices_and_string_coercion_run_natively() {
-    let Some(binary) = compile("dynamic_access.ts", "dynamic", &[]) else {
+    let Some(binary) = compile("dynamic_access.ns", "dynamic", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -135,19 +135,22 @@ fn dynamic_indices_and_string_coercion_run_natively() {
 
 #[test]
 fn object_fields_keep_their_declared_order() {
-    let Some(binary) = compile("object_fields.ts", "object-fields", &[]) else {
+    let Some(binary) = compile("object_fields.ns", "object-fields", &[]) else {
         return;
     };
     let output = Command::new(&binary)
         .output()
         .expect("run object_fields program");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "nava\n2\ntrue\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "navascript\n2\ntrue\n"
+    );
     let _ = std::fs::remove_file(binary);
 }
 
 #[test]
 fn out_of_bounds_index_is_a_runtime_error() {
-    let Some(binary) = compile("runtime_error.ts", "runtime-error", &[]) else {
+    let Some(binary) = compile("runtime_error.ns", "runtime-error", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -161,7 +164,7 @@ fn out_of_bounds_index_is_a_runtime_error() {
 
 #[test]
 fn loops_run_natively() {
-    let Some(binary) = compile("loops.ts", "loops", &[]) else {
+    let Some(binary) = compile("loops.ns", "loops", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run loops program");
@@ -171,7 +174,7 @@ fn loops_run_natively() {
 
 #[test]
 fn for_of_runs_natively() {
-    let Some(binary) = compile("for_of.ts", "for-of", &[]) else {
+    let Some(binary) = compile("for_of.ns", "for-of", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run for_of program");
@@ -184,7 +187,7 @@ fn for_of_runs_natively() {
 
 #[test]
 fn break_and_continue_run_natively() {
-    let Some(binary) = compile("break_continue.ts", "break-continue", &[]) else {
+    let Some(binary) = compile("break_continue.ns", "break-continue", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -199,19 +202,19 @@ fn break_and_continue_run_natively() {
 
 #[test]
 fn optional_chaining_runs_natively() {
-    let Some(binary) = compile("optional.ts", "optional", &[]) else {
+    let Some(binary) = compile("optional.ns", "optional", &[]) else {
         return;
     };
     let output = Command::new(&binary)
         .output()
         .expect("run optional chaining program");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "nava\nb\n");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "navascript\nb\n");
     let _ = std::fs::remove_file(binary);
 }
 
 #[test]
 fn arrows_run_natively() {
-    let Some(binary) = compile("arrows.ts", "arrows", &[]) else {
+    let Some(binary) = compile("arrows.ns", "arrows", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run arrows program");
@@ -221,7 +224,7 @@ fn arrows_run_natively() {
 
 #[test]
 fn new_operators_run_natively() {
-    let Some(binary) = compile("operators.ts", "operators", &[]) else {
+    let Some(binary) = compile("operators.ns", "operators", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -236,7 +239,7 @@ fn new_operators_run_natively() {
 
 #[test]
 fn bigints_run_natively() {
-    let Some(binary) = compile("bigint.ts", "bigint", &[]) else {
+    let Some(binary) = compile("bigint.ns", "bigint", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run bigint program");
@@ -249,36 +252,39 @@ fn bigints_run_natively() {
 
 #[test]
 fn transitive_extensionless_imports_resolve() {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         return;
     }
-    let dir = std::env::temp_dir().join(format!("nava-modules-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("navascript-modules-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&dir);
     std::fs::write(
-        dir.join("a.ts"),
+        dir.join("a.ns"),
         "export function offset(): number { return 5; }",
     )
-    .expect("write a.ts");
+    .expect("write a.ns");
     std::fs::write(
-        dir.join("b.ts"),
+        dir.join("b.ns"),
         "import { offset } from \"./a\";\nexport function addOffset(x: number): number { return x + offset(); }",
     )
-    .expect("write b.ts");
-    let main = dir.join("main.ts");
+    .expect("write b.ns");
+    let main = dir.join("main.ns");
     std::fs::write(
         &main,
         "import { offset } from \"./a\";\nimport { addOffset } from \"./b\";\nconsole.log(offset());\nconsole.log(addOffset(10));",
     )
-    .expect("write main.ts");
+    .expect("write main.ns");
     let output = dir.join("main-bin");
-    let status = Command::new(env!("CARGO_BIN_EXE_nava"))
+    let status = Command::new(env!("CARGO_BIN_EXE_navascript"))
         .arg("build")
         .arg(&main)
         .arg("-o")
         .arg(&output)
         .status()
-        .expect("run nava build");
-    assert!(status.success(), "nava build failed for transitive imports");
+        .expect("run navascript build");
+    assert!(
+        status.success(),
+        "navascript build failed for transitive imports"
+    );
     let run = Command::new(&output).output().expect("run module program");
     assert_eq!(String::from_utf8_lossy(&run.stdout), "5\n15\n");
     let _ = std::fs::remove_dir_all(dir);
@@ -286,7 +292,7 @@ fn transitive_extensionless_imports_resolve() {
 
 #[test]
 fn modules_resolve_and_link_natively() {
-    let Some(binary) = compile("modules.ts", "modules", &[]) else {
+    let Some(binary) = compile("modules.ns", "modules", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run modules program");
@@ -296,20 +302,20 @@ fn modules_resolve_and_link_natively() {
 
 #[test]
 fn unions_and_intersections_run_natively() {
-    let Some(binary) = compile("unions.ts", "unions", &[]) else {
+    let Some(binary) = compile("unions.ns", "unions", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run unions program");
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "4\nnull\nx\n2\ntrue\n"
+        "10\nnull\nx\n2\ntrue\n"
     );
     let _ = std::fs::remove_file(binary);
 }
 
 #[test]
 fn classes_and_inheritance_run_natively() {
-    let Some(binary) = compile("classes.ts", "classes", &[]) else {
+    let Some(binary) = compile("classes.ns", "classes", &[]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run classes program");
@@ -319,7 +325,7 @@ fn classes_and_inheritance_run_natively() {
 
 #[test]
 fn generics_run_natively() {
-    let Some(binary) = compile("generics.ts", "generics", &[]) else {
+    let Some(binary) = compile("generics.ns", "generics", &[]) else {
         return;
     };
     let output = Command::new(&binary)
@@ -327,26 +333,26 @@ fn generics_run_natively() {
         .expect("run generics program");
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "42\nnava\ntrue\n1\na\n7\n"
+        "42\nnavascript\ntrue\n1\na\n7\n"
     );
     let _ = std::fs::remove_file(binary);
 }
 
 #[test]
 fn optional_calls_run_natively() {
-    let Some(binary) = compile("optional_call.ts", "optional-call", &[]) else {
+    let Some(binary) = compile("optional_call.ns", "optional-call", &[]) else {
         return;
     };
     let output = Command::new(&binary)
         .output()
         .expect("run optional call program");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "hi nava\n");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "hi navascript\n");
     let _ = std::fs::remove_file(binary);
 }
 
 #[test]
 fn release_mode_prints_the_same_result() {
-    let Some(binary) = compile("fibonacci.ts", "fib-release", &["--release"]) else {
+    let Some(binary) = compile("fibonacci.ns", "fib-release", &["--release"]) else {
         return;
     };
     let output = Command::new(&binary).output().expect("run fibonacci");
@@ -356,17 +362,20 @@ fn release_mode_prints_the_same_result() {
 
 #[test]
 fn emit_ir_prints_llvm_ir_without_linking() {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         return;
     }
-    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/fibonacci.ts");
-    let output = Command::new(env!("CARGO_BIN_EXE_nava"))
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/fibonacci.ns");
+    let output = Command::new(env!("CARGO_BIN_EXE_navascript"))
         .args(["build", "--emit-ir"])
         .arg(source)
         .output()
-        .expect("run nava build --emit-ir");
+        .expect("run navascript build --emit-ir");
     assert!(output.status.success());
     let text = String::from_utf8_lossy(&output.stdout);
-    assert!(text.contains("define double @nava_fibonacci"), "{text}");
+    assert!(
+        text.contains("define double @navascript_fibonacci"),
+        "{text}"
+    );
     assert!(text.contains("target triple"), "{text}");
 }

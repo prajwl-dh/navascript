@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use nava_ast::ItemKind;
+use navascript_ast::ItemKind;
 
 /// The concatenated source of the root file and all its imports.
 pub struct Loaded {
@@ -43,7 +43,7 @@ fn visit(
     }
     let text = fs::read_to_string(&canonical)
         .map_err(|error| format!("could not read '{}': {error}", canonical.display()))?;
-    let parsed = nava_parser::parse(&text);
+    let parsed = navascript_parser::parse(&text);
     let directory = canonical
         .parent()
         .ok_or_else(|| format!("module '{}' has no parent directory", canonical.display()))?;
@@ -55,9 +55,9 @@ fn visit(
     }
     for import in imports {
         let mut dependency = directory.join(&import);
-        // Extensionless specifiers resolve to `.ts`, the initial source format.
+        // Extensionless specifiers resolve to `.ns`, the initial source format.
         if dependency.extension().is_none() && !dependency.is_file() {
-            dependency.set_extension("ts");
+            dependency.set_extension("ns");
         }
         visit(&dependency, visited, ordered)?;
     }

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use nava_driver::cli::{Command, HELP, parse_args};
+use navascript_driver::cli::{Command, HELP, parse_args};
 
 #[test]
 fn no_arguments_shows_help() {
@@ -12,9 +12,9 @@ fn no_arguments_shows_help() {
 #[test]
 fn parses_build_with_one_input() {
     assert_eq!(
-        parse_args(["build", "examples/fibonacci.ts"]),
+        parse_args(["build", "examples/fibonacci.ns"]),
         Command::Build {
-            input: PathBuf::from("examples/fibonacci.ts"),
+            input: PathBuf::from("examples/fibonacci.ns"),
             output: None,
             emit_ir: false,
             release: false,

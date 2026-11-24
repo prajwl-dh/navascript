@@ -1,6 +1,6 @@
 //! Tests for the lexer's public `tokenize` interface.
 
-use nava_lexer::{TokenKind, tokenize};
+use navascript_lexer::{TokenKind, tokenize};
 
 fn kinds(source: &str) -> Vec<TokenKind> {
     tokenize(source)
@@ -233,7 +233,7 @@ fn does_not_treat_a_bigint_suffix_as_part_of_a_longer_identifier() {
 #[test]
 fn lexes_module_keywords() {
     assert_eq!(
-        kinds("import { a } from \"./m.ts\"; export function f() {}"),
+        kinds("import { a } from \"./m.ns\"; export function f() {}"),
         vec![
             TokenKind::Import,
             TokenKind::LBrace,

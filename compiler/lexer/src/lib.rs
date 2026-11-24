@@ -1,4 +1,4 @@
-//! Nava lexer — a private internal seam of `nava-parser`.
+//! NavaScript lexer — a private internal seam of `navascript-parser`.
 //!
 //! Converts source text into tokens carrying byte spans. The public interface
 //! is [`tokenize`]; token vocabulary and byte-level scanning are private

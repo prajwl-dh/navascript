@@ -65,7 +65,7 @@ pub fn emit_native(
     use std::sync::atomic::{AtomicU32, Ordering};
     static BUILD_ID: AtomicU32 = AtomicU32::new(0);
     let workdir = std::env::temp_dir().join(format!(
-        "nava-build-{}-{}",
+        "navascript-build-{}-{}",
         std::process::id(),
         BUILD_ID.fetch_add(1, Ordering::Relaxed)
     ));

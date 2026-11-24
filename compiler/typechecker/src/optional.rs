@@ -1,7 +1,7 @@
 //! Member/index inference and optional-chaining validation.
 
-use nava_ast::{Expr, Span};
-use nava_symbol::Type;
+use navascript_ast::{Expr, Span};
+use navascript_symbol::Type;
 
 use super::checker::Checker;
 use super::types::{object_field, resolve_named_type};

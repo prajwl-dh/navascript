@@ -1,12 +1,12 @@
 //! Cross-crate integration tests for the parser's public seam.
 //!
-//! These live outside `nava-parser` so they exercise only what the driver and
-//! later phases can actually call: `nava_parser::parse`.
+//! These live outside `navascript-parser` so they exercise only what the driver and
+//! later phases can actually call: `navascript_parser::parse`.
 
-use nava_parser::parse;
+use navascript_parser::parse;
 
-const FIBONACCI: &str = include_str!("../../examples/fibonacci.ts");
-const BAD_SYNTAX: &str = include_str!("../../examples/bad_syntax.ts");
+const FIBONACCI: &str = include_str!("../../examples/fibonacci.ns");
+const BAD_SYNTAX: &str = include_str!("../../examples/bad_syntax.ns");
 
 #[test]
 fn parses_the_fibonacci_fixture() {

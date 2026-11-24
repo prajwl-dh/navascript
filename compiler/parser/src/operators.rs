@@ -1,7 +1,7 @@
 //! Parsing helpers for compound assignment, updates and ternary expressions.
 
-use nava_ast::{AssignOp, Expr, ExprKind, Span, UpdateOp};
-use nava_lexer::TokenKind;
+use navascript_ast::{AssignOp, Expr, ExprKind, Span, UpdateOp};
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 

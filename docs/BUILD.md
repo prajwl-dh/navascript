@@ -1,4 +1,4 @@
-# Nava — Build and Test Guide
+# NavaScript — Build and Test Guide
 
 ## 1. Prerequisites (verified on this machine)
 
@@ -70,9 +70,9 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/parser/` | parsing via `parse`, plus `pipeline.rs` (parse seam from outside) |
 | `tests/symbol/` | scopes, shadowing, type display |
 | `tests/typechecker/` | type resolution, checking, plus `pipeline.rs` |
-| `tests/driver/` | CLI argument parsing and the real `nava` binary |
+| `tests/driver/` | CLI argument parsing and the real `navascript` binary |
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
-| `tests/codegen/` | Nava IR → LLVM IR translation |
+| `tests/codegen/` | NavaScript IR → LLVM IR translation |
 | `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, bigint, optional calls, generics, classes/inheritance, unions/intersections, modules, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 
@@ -90,24 +90,24 @@ full test suite on macOS.
 ## 4. CLI usage
 
 ```bash
-cargo run -p nava -- --version
-cargo run -p nava -- --help
-cargo run -p nava -- build examples/fibonacci.ts
+cargo run -p navascript -- --version
+cargo run -p navascript -- --help
+cargo run -p navascript -- build examples/fibonacci.ns
 ```
 
-After `cargo build --workspace`, the binary is at `target/debug/nava`:
+After `cargo build --workspace`, the binary is at `target/debug/navascript`:
 
 ```bash
-target/debug/nava --version     # nava 0.1.0
-target/debug/nava --help
-target/debug/nava build examples/fibonacci.ts -o fibonacci
+target/debug/navascript --version     # navascript 0.1.0
+target/debug/navascript --help
+target/debug/navascript build examples/fibonacci.ns -o fibonacci
 ./fibonacci                     # prints 55
-target/debug/nava build --release examples/fibonacci.ts -o fibonacci
-target/debug/nava build --emit-ir examples/fibonacci.ts   # LLVM IR
-target/debug/nava build examples/modules.ts -o modules    # resolves imports
+target/debug/navascript build --release examples/fibonacci.ns -o fibonacci
+target/debug/navascript build --emit-ir examples/fibonacci.ns   # LLVM IR
+target/debug/navascript build examples/modules.ns -o modules    # resolves imports
 ```
 
-`nava build` parses, type-checks, lowers and compiles the source to a native
+`navascript build` parses, type-checks, lowers and compiles the source to a native
 Mach-O executable. `-o` sets the output path (default: source file stem),
 `--release` enables `-O3`/`-O2` (debug uses `-O0`; source-level debug info is
 Phase 11), and `--emit-ir` prints LLVM IR instead of linking. The external
@@ -117,7 +117,7 @@ toolchain is discovered from `LLVM_SYS_231_PREFIX` (or
 No CMake or Ninja is required.
 
 Tests that need the native toolchain call
-`nava_driver::build::native_tools_available()` and skip cleanly when it is
+`navascript_driver::build::native_tools_available()` and skip cleanly when it is
 absent, so `cargo test --workspace` passes on machines without LLVM. CI installs
 LLVM with `brew install llvm` and exports the discovered prefix so the native
 tests actually execute there.
@@ -129,10 +129,10 @@ Cargo.toml                  workspace root, shared package metadata
 compiler/
   ast/ diagnostics/ lexer/ parser/ symbol/ semantic/ typechecker/
   ir/ optimizer/ codegen/
-  driver/                   package `nava`: lib `nava_driver` + bin `nava`
+  driver/                   package `navascript`: lib `navascript_driver` + bin `navascript`
 
 runtime/
-  nava_runtime.h/.c         ABI header and process entry point
+  navascript_runtime.h/.c         ABI header and process entry point
   memory/ bigint/ strings/ arrays/ objects/ console/   one source per concern
 ```
 
@@ -141,7 +141,7 @@ The front end (lexer → AST → type checker → IR) must not depend on LLVM. O
 
 ## 6. LLVM integration (resolved in Phase 4)
 
-ADR-0004 selected the textual-IR route: `nava-codegen` emits `.ll`, the driver
+ADR-0004 selected the textual-IR route: `navascript-codegen` emits `.ll`, the driver
 runs `llc -filetype=obj -mtriple <triple>`, then `clang` compiles the runtime
 shim and links the executable. Override the tool location with:
 

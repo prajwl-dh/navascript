@@ -1,12 +1,12 @@
-//! Integration tests that exercise the real `nava` binary.
+//! Integration tests that exercise the real `navascript` binary.
 //!
 //! The binary is the driver's external interface, so behaviour is asserted
 //! here; only pure parse-result assertions stay in `tests/driver/cli.rs`.
 
 use std::process::{Command, Output};
 
-fn nava() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_nava"))
+fn navascript() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_navascript"))
 }
 
 fn stdout(output: &Output) -> String {
@@ -33,11 +33,11 @@ fn failed(output: Output) -> String {
 
 #[test]
 fn version_prints_semantic_version() {
-    let text = ok(nava()
+    let text = ok(navascript()
         .arg("--version")
         .output()
-        .expect("run nava --version"));
-    assert!(text.starts_with("nava "), "unexpected output: {text}");
+        .expect("run navascript --version"));
+    assert!(text.starts_with("navascript "), "unexpected output: {text}");
     let version = text.split_whitespace().nth(1).expect("version");
     assert_eq!(
         version.split('.').count(),
@@ -48,24 +48,27 @@ fn version_prints_semantic_version() {
 
 #[test]
 fn short_version_flag_works() {
-    let text = ok(nava().arg("-V").output().expect("run nava -V"));
-    assert!(text.starts_with("nava "));
+    let text = ok(navascript().arg("-V").output().expect("run navascript -V"));
+    assert!(text.starts_with("navascript "));
 }
 
 #[test]
 fn version_rejects_extra_arguments() {
     let text = failed(
-        nava()
+        navascript()
             .args(["--version", "extra"])
             .output()
-            .expect("run nava --version extra"),
+            .expect("run navascript --version extra"),
     );
     assert!(text.contains("takes no arguments"));
 }
 
 #[test]
 fn help_prints_usage_and_commands() {
-    let text = ok(nava().arg("--help").output().expect("run nava --help"));
+    let text = ok(navascript()
+        .arg("--help")
+        .output()
+        .expect("run navascript --help"));
     assert!(text.contains("Usage:"), "missing usage: {text}");
     assert!(text.contains("build"), "missing build command: {text}");
     assert!(text.contains("--version"), "missing version flag: {text}");
@@ -73,46 +76,56 @@ fn help_prints_usage_and_commands() {
 
 #[test]
 fn short_help_flag_works() {
-    let text = ok(nava().arg("-h").output().expect("run nava -h"));
+    let text = ok(navascript().arg("-h").output().expect("run navascript -h"));
     assert!(text.contains("Usage:"));
 }
 
 #[test]
 fn no_arguments_prints_help() {
-    let text = ok(nava().output().expect("run nava with no args"));
+    let text = ok(navascript().output().expect("run navascript with no args"));
     assert!(text.contains("Usage:"));
 }
 
 #[test]
 fn unknown_option_fails_with_error() {
-    let text = failed(nava().arg("--nope").output().expect("run nava --nope"));
+    let text = failed(
+        navascript()
+            .arg("--nope")
+            .output()
+            .expect("run navascript --nope"),
+    );
     assert!(text.contains("unknown option"));
 }
 
 #[test]
 fn unknown_command_fails_with_error() {
     let text = failed(
-        nava()
+        navascript()
             .arg("frobnicate")
             .output()
-            .expect("run nava frobnicate"),
+            .expect("run navascript frobnicate"),
     );
     assert!(text.contains("unknown command"));
 }
 
 #[test]
 fn build_without_input_fails() {
-    let text = failed(nava().arg("build").output().expect("run nava build"));
+    let text = failed(
+        navascript()
+            .arg("build")
+            .output()
+            .expect("run navascript build"),
+    );
     assert!(text.contains("missing input file"));
 }
 
 #[test]
 fn build_rejects_multiple_inputs() {
     let text = failed(
-        nava()
-            .args(["build", "a.ts", "b.ts"])
+        navascript()
+            .args(["build", "a.ns", "b.ns"])
             .output()
-            .expect("run nava build with two inputs"),
+            .expect("run navascript build with two inputs"),
     );
     assert!(text.contains("expected exactly one input file"));
 }
@@ -120,42 +133,45 @@ fn build_rejects_multiple_inputs() {
 #[test]
 fn build_rejects_option_as_input() {
     let text = failed(
-        nava()
+        navascript()
             .args(["build", "--oops"])
             .output()
-            .expect("run nava build --oops"),
+            .expect("run navascript build --oops"),
     );
     assert!(text.contains("unknown option"));
 }
 
 #[test]
 fn build_emits_ir_on_request() {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         eprintln!("skipping: native toolchain not available");
         return;
     }
-    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
-    let text = ok(nava()
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ns");
+    let text = ok(navascript()
         .args(["build", source, "--emit-ir"])
         .output()
-        .expect("run nava build --emit-ir"));
-    assert!(text.contains("define double @nava_fibonacci"), "{text}");
-    assert!(text.contains("define void @nava_main"), "{text}");
+        .expect("run navascript build --emit-ir"));
+    assert!(
+        text.contains("define double @navascript_fibonacci"),
+        "{text}"
+    );
+    assert!(text.contains("define void @navascript_main"), "{text}");
 }
 
 #[test]
 fn build_produces_a_native_executable() {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         eprintln!("skipping: native toolchain not available");
         return;
     }
-    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ts");
-    let output = std::env::temp_dir().join(format!("nava-cli-{}", std::process::id()));
-    let text = ok(nava()
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/fibonacci.ns");
+    let output = std::env::temp_dir().join(format!("navascript-cli-{}", std::process::id()));
+    let text = ok(navascript()
         .args(["build", source, "-o"])
         .arg(&output)
         .output()
-        .expect("run nava build examples/fibonacci.ts"));
+        .expect("run navascript build examples/fibonacci.ns"));
     assert!(text.contains("built"), "{text}");
     assert!(output.is_file(), "expected a native executable");
     let _ = std::fs::remove_file(output);
@@ -163,12 +179,12 @@ fn build_produces_a_native_executable() {
 
 #[test]
 fn build_reports_diagnostics_for_a_broken_file() {
-    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/bad_syntax.ts");
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/bad_syntax.ns");
     let text = failed(
-        nava()
+        navascript()
             .args(["build", source])
             .output()
-            .expect("run nava build examples/bad_syntax.ts"),
+            .expect("run navascript build examples/bad_syntax.ns"),
     );
     assert!(text.contains("error:"), "{text}");
     assert!(text.contains("1:14"), "{text}");
@@ -177,12 +193,12 @@ fn build_reports_diagnostics_for_a_broken_file() {
 
 #[test]
 fn build_reports_type_errors() {
-    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/type_error.ts");
+    let source = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/type_error.ns");
     let text = failed(
-        nava()
+        navascript()
             .args(["build", source])
             .output()
-            .expect("run nava build examples/type_error.ts"),
+            .expect("run navascript build examples/type_error.ns"),
     );
     assert!(text.contains("cannot assign"), "{text}");
     assert!(text.contains("number"), "{text}");
@@ -190,10 +206,10 @@ fn build_reports_type_errors() {
 
 #[test]
 fn build_rejects_a_missing_file() {
-    let output = nava()
-        .args(["build", "does-not-exist.ts"])
+    let output = navascript()
+        .args(["build", "does-not-exist.ns"])
         .output()
-        .expect("run nava build on missing file");
+        .expect("run navascript build on missing file");
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("could not read"));
 }

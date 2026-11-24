@@ -1,7 +1,7 @@
 //! Generic type resolution, inference and call instantiation.
 
-use nava_ast::{Expr, Ident, Span, TypeExpr};
-use nava_symbol::Type;
+use navascript_ast::{Expr, Ident, Span, TypeExpr};
+use navascript_symbol::Type;
 
 use super::checker::Checker;
 use super::types::{AliasTable, Subst, is_assignable, resolve_named_type, substitute};

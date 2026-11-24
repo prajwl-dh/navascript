@@ -5,22 +5,23 @@ use std::process::Command;
 
 #[test]
 fn runtime_unit_tests() {
-    if !nava_driver::build::native_tools_available() {
+    if !navascript_driver::build::native_tools_available() {
         eprintln!("skipping: native toolchain not available");
         return;
     }
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let source = root.join("tests/runtime/runtime_test.c");
     let workdir = root.join("runtime");
-    let binary = std::env::temp_dir().join(format!("nava-runtime-test-{}", std::process::id()));
+    let binary =
+        std::env::temp_dir().join(format!("navascript-runtime-test-{}", std::process::id()));
     let mut command = Command::new("clang");
     command
         .args(["-std=c11", "-Wall", "-Wextra", "-O0"])
         .arg(&source);
     // Compile every runtime source except the entry-point wrapper, which
     // would conflict with this test's own main.
-    for (_, path, _) in nava_codegen::RUNTIME_FILES {
-        if path.ends_with(".c") && *path != "nava_runtime.c" {
+    for (_, path, _) in navascript_codegen::RUNTIME_FILES {
+        if path.ends_with(".c") && *path != "navascript_runtime.c" {
             command.arg(workdir.join(path));
         }
     }

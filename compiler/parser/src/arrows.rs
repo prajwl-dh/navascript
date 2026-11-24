@@ -1,7 +1,7 @@
 //! Arrow function expression parsing.
 
-use nava_ast::{ArrowBody, Expr, ExprKind, Param, Span};
-use nava_lexer::{Token, TokenKind};
+use navascript_ast::{ArrowBody, Expr, ExprKind, Param, Span};
+use navascript_lexer::{Token, TokenKind};
 
 use super::parser::Parser;
 
@@ -71,7 +71,7 @@ impl Parser<'_> {
     pub(super) fn parse_ident_arrow(&mut self, token: &Token) -> Option<Expr> {
         self.bump(); // identifier already checked by the caller
         let param = Param {
-            name: nava_ast::Ident {
+            name: navascript_ast::Ident {
                 name: token.lexeme.clone(),
                 span: Span::new(self.file, token.start as usize, token.end as usize),
             },

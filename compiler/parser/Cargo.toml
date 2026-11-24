@@ -1,6 +1,6 @@
 [package]
-name = "nava-parser"
-description = "Nava parser: tokens to AST"
+name = "navascript-parser"
+description = "NavaScript parser: tokens to AST"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,6 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nava-ast = { path = "../ast" }
-nava-diagnostics = { path = "../diagnostics" }
-nava-lexer = { path = "../lexer" }
+navascript-ast = { path = "../ast" }
+navascript-diagnostics = { path = "../diagnostics" }
+navascript-lexer = { path = "../lexer" }

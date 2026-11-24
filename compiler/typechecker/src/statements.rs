@@ -1,9 +1,9 @@
 //! Declaration checking, blocks and control-flow statements.
 
-use nava_ast::{
+use navascript_ast::{
     Block, ForOfStmt, ForStmt, FunctionDecl, IfStmt, Stmt, StmtKind, VariableDecl, WhileStmt,
 };
-use nava_symbol::{Symbol, SymbolKind, Type};
+use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
 use super::types::{Subst, is_assignable, resolve_named_type, union_layout_error};
@@ -181,7 +181,7 @@ impl<'a> Checker<'a> {
             self.leave_narrowed();
         }
         match &if_stmt.else_branch {
-            Some(nava_ast::ElseBranch::If(nested)) => {
+            Some(navascript_ast::ElseBranch::If(nested)) => {
                 if let Some(narrowing) = &narrowing {
                     self.enter_narrowed(&narrowing.name, &narrowing.else_ty);
                 }
@@ -190,7 +190,7 @@ impl<'a> Checker<'a> {
                     self.leave_narrowed();
                 }
             }
-            Some(nava_ast::ElseBranch::Block(block)) => {
+            Some(navascript_ast::ElseBranch::Block(block)) => {
                 if let Some(narrowing) = &narrowing {
                     self.enter_narrowed(&narrowing.name, &narrowing.else_ty);
                 }

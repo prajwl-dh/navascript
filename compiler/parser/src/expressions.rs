@@ -1,7 +1,7 @@
 //! Expression parsing: precedence, unary/postfix operators and literals.
 
-use nava_ast::{BinaryOp, Expr, ExprKind, ObjectField, Span, UnaryOp};
-use nava_lexer::TokenKind;
+use navascript_ast::{BinaryOp, Expr, ExprKind, ObjectField, Span, UnaryOp};
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 use super::parser::{decode_bigint, decode_number, decode_string};

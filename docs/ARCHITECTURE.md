@@ -1,15 +1,15 @@
-# Nava — Architecture
+# NavaScript — Architecture
 
 ## 1. System overview
 
-Nava is a source-to-native compiler with TypeScript-compatible syntax. The
+NavaScript is a source-to-native compiler with TypeScript-compatible syntax. The
 compiler is written in Rust initially (`nova0`) and is progressively rewritten
-in Nava itself. LLVM performs instruction selection, register allocation,
+in NavaScript itself. LLVM performs instruction selection, register allocation,
 optimization, and native code generation; the compiler does not hand-write
 ARM64 assembly.
 
 ```
-TypeScript source (.ts)
+NavaScript source (.ns, TypeScript-compatible syntax)
         │
         ▼
   ┌───────────┐   ┌───────────┐
@@ -25,7 +25,7 @@ TypeScript source (.ts)
                         │  typed AST
                         ▼
                  ┌─────────────┐
-                 │  Nava IR    │   basic blocks, control flow
+                 │  NavaScript IR    │   basic blocks, control flow
                  └─────────────┘
                         │
                         ▼
@@ -52,8 +52,8 @@ must remain independent of LLVM. Only the `codegen` module may depend on LLVM.
 
 The deep-module design of the front-end seam (what the driver calls, what is
 hidden behind it, and which adapters are justified) is recorded in
-`docs/DESIGN.md`. In short: `nava_parser::parse(&str) -> ParseOutput` is the
-external seam; `nava-lexer` is a private internal seam; `nava-ast` is a public
+`docs/DESIGN.md`. In short: `navascript_parser::parse(&str) -> ParseOutput` is the
+external seam; `navascript-lexer` is a private internal seam; `navascript-ast` is a public
 dependency-free leaf shared with the type checker and IR lowering.
 
 ## 2. Module responsibilities
@@ -118,12 +118,12 @@ hardcoded to ARM64. The driver owns tool discovery and build errors.
 ```
 compiler/     source modules + Cargo crates (workspace); each crate has one
               public façade (lib.rs) and private implementation modules
-runtime/      nava_runtime.h/.c plus memory/, bigint/, strings/, arrays/,
+runtime/      navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/,
               objects/, console/ — one source directory per runtime concern
 tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
               driver, runtime; compatibility added in Phase 7
 docs/         this documentation set
-examples/     sample .ts programs, starting with fibonacci.ts
+examples/     sample .ns programs, starting with fibonacci.ns
 scripts/      build/test/benchmark helper scripts
 ```
 
@@ -142,7 +142,7 @@ scripts/      build/test/benchmark helper scripts
   test modules in `compiler/`. See `docs/BUILD.md` for the target list.
 - Interface tests for the lexer and parser; golden-style output assertions for
   textual IR and generated LLVM IR.
-- End-to-end tests compile `.ts` → executable → run → assert stdout/exit code.
+- End-to-end tests compile `.ns` → executable → run → assert stdout/exit code.
 - Compatibility corpus compares behavior against `tsc`/Node where applicable.
 - Every stage of bootstrap runs the same test suite (see `BOOTSTRAP.md`).
 

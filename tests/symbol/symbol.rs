@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use nava_ast::{FileId, Span};
-use nava_symbol::{Symbol, SymbolKind, SymbolTable, Type};
+use navascript_ast::{FileId, Span};
+use navascript_symbol::{Symbol, SymbolKind, SymbolTable, Type};
 
 fn symbol(name: &str, ty: Type) -> Symbol {
     Symbol {

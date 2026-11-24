@@ -1,6 +1,6 @@
 //! Tests for the IR verifier's structural, dominance and type checks.
 
-use nava_ir::{
+use navascript_ir::{
     BasicBlock, BinaryOp, Instruction, IrFunction, IrModule, IrParam, IrType, Terminator, Value,
     verify,
 };
@@ -59,7 +59,7 @@ fn rejects_bigint_negation_of_a_number() {
     let mut function = function("f");
     function.blocks[0].instructions.push(Instruction::Unary {
         result: 1,
-        op: nava_ir::UnaryOp::NegBigInt,
+        op: navascript_ir::UnaryOp::NegBigInt,
         operand: Value::Param(0),
     });
     let errors = verify(&finish(function));

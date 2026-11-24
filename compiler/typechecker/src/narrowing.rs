@@ -1,7 +1,7 @@
 //! Control-flow narrowing of nullable union bindings.
 
-use nava_ast::{BinaryOp, Expr, ExprKind};
-use nava_symbol::{Symbol, SymbolKind, Type};
+use navascript_ast::{BinaryOp, Expr, ExprKind};
+use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
 use super::types::resolve_named_type;

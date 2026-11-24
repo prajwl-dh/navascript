@@ -1,7 +1,7 @@
 //! Class member checking and `new`/`super(...)` expression typing.
 
-use nava_ast::{ClassDecl, ClassMember, Expr, Ident, Span};
-use nava_symbol::{Symbol, SymbolKind, Type};
+use navascript_ast::{ClassDecl, ClassMember, Expr, Ident, Span};
+use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
 use super::types::{Subst, is_assignable};
@@ -74,7 +74,7 @@ impl Checker<'_> {
         }
     }
 
-    fn insert_params(&mut self, params: &[nava_ast::Param]) {
+    fn insert_params(&mut self, params: &[navascript_ast::Param]) {
         for param in params {
             let ty = param
                 .ty
@@ -165,7 +165,7 @@ pub(super) fn member_span(member: &ClassMember) -> Span {
         ClassMember::Constructor { params, .. } => params
             .first()
             .map(|param| param.span)
-            .unwrap_or(Span::new(nava_ast::FileId(0), 0, 0)),
+            .unwrap_or(Span::new(navascript_ast::FileId(0), 0, 0)),
         ClassMember::Method { name, .. } => name.span,
     }
 }

@@ -1,8 +1,8 @@
 //! Parser state, driver loop and shared token helpers.
 
-use nava_ast::{FileId, Program, Span};
-use nava_diagnostics::{Diagnostic, LineIndex};
-use nava_lexer::{Token, TokenKind, radix_prefix};
+use navascript_ast::{FileId, Program, Span};
+use navascript_diagnostics::{Diagnostic, LineIndex};
+use navascript_lexer::{Token, TokenKind, radix_prefix};
 
 /// Keeps `parse` infallible: deeply nested input is diagnosed, not overflowed.
 pub(super) const MAX_DEPTH: u32 = 128;
@@ -153,7 +153,7 @@ fn strip_separators(lexeme: &str) -> String {
     lexeme.chars().filter(|&ch| ch != '_').collect()
 }
 
-/// Parse a bigint lexeme (`123n`, `0xffn`, `1_000n`). Nava stores bigints as
+/// Parse a bigint lexeme (`123n`, `0xffn`, `1_000n`). NavaScript stores bigints as
 /// `i64`; out-of-range literals are diagnosed by the caller.
 pub(super) fn decode_bigint(lexeme: &str) -> Option<i64> {
     let digits = lexeme.strip_suffix('n')?;

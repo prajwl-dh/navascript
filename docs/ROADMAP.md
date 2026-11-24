@@ -1,4 +1,4 @@
-# Nava — Roadmap
+# NavaScript — Roadmap
 
 This document defines the 12 milestones. Every milestone lists objectives,
 implementation tasks, tests, acceptance criteria, and known limitations. Status
@@ -35,7 +35,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 | 6 Language expansion | 5 | expanded compatibility suite passes |
 | 7 Compatibility | 6 | reproducible compatibility report committed |
 | 8 Optimization | 7 | benchmarks show measured improvement |
-| 9 Self-hosting | 8 | substantial compiler source in Nava; differential tests pass |
+| 9 Self-hosting | 8 | substantial compiler source in NavaScript; differential tests pass |
 | 10 Bootstrap | 9 | stage 2/3 compile source without Rust |
 | 11 Production | 10 | distribution tests on two or more targets |
 
@@ -51,20 +51,20 @@ Before a phase is marked complete in `PROGRESS.md`:
 **Implementation tasks**
 - Verify Rust, Cargo, LLVM, Clang, Git, Python, CMake, Ninja, and host arch.
 - Initialize the Git repository and make a clean first commit.
-- Create a Cargo workspace (`nava` CLI crate + module crates as needed).
-- Implement `nava --version`, `nava --help`, `nava build` (stub acceptable).
+- Create a Cargo workspace (`navascript` CLI crate + module crates as needed).
+- Implement `navascript --version`, `navascript --help`, `navascript build` (stub acceptable).
 - Add a basic automated test (CLI smoke test) and a test runner script.
 
 **Tests**
 - `cargo test` passes.
-- `nava --version` and `nava --help` print expected output.
+- `navascript --version` and `navascript --help` print expected output.
 - One integration test invokes the CLI.
 
 **Acceptance criteria**
 - A fresh clone builds and runs the CLI with documented commands.
 
 **Known limitations (at Phase 0; resolved later)**
-- `nava build` did not compile anything yet — resolved in Phases 2–4.
+- `navascript build` did not compile anything yet — resolved in Phases 2–4.
 - LLVM was not linked in Phase 0; full integration landed in Phase 4. This was
   a documented deviation from the spec's Phase 0 "Integrate LLVM" bullet — see
   ADR-0008 and ADR-0004.
@@ -84,20 +84,20 @@ Before a phase is marked complete in `PROGRESS.md`:
 
 **Implementation tasks** (follow the chosen deep-module interface)
 
-1. `nava-ast` — dependency-free leaf:
+1. `navascript-ast` — dependency-free leaf:
    - `FileId`, half-open byte-offset `Span`, `Program`, `Item`, statement and
      expression node types; debug printing for tests.
-2. `nava-lexer` — private internal seam of `nava-parser`:
+2. `navascript-lexer` — private internal seam of `navascript-parser`:
    - keywords, identifiers, numeric/string literals, operators, punctuation,
      line/block comments, EOF; byte spans on every token.
-3. `nava-parser` — external seam `parse(&str) -> ParseOutput`:
+3. `navascript-parser` — external seam `parse(&str) -> ParseOutput`:
    - recursive-descent parsing with precedence, declarations (variable,
      function), statements (block, `if`, `return`, expression), expressions
      (literals, identifiers, binary/unary, calls, member).
    - panic-mode error recovery yielding a partial `Program`.
    - `Diagnostics`: deduplicated, sorted by span, 1-based line/column, caret
      rendering via `render(&str)`.
-4. `nava-driver` — wire `Command::Build` to call `parse`, render diagnostics and
+4. `navascript-driver` — wire `Command::Build` to call `parse`, render diagnostics and
    stop when `has_errors()`; no LLVM dependency.
 
 **Tests**
@@ -109,7 +109,7 @@ Before a phase is marked complete in `PROGRESS.md`:
   and prints readable diagnostics.
 
 **Acceptance criteria**
-- A basic `.ts` file parses into a valid AST, printed in debug form.
+- A basic `.ns` file parses into a valid AST, printed in debug form.
 - A broken file produces sorted, positioned, renderable diagnostics.
 - Front-end crates remain independent of LLVM (`cargo tree` shows no LLVM deps).
 
@@ -118,7 +118,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 - No classes, generics, interfaces, modules, loops — interfaces, type aliases
   and type checking landed in Phase 2; loops were delivered in Phase 6;
   classes, generics and modules remain Phase 6/7.
-- `.tsx` not supported.
+- JSX (`.nsx`) not supported.
 - No `DiagnosticSink` trait yet: only one adapter exists (the returned value).
 - Multi-file parsing is deferred; `Span` carries `FileId(0)` for now.
 
@@ -154,7 +154,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 ## Phase 3 — Intermediate Representation
 
 **Objectives**
-- Design Nava IR and lower the typed AST into it.
+- Design NavaScript IR and lower the typed AST into it.
 
 **Implementation tasks**
 - IR data model: modules, functions, basic blocks, instructions, values, types.
@@ -194,7 +194,7 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Cross-check output for debug vs release.
 
 **Acceptance criteria**
-- `nava build` produces a native macOS executable that runs without Node.js.
+- `navascript build` produces a native macOS executable that runs without Node.js.
 
 **Known limitations**
 - Strings, arrays, objects and runtime features were not supported in Phase 4;
@@ -294,7 +294,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   nullable reference types are usable today. Narrowing covers null tests in
   `if`, `while`, `&&`/`||` and branch bodies, not ternary or post-assignment
   flow. Modules share one namespace (no per-file scoping), resolve relative
-  `.ts` paths (extensionless specifiers get `.ts`), and render diagnostics
+  `.ns` paths (extensionless specifiers get `.ns`), and render diagnostics
   against the concatenated source rather than the originating file; `.d.ts`
   and package resolution are out of scope. Function values are not
   implemented; iteration is limited to arrays/strings.
@@ -348,10 +348,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 
 ---
 
-## Phase 9 — Compiler Rewrite in Nava
+## Phase 9 — Compiler Rewrite in NavaScript
 
 **Objectives**
-- Begin self-hosting by porting compiler components to Nava.
+- Begin self-hosting by porting compiler components to NavaScript.
 
 **Implementation tasks (port order)**
 1. Lexer
@@ -367,10 +367,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 
 **Tests**
 - Each ported component passes the same tests as its Rust counterpart.
-- Differential tests: Rust vs Nava component output on identical inputs.
+- Differential tests: Rust vs NavaScript component output on identical inputs.
 
 **Acceptance criteria**
-- A substantial portion of the compiler is written in Nava.
+- A substantial portion of the compiler is written in NavaScript.
 
 **Known limitations**
 - Rust driver still required to invoke the compiler until Phase 10.
@@ -383,7 +383,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Achieve and verify the three-stage bootstrap (see `BOOTSTRAP.md`).
 
 **Implementation tasks**
-- Stage 0: Rust compiler compiles the Nava compiler source → `nova1`.
+- Stage 0: Rust compiler compiles the NavaScript compiler source → `nova1`.
 - Stage 1: `nova1` compiles the same source → `nova2`.
 - Stage 2: `nova2` compiles the same source → `nova3` (identity check).
 - Run the full compiler test suite at every stage.
@@ -395,7 +395,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Byte-identical outputs where toolchain permits.
 
 **Acceptance criteria**
-- Nava compiles its own compiler from source with no hidden Rust dependency.
+- NavaScript compiles its own compiler from source with no hidden Rust dependency.
 
 **Known limitations**
 - Reproducible builds are "where practical," not an absolute gate.
@@ -405,7 +405,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 ## Phase 11 — Production Readiness
 
 **Objectives**
-- Make Nava usable by real developers.
+- Make NavaScript usable by real developers.
 
 **Implementation tasks**
 - Package manager and dependency resolution.
@@ -421,7 +421,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - LSP smoke tests; debugger attach/breakpoint tests.
 
 **Acceptance criteria**
-- Developers can realistically build, debug, test, and distribute Nava apps.
+- Developers can realistically build, debug, test, and distribute NavaScript apps.
 
 **Known limitations**
 - Timeline estimate: months 15–18+ from project start.

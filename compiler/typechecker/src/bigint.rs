@@ -1,8 +1,8 @@
 //! Bigint operator typing, kept beside the checker it extends rather than
 //! growing the general expression-inference module (ADR-0016).
 
-use nava_ast::{BinaryOp, Expr, Span};
-use nava_symbol::Type;
+use navascript_ast::{BinaryOp, Expr, Span};
+use navascript_symbol::Type;
 
 use super::checker::Checker;
 use super::types::resolve_named_type;

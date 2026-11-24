@@ -1,6 +1,6 @@
-# Nava — TypeScript Compatibility Matrix
+# NavaScript — TypeScript Compatibility Matrix
 
-This matrix is the authoritative record of what Nava supports relative to
+This matrix is the authoritative record of what NavaScript supports relative to
 TypeScript. A feature is only marked supported when a test proves it.
 
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
@@ -34,7 +34,7 @@ typing and modules. Closures and exceptions are still pending (ADR-0015).
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
 | Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; the null branch is observable for `T | null` receivers (ADR-0025), but scalar results are still diagnosed and `undefined` does not exist |
-| Optional call (`a?.()`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; parsed, type-checked for callability/arity and lowered as a direct call; no null branch because Nava has no nullable callable values |
+| Optional call (`a?.()`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; parsed, type-checked for callability/arity and lowered as a direct call; no null branch because NavaScript has no nullable callable values |
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; variable initialisers with annotated parameters, no captures or first-class function values |
 | Comments | [x] | `tests/lexer/` | Phase 1 |
 | Diagnostics with line/column | [x] | `tests/parser/` + `tests/driver/` | caret rendering included |
@@ -44,10 +44,10 @@ typing and modules. Closures and exceptions are still pending (ADR-0015).
 | Optional properties (`field?: T`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolve to `T | null`, may be omitted from object literals; omitted reference fields are null-initialized |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
 | Unions / intersections | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; nullable reference unions, intersection field merging, `== null`/`!= null` narrowing; mixed-representation unions are diagnosed (ADR-0025) |
-| Modules (`import`/`export`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; import-graph resolution from the entry file with validated exports; one module-wide namespace, relative `.ts` paths only; diagnostics rendered against combined source (ADR-0026) |
+| Modules (`import`/`export`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; import-graph resolution from the entry file with validated exports; one module-wide namespace, relative `.ns` paths only; diagnostics rendered against combined source (ADR-0026) |
 | Async/await, promises | [ ] | — | Phase 6 |
 | Decorators | [-] | — | Deferred; not in initial scope |
-| JSX / `.tsx` | [-] | — | Deferred |
+| JSX (NavaScript `.nsx`, TypeScript `.tsx`) | [-] | — | Deferred |
 
 ## 2. Type system
 
@@ -93,7 +93,7 @@ typing and modules. Closures and exceptions are still pending (ADR-0015).
 ## 5. Compatibility testing strategy (Phase 7)
 
 - Build a corpus of small TypeScript programs with expected stdout/exit code.
-- Run each through `tsc` + Node (reference behavior) and through Nava.
+- Run each through `tsc` + Node (reference behavior) and through NavaScript.
 - Classify results: pass / fail / skip (unsupported) / known-difference.
 - Commit the report with counts and links to failing cases.
 - Re-run on every milestone touching semantics; regressions must be investigated.
@@ -116,7 +116,7 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Indirect calls in IR | only direct named calls lower; member calls are limited to the known builtin `console.log`, and unknown ones are diagnosed | Phase 6 |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
 | Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | Phase 6 (pending) |
-| `.d.ts` and package resolution | only relative `.ts`/extensionless paths are resolved from the entry file | Phase 7 |
+| `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | Phase 7 |
 | Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | Phase 6 (pending) |
 | Mixed-representation unions | `number | string` and nullable primitives are diagnosed because values are unboxed and untagged | Phase 6 (diagnosed, not miscompiled) |
 | Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | Phase 6 (pending) |

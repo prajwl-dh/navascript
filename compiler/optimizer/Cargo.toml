@@ -1,6 +1,6 @@
 [package]
-name = "nava-optimizer"
-description = "Nava IR optimization passes"
+name = "navascript-optimizer"
+description = "NavaScript IR optimization passes"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

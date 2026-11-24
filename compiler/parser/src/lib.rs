@@ -1,4 +1,4 @@
-//! Nava parser — the deep front-end module.
+//! NavaScript parser — the deep front-end module.
 //!
 //! Its external seam is [`parse`]: source text in, `ParseOutput` out. The
 //! implementation is split into private modules for parsing state, items,
@@ -14,11 +14,11 @@ mod parser;
 mod statements;
 mod types;
 
-pub use nava_diagnostics::{Diagnostic, Diagnostics, Severity};
+pub use navascript_diagnostics::{Diagnostic, Diagnostics, Severity};
 
-use nava_ast::{FileId, Program, Span};
-use nava_diagnostics::LineIndex;
-use nava_lexer::tokenize;
+use navascript_ast::{FileId, Program, Span};
+use navascript_diagnostics::LineIndex;
+use navascript_lexer::tokenize;
 use parser::Parser;
 
 /// The result of parsing: an owned program plus all diagnostics.
@@ -32,7 +32,7 @@ pub struct ParseOutput {
 /// Parse source text into a program and diagnostics.
 ///
 /// Infallible and I/O-free: syntax errors become diagnostics, never `Err` or a
-/// panic. The returned data is owned, so it outlives `source` and ports to Nava.
+/// panic. The returned data is owned, so it outlives `source` and ports to NavaScript.
 pub fn parse(source: &str) -> ParseOutput {
     let lexed = tokenize(source);
     let file = FileId(0);

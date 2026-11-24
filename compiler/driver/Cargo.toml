@@ -1,6 +1,6 @@
 [package]
-name = "nava"
-description = "Nava compiler driver and command-line interface"
+name = "navascript"
+description = "NavaScript compiler driver and command-line interface"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,29 +8,29 @@ authors.workspace = true
 license.workspace = true
 
 [lib]
-name = "nava_driver"
+name = "navascript_driver"
 path = "src/lib.rs"
 
 [[bin]]
-name = "nava"
+name = "navascript"
 path = "src/main.rs"
 
 [dependencies]
-nava-ast = { path = "../ast" }
-nava-codegen = { path = "../codegen" }
-nava-ir = { path = "../ir" }
-nava-parser = { path = "../parser" }
-nava-typechecker = { path = "../typechecker" }
+navascript-ast = { path = "../ast" }
+navascript-codegen = { path = "../codegen" }
+navascript-ir = { path = "../ir" }
+navascript-parser = { path = "../parser" }
+navascript-typechecker = { path = "../typechecker" }
 
 # All tests live in the repository's top-level tests/ tree. They are registered
 # explicitly because Cargo only auto-discovers tests/ inside a package root.
 [dev-dependencies]
-nava-ast = { path = "../ast" }
-nava-codegen = { path = "../codegen" }
-nava-diagnostics = { path = "../diagnostics" }
-nava-ir = { path = "../ir" }
-nava-lexer = { path = "../lexer" }
-nava-symbol = { path = "../symbol" }
+navascript-ast = { path = "../ast" }
+navascript-codegen = { path = "../codegen" }
+navascript-diagnostics = { path = "../diagnostics" }
+navascript-ir = { path = "../ir" }
+navascript-lexer = { path = "../lexer" }
+navascript-symbol = { path = "../symbol" }
 
 [[test]]
 name = "ast_span"

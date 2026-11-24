@@ -1,31 +1,31 @@
 /* Program-lifetime bump arena (ADR-0005). */
-#include "nava_runtime.h"
+#include "navascript_runtime.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define NAVA_ARENA_SIZE (16u * 1024u * 1024u)
+#define NAVASCRIPT_ARENA_SIZE (16u * 1024u * 1024u)
 
-_Alignas(8) static unsigned char nava_arena[NAVA_ARENA_SIZE];
-static size_t nava_arena_used = 0;
+_Alignas(8) static unsigned char navascript_arena[NAVASCRIPT_ARENA_SIZE];
+static size_t navascript_arena_used = 0;
 
-void *nava_alloc(size_t bytes) {
+void *navascript_alloc(size_t bytes) {
     size_t aligned = (bytes + 7u) & ~(size_t)7u;
     if (aligned == 0) {
         aligned = 8;
     }
-    if (nava_arena_used + aligned > NAVA_ARENA_SIZE) {
-        fputs("nava: runtime arena exhausted\n", stderr);
+    if (navascript_arena_used + aligned > NAVASCRIPT_ARENA_SIZE) {
+        fputs("navascript: runtime arena exhausted\n", stderr);
         exit(1);
     }
-    void *pointer = nava_arena + nava_arena_used;
-    nava_arena_used += aligned;
+    void *pointer = navascript_arena + navascript_arena_used;
+    navascript_arena_used += aligned;
     memset(pointer, 0, aligned);
     return pointer;
 }
 
-void nava_runtime_error(const char *message) {
-    fprintf(stderr, "nava: runtime error: %s\n", message);
+void navascript_runtime_error(const char *message) {
+    fprintf(stderr, "navascript: runtime error: %s\n", message);
     exit(1);
 }

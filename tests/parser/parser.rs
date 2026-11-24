@@ -1,11 +1,11 @@
 //! Tests for the parser's public `parse` seam.
 
-use nava_ast::{
+use navascript_ast::{
     AssignOp, BinaryOp, ElseBranch, ExprKind, FileId, ItemKind, Span, Stmt, StmtKind, TypeExpr,
     UpdateOp,
 };
-use nava_diagnostics::{Diagnostic, Diagnostics, Severity};
-use nava_parser::{ParseOutput, parse};
+use navascript_diagnostics::{Diagnostic, Diagnostics, Severity};
+use navascript_parser::{ParseOutput, parse};
 
 fn ok(source: &str) -> ParseOutput {
     let output = parse(source);
@@ -31,7 +31,7 @@ fn parses_variable_with_inference() {
 
 #[test]
 fn parses_typed_variable() {
-    let output = ok("const name: string = \"nava\";");
+    let output = ok("const name: string = \"navascript\";");
     let ItemKind::Variable(decl) = &output.program.items[0].kind else {
         panic!("expected a variable");
     };
@@ -39,7 +39,7 @@ fn parses_typed_variable() {
         &decl.ty.as_ref().unwrap().expr,
         TypeExpr::Named(name) if name == "string"
     ));
-    assert!(matches!(&decl.init.as_ref().unwrap().kind, ExprKind::String(s) if s == "nava"));
+    assert!(matches!(&decl.init.as_ref().unwrap().kind, ExprKind::String(s) if s == "navascript"));
 }
 
 #[test]
@@ -537,13 +537,13 @@ fn parses_optional_calls() {
 #[test]
 fn parses_imports_and_exports() {
     let output = ok(
-        "import { a, b } from \"./m.ts\"; export function f(): number { return 1; } export const n = 2;",
+        "import { a, b } from \"./m.ns\"; export function f(): number { return 1; } export const n = 2;",
     );
     let ItemKind::Import { names, source, .. } = &output.program.items[0].kind else {
         panic!("expected an import");
     };
     assert_eq!(names.len(), 2);
-    assert_eq!(source, "./m.ts");
+    assert_eq!(source, "./m.ns");
     assert!(
         matches!(&output.program.items[1].kind, ItemKind::Export(inner) if matches!(inner.kind, ItemKind::Function(_)))
     );
@@ -601,15 +601,15 @@ fn parses_class_declarations_with_members() {
     assert_eq!(class.members.len(), 3);
     assert!(matches!(
         class.members[0],
-        nava_ast::ClassMember::Field { .. }
+        navascript_ast::ClassMember::Field { .. }
     ));
     assert!(matches!(
         class.members[1],
-        nava_ast::ClassMember::Constructor { .. }
+        navascript_ast::ClassMember::Constructor { .. }
     ));
     assert!(matches!(
         class.members[2],
-        nava_ast::ClassMember::Method { .. }
+        navascript_ast::ClassMember::Method { .. }
     ));
 }
 

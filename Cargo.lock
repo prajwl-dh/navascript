@@ -3,81 +3,81 @@
 version = 4
 
 [[package]]
-name = "nava"
+name = "navascript"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
- "nava-codegen",
- "nava-diagnostics",
- "nava-ir",
- "nava-lexer",
- "nava-parser",
- "nava-symbol",
- "nava-typechecker",
+ "navascript-ast",
+ "navascript-codegen",
+ "navascript-diagnostics",
+ "navascript-ir",
+ "navascript-lexer",
+ "navascript-parser",
+ "navascript-symbol",
+ "navascript-typechecker",
 ]
 
 [[package]]
-name = "nava-ast"
+name = "navascript-ast"
 version = "0.1.0"
 
 [[package]]
-name = "nava-codegen"
+name = "navascript-codegen"
 version = "0.1.0"
 dependencies = [
- "nava-ir",
+ "navascript-ir",
 ]
 
 [[package]]
-name = "nava-diagnostics"
+name = "navascript-diagnostics"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
+ "navascript-ast",
 ]
 
 [[package]]
-name = "nava-ir"
+name = "navascript-ir"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
- "nava-diagnostics",
- "nava-symbol",
- "nava-typechecker",
+ "navascript-ast",
+ "navascript-diagnostics",
+ "navascript-symbol",
+ "navascript-typechecker",
 ]
 
 [[package]]
-name = "nava-lexer"
+name = "navascript-lexer"
 version = "0.1.0"
 
 [[package]]
-name = "nava-optimizer"
+name = "navascript-optimizer"
 version = "0.1.0"
 
 [[package]]
-name = "nava-parser"
+name = "navascript-parser"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
- "nava-diagnostics",
- "nava-lexer",
+ "navascript-ast",
+ "navascript-diagnostics",
+ "navascript-lexer",
 ]
 
 [[package]]
-name = "nava-semantic"
+name = "navascript-semantic"
 version = "0.1.0"
 
 [[package]]
-name = "nava-symbol"
+name = "navascript-symbol"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
+ "navascript-ast",
 ]
 
 [[package]]
-name = "nava-typechecker"
+name = "navascript-typechecker"
 version = "0.1.0"
 dependencies = [
- "nava-ast",
- "nava-diagnostics",
- "nava-parser",
- "nava-symbol",
+ "navascript-ast",
+ "navascript-diagnostics",
+ "navascript-parser",
+ "navascript-symbol",
 ]

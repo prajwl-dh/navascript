@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use nava_ast::Span;
+use navascript_ast::Span;
 
 use super::checks::{
     check_slot, check_value, require, value_type, values_in_instruction, values_in_terminator,

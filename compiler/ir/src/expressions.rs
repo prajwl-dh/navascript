@@ -1,6 +1,6 @@
 //! Expression lowering into IR instructions.
 
-use nava_ast::{BinaryOp as AstBinaryOp, Expr, ExprKind, UnaryOp as AstUnaryOp};
+use navascript_ast::{BinaryOp as AstBinaryOp, Expr, ExprKind, UnaryOp as AstUnaryOp};
 
 use super::builder::FunctionBuilder;
 use super::ir::{Instruction, IrType, UnaryOp, Value};

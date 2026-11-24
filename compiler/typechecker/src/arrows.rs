@@ -1,7 +1,7 @@
 //! Arrow function type inference.
 
-use nava_ast::{ArrowBody, Param, TypeAnnotation};
-use nava_symbol::{Symbol, SymbolKind, Type};
+use navascript_ast::{ArrowBody, Param, TypeAnnotation};
+use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
 use super::types::Subst;

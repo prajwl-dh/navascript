@@ -1,4 +1,4 @@
-//! Nava type checker — the Phase 2 external seam.
+//! NavaScript type checker — the Phase 2 external seam.
 //!
 //! `check(&Program, &str) -> CheckOutput` hides the symbol table, scope
 //! handling, type inference and assignability rules. It depends only on the

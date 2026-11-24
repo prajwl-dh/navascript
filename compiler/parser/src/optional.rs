@@ -1,7 +1,7 @@
 //! Optional chaining postfix parsing (`?.prop`, `?.[index]`).
 
-use nava_ast::{Expr, ExprKind, Span};
-use nava_lexer::TokenKind;
+use navascript_ast::{Expr, ExprKind, Span};
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 

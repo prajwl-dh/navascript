@@ -1,5 +1,5 @@
-//! Entry point for the `nava` binary.
+//! Entry point for the `navascript` binary.
 
 fn main() {
-    std::process::exit(nava_driver::cli::run());
+    std::process::exit(navascript_driver::cli::run());
 }

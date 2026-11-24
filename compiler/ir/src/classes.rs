@@ -1,8 +1,8 @@
 //! Class lowering: methods become named functions with `this` as their first
 //! parameter. Dispatch stays static — no vtables are needed yet.
 
-use nava_ast::{Block, ClassDecl, ClassMember, Expr, Ident, Param};
-use nava_symbol::Type;
+use navascript_ast::{Block, ClassDecl, ClassMember, Expr, Ident, Param};
+use navascript_symbol::Type;
 
 use super::builder::FunctionBuilder;
 use super::ir::{Instruction, IrParam, IrType, Terminator, Value};

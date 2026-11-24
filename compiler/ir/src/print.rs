@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use super::ir::{Instruction, IrFunction, IrModule, Terminator, Value};
 
-/// Render a module in Nava's textual IR format.
+/// Render a module in NavaScript's textual IR format.
 pub fn print(module: &IrModule) -> String {
     let mut out = String::new();
     for global in &module.globals {

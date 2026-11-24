@@ -1,4 +1,4 @@
-# Nava
+# NavaScript
 
 A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
@@ -15,7 +15,7 @@ complete; the remaining expansion items are pending.
 1. **TypeScript compatibility** — familiar TypeScript syntax and semantics.
 2. **Native compilation** — native ARM64 macOS executables via LLVM, no Node.js
    at runtime.
-3. **Self-hosting** — the compiler is eventually written in Nava itself.
+3. **Self-hosting** — the compiler is eventually written in NavaScript itself.
 
 Do not treat progress on one goal as progress on another.
 
@@ -48,7 +48,7 @@ Compile to a native macOS executable that prints `55` without Node.js.
 ```
 compiler/    lexer, parser, ast, diagnostics, symbol, semantic, typechecker, ir,
              optimizer, codegen, driver
-runtime/     nava_runtime.h/.c plus memory/, bigint/, strings/, arrays/, objects/,
+runtime/     navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/, objects/,
              console/ sources (one concern per directory)
 tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
              driver, runtime (compatibility added in Phase 7)
@@ -62,50 +62,50 @@ scripts/     helper scripts
 ```bash
 cargo build --workspace
 cargo test --workspace     # 248 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules)
-target/debug/nava --version
-target/debug/nava --help
-target/debug/nava build examples/fibonacci.ts -o fibonacci
+target/debug/navascript --version
+target/debug/navascript --help
+target/debug/navascript build examples/fibonacci.ns -o fibonacci
 ./fibonacci                                             # prints 55
-target/debug/nava build --release examples/fibonacci.ts -o fibonacci
-target/debug/nava build --emit-ir examples/fibonacci.ts   # print LLVM IR
+target/debug/navascript build --release examples/fibonacci.ns -o fibonacci
+target/debug/navascript build --emit-ir examples/fibonacci.ns   # print LLVM IR
 ```
 
 Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same
 fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full build,
 test and LLVM toolchain instructions are in `docs/BUILD.md`.
 
-Phases 0–5 are complete: the CLI parses, type-checks, lowers to Nava IR, emits
+Phases 0–5 are complete: the CLI parses, type-checks, lowers to NavaScript IR, emits
 LLVM IR, and links a native executable. The runtime provides arena-allocated
 strings, arrays and objects with bounds checking. The first major milestone —
 fibonacci printing `55` without Node.js — is verified by
 `tests/driver/native.rs`. Phase 6 is under way and has delivered:
 
 - Loops: `while`, `do-while`, C-style `for` and `for-of` over arrays/strings,
-  with `break`/`continue` (`examples/loops.ts`, `examples/for_of.ts`,
-  `examples/break_continue.ts`).
+  with `break`/`continue` (`examples/loops.ns`, `examples/for_of.ns`,
+  `examples/break_continue.ns`).
 - The additional literals/operators: compound assignment (`+= -= *= /= %=`),
   `++`/`--`, `**`, ternary, hex/binary/octal literals with `_` separators,
-  Unicode identifiers and `\x`/`\u` escapes (`examples/operators.ts`).
+  Unicode identifiers and `\x`/`\u` escapes (`examples/operators.ns`).
 - Arrow functions as variable initialisers with annotated parameters and no
-  captured locals (`examples/arrows.ts`).
+  captured locals (`examples/arrows.ns`).
 - Optional chaining `a?.b` / `a?.[i]` for reference-typed results
-  (`examples/optional.ts`).
+  (`examples/optional.ns`).
 
 - Bigint literals (`123n`, `0xffn`, `1_000n`) as a `bigint` type backed by a
    signed 64-bit integer, with integer arithmetic, comparisons, `++`/`--`,
-   bigint arrays/objects and `console.log` (`examples/bigint.ts`).
-- Optional calls `a?.()` (`examples/optional_call.ts`) — parsed, type-checked
-   and lowered as direct calls; the null branch is unobservable until Nava has
+   bigint arrays/objects and `console.log` (`examples/bigint.ns`).
+- Optional calls `a?.()` (`examples/optional_call.ns`) — parsed, type-checked
+   and lowered as direct calls; the null branch is unobservable until NavaScript has
    nullable callable values.
-- Generics (`examples/generics.ts`) — generic functions and interfaces with
+- Generics (`examples/generics.ns`) — generic functions and interfaces with
    inferred or explicit type arguments, lowered by monomorphization.
-- Classes and inheritance (`examples/classes.ts`) — fields, constructors,
+- Classes and inheritance (`examples/classes.ns`) — fields, constructors,
    methods, `this`, `super(...)`, `extends`, inherited members and constructors;
    methods lower to named functions with static dispatch (ADR-0024).
 - Unions, intersections, narrowing and optional properties
-   (`examples/unions.ts`) — nullable reference unions with control-flow
+   (`examples/unions.ns`) — nullable reference unions with control-flow
    narrowing, merged intersection layouts, optional object fields (ADR-0025).
-- Modules (`examples/modules.ts` + `examples/math.ts`) — `import`/`export`
+- Modules (`examples/modules.ns` + `examples/math.ns`) — `import`/`export`
    syntax and import-graph resolution from the entry file (ADR-0026).
 
 Still pending in Phase 6: first-class function values/closures,

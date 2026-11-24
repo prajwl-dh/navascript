@@ -1,4 +1,4 @@
-# Nava — Progress Tracker
+# NavaScript — Progress Tracker
 
 This is the **single source of truth** for project status. Update it after every
 completed task. Anything marked `[~]` or `[!]` should have a note in the
@@ -62,7 +62,7 @@ delivered; remaining expansion items pending).
 
 **Environment notes (resolved):**
 - [x] LLVM integration method decided in Phase 4: textual `.ll` emitted by
-  `nava-codegen`, assembled by `llc` and linked by `clang` (ADR-0004). The host
+  `navascript-codegen`, assembled by `llc` and linked by `clang` (ADR-0004). The host
   triple comes from `llvm-config --host-target`; nothing is hardcoded to ARM64.
 - [x] CMake 4.5.1 and Ninja 1.13.2 are installed via Homebrew as of
   2026-11-21. They are **not required** by the chosen textual-IR path, but are
@@ -74,11 +74,11 @@ delivered; remaining expansion items pending).
 ## 3. Repository skeleton
 
 ```
-nava/
+navascript/
 ├── compiler/          # Rust compiler crates (one public façade per crate)
 │   ├── lexer/ parser/ ast/ symbol/ semantic/ typechecker/
 │   ├── ir/ optimizer/ codegen/ driver/
-├── runtime/           # nava_runtime.h/.c + memory/ strings/ arrays/
+├── runtime/           # navascript_runtime.h/.c + memory/ strings/ arrays/
 │                      # objects/ console/ (one source per concern)
 ├── tests/             # ast, diagnostics, lexer, parser, symbol, typechecker,
 │                      # ir, codegen, driver, runtime
@@ -94,7 +94,7 @@ nava/
   corresponding features had real files
 - [x] `git init` completed on branch `main`
 - [x] `Cargo.toml` workspace + 11 member crates (CLI driver + 10 module crates,
-  including `nava-diagnostics` added in Phase 2)
+  including `navascript-diagnostics` added in Phase 2)
 - [x] First commit — Phase 0
 
 ---
@@ -106,15 +106,15 @@ limitations for every milestone.
 
 ### Phase 0 — Foundation
 - [x] Verify toolchain (done — see §2)
-- [x] Create `Cargo.toml` workspace and `nava` CLI crate
-- [x] Implement `nava --version` (also `-V`)
-- [x] Implement `nava --help` (also `-h`, and no-argument default)
-- [x] Implement `nava build` (stub: validates input, reports Phase 4 TODO)
+- [x] Create `Cargo.toml` workspace and `navascript` CLI crate
+- [x] Implement `navascript --version` (also `-V`)
+- [x] Implement `navascript --help` (also `-h`, and no-argument default)
+- [x] Implement `navascript build` (stub: validates input, reports Phase 4 TODO)
 - [x] Set up unit (3) + integration (13) test harness
 - [x] CI workflow (`.github/workflows/ci.yml`) added
 - [x] Document the build process (`docs/BUILD.md`)
 - [x] Make the initial git commit
-- **Exit condition met:** the workspace builds and the `nava` CLI runs its documented commands.
+- **Exit condition met:** the workspace builds and the `navascript` CLI runs its documented commands.
 - **Verification:** `cargo build --workspace`, `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings`, and
   `cargo test --workspace` (16 passed, 0 failed) all succeed.
@@ -125,7 +125,7 @@ limitations for every milestone.
 - [x] Variables, functions, expressions, blocks, `if`/`else`, top-level calls
 - [x] Diagnostics with line + column, dedup/sort, caret rendering
 - [x] Panic-mode recovery keeps later items after a syntax error
-- [x] Driver wires `build` to `nava_parser::parse` and reports diagnostics
+- [x] Driver wires `build` to `navascript_parser::parse` and reports diagnostics
 - **Exit condition met:** the fibonacci acceptance program parses; a broken
   file produces positioned diagnostics; no front-end crate depends on LLVM.
 - **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
@@ -142,13 +142,13 @@ limitations for every milestone.
 - [x] Lexical scopes with shadowing and duplicate-declaration detection
 - [x] Minimal built-in `console.log` surface for the fibonacci acceptance program
 - **Exit condition met:** the fibonacci program type-checks; negative tests
-  fail as expected; `nava build` reports type errors and exits non-zero.
+  fail as expected; `navascript build` reports type errors and exits non-zero.
 - **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
   `cargo test --workspace` (77 passed, 0 failed) succeed.
 
 ### Phase 3 — IR
-- [x] Nava IR design (stack slots, SSA-like values; ADR-0013/0014)
-- [x] AST → IR lowering (`nava_ir::lower`)
+- [x] NavaScript IR design (stack slots, SSA-like values; ADR-0013/0014)
+- [x] AST → IR lowering (`navascript_ir::lower`)
 - [x] Functions, variables, basic blocks, control flow (branches, condbr, returns)
 - [x] IR validation (structural + dominance + type checks) + textual printing
 - [x] Driver `build --emit-ir` exposes the debug output
@@ -162,7 +162,7 @@ limitations for every milestone.
 - [x] ARM64 codegen for arithmetic, vars, functions, returns
 - [x] Mach-O executable generation + linking, with host target detection
 - [x] Debug (`-O0`) and release (`--release`, `-O3`) modes
-- [x] Minimal C runtime shim (`runtime/nava_runtime.c`) with a `main` bridge
+- [x] Minimal C runtime shim (`runtime/navascript_runtime.c`) with a `main` bridge
 - **Exit condition met:** `fibonacci(10)` prints `55` from a native Mach-O
   executable with no Node.js or JavaScript runtime.
 - **Verification:** `cargo fmt --all -- --check`, clippy `-D warnings`, and
@@ -213,10 +213,10 @@ limitations for every milestone.
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
   `cargo test --workspace` (248 passed, 0 failed) succeed;
-  `examples/loops.ts`, `examples/for_of.ts`, `examples/break_continue.ts`,
-  `examples/operators.ts`, `examples/arrows.ts`, `examples/optional.ts`,
-  `examples/bigint.ts`, `examples/optional_call.ts`, `examples/generics.ts`,
-  `examples/classes.ts`, `examples/unions.ts` and `examples/modules.ts` run
+  `examples/loops.ns`, `examples/for_of.ns`, `examples/break_continue.ns`,
+  `examples/operators.ns`, `examples/arrows.ns`, `examples/optional.ns`,
+  `examples/bigint.ns`, `examples/optional_call.ns`, `examples/generics.ns`,
+  `examples/classes.ns`, `examples/unions.ns` and `examples/modules.ns` run
   natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
@@ -236,19 +236,19 @@ limitations for every milestone.
 - [ ] Reproducible benchmark suite + comparison
 - **Exit condition:** measurable improvement on defined benchmarks.
 
-### Phase 9 — Self-hosting (rewrite in Nava)
+### Phase 9 — Self-hosting (rewrite in NavaScript)
 - [ ] Lexer → Parser → AST → Symbol table → Semantic → Type checker → IR → Driver
 - [ ] Rust compiler remains functional throughout
-- **Exit condition:** substantial portion of compiler written in Nava.
+- **Exit condition:** substantial portion of compiler written in NavaScript.
 
 ### Phase 10 — Bootstrap
-- [ ] Stage 0: Rust compiler compiles Nava compiler source
+- [ ] Stage 0: Rust compiler compiles NavaScript compiler source
 - [ ] Stage 1: `nova1` compiles the same source
 - [ ] Stage 2: `nova2` compiles the same source
 - [ ] Same test suite passes at every stage
 - [ ] Equivalent program behavior across stages
 - [ ] Reproducible builds where practical
-- **Exit condition:** no hidden Rust dependency for normal Nava compilation.
+- **Exit condition:** no hidden Rust dependency for normal NavaScript compilation.
 
 ### Phase 11 — Production readiness
 - [ ] Package manager, stdlib docs, language server, editor support
@@ -270,19 +270,19 @@ limitations for every milestone.
 - **No compiler code written yet** — implementation begins with Phase 0 next.
 
 ### 2026-11-20 — Phase 0 (Foundation) completed
-- Created a Cargo workspace with 10 member crates: the `nava` CLI driver
-  (`compiler/driver`, lib `nava_driver`) plus placeholder crates for `ast`,
+- Created a Cargo workspace with 10 member crates: the `navascript` CLI driver
+  (`compiler/driver`, lib `navascript_driver`) plus placeholder crates for `ast`,
   `lexer`, `parser`, `symbol`, `semantic`, `typechecker`, `ir`, `optimizer`, and
   `codegen`. Each placeholder records the phase in which it will be filled in.
-  (`nava-diagnostics` was added in Phase 2, bringing the total to 11.)
+  (`navascript-diagnostics` was added in Phase 2, bringing the total to 11.)
 - Implemented dependency-free CLI argument parsing in `cli.rs` with unit tests,
   and a thin `main.rs` that exits with the dispatcher's status code.
-- `nava --version` / `-V` print `nava 0.1.0`; `--help` / `-h` and no arguments
+- `navascript --version` / `-V` print `navascript 0.1.0`; `--help` / `-h` and no arguments
   print usage; `build` validates arguments and input-file existence, then
   reports that native code generation is not implemented yet.
 - Added 8 integration tests in `compiler/driver/tests/cli.rs` that invoke the
-  real binary via `CARGO_BIN_EXE_nava`.
-- Added `examples/fibonacci.ts` (the Phase 4 acceptance program), `scripts/build.sh`,
+  real binary via `CARGO_BIN_EXE_navascript`.
+- Added `examples/fibonacci.ns` (the Phase 4 acceptance program), `scripts/build.sh`,
   `scripts/test.sh`, `.gitignore`, and `docs/BUILD.md`.
 - Fixed a clippy `trim_split_whitespace` warning and formatted with rustfmt.
 - Verified: build OK, fmt check OK, clippy `-D warnings` OK, 20 tests passed.
@@ -295,8 +295,8 @@ limitations for every milestone.
   candidate (in-process pure computation), then compared three independently
   designed interfaces (minimal, flexible, caller-optimized).
 - Chose a hybrid, recorded in `docs/DESIGN.md`: seam at
-  `nava_parser::parse(&str) -> ParseOutput`; `nava-lexer` private behind it;
-  `nava-ast` a public dependency-free leaf; no `DiagnosticSink` trait until a
+  `navascript_parser::parse(&str) -> ParseOutput`; `navascript-lexer` private behind it;
+  `navascript-ast` a public dependency-free leaf; no `DiagnosticSink` trait until a
   second real adapter exists; multi-file support as a separate function when
   Phase 6 needs it.
 - Linked the design from `docs/ARCHITECTURE.md`. No implementation code changed.
@@ -321,20 +321,20 @@ limitations for every milestone.
   actual LLVM linking (Phase 4 by ADR-0008).
 
 ### 2026-11-20 — Phase 1 (Lexer and Parser) implemented
-- `nava-ast`: dependency-free leaf with `FileId`, half-open byte `Span`, `Program`,
+- `navascript-ast`: dependency-free leaf with `FileId`, half-open byte `Span`, `Program`,
   items, declarations, statements, expressions, operators and debug printing.
   Added `ItemKind::Expr` so script-style top-level calls (e.g. `console.log`)
   parse as valid programs.
-- `nava-lexer`: private internal seam — byte-spanned tokens for identifiers,
+- `navascript-lexer`: private internal seam — byte-spanned tokens for identifiers,
   numbers, strings (with escapes), keywords, operators (longest match first),
   punctuation, both comment styles, EOF, plus lexer errors for unterminated
   strings/comments and unexpected characters.
-- `nava-parser`: external seam `parse(&str) -> ParseOutput`. Recursive-descent
+- `navascript-parser`: external seam `parse(&str) -> ParseOutput`. Recursive-descent
   parser with precedence, unary/postfix operators, calls, member access,
   `if`/`else` chains, panic-mode recovery, owned AST, and `Diagnostics` that
   are deduplicated, source-ordered and rendered with line/column and carets.
-- `nava-driver`: `build` reads the source, calls `parse`, renders diagnostics,
-  and exits non-zero on errors. Added `examples/bad_syntax.ts` for the error path.
+- `navascript-driver`: `build` reads the source, calls `parse`, renders diagnostics,
+  and exits non-zero on errors. Added `examples/bad_syntax.ns` for the error path.
 - Tests: 7 lexer, 11 parser (through the `parse` seam), 1 AST, 3 driver unit,
   14 driver integration = 36, all passing; fmt and clippy clean. After the
   review fixes this became 40 (4 new parser tests).
@@ -356,23 +356,23 @@ limitations for every milestone.
     to the unsupported-features register; scheduled loops in Phase 6.
 
 ### 2026-11-20 — Phase 2 (Type system) implemented
-- Added `nava-diagnostics` as a shared leaf: `Diagnostic`, `Severity`,
+- Added `navascript-diagnostics` as a shared leaf: `Diagnostic`, `Severity`,
   `LineIndex` and `Diagnostics` now live in one crate used by the parser,
   checker and driver. The parser re-exports the types, so the Phase 1 seam is
   unchanged (ADR-0009).
-- Extended `nava-ast` with `TypeExpr` (named, array, object, function), type
+- Extended `navascript-ast` with `TypeExpr` (named, array, object, function), type
   aliases, interfaces, array/object literals and index expressions; the lexer
   recognises `=>`, `type` and `interface`, and the parser was extended for the
   new syntax.
-- `nava-symbol` owns `Type` and `SymbolTable` (lexical scopes, shadowing,
+- `navascript-symbol` owns `Type` and `SymbolTable` (lexical scopes, shadowing,
   duplicate detection) as an internal seam.
-- `nava-typechecker` exposes one deep seam,
+- `navascript-typechecker` exposes one deep seam,
   `check(&Program, &str) -> CheckOutput`, hiding two-pass declaration
   collection, scope handling, inference, alias/interface resolution and
   assignability. `TypedProgram` carries expression types keyed by span for
   Phase 3.
 - Driver now runs parse → check and reports both diagnostic sets. Added
-  `examples/type_error.ts` and a minimal built-in `console` type so the
+  `examples/type_error.ns` and a minimal built-in `console` type so the
   fibonacci acceptance program type-checks.
 
 ### 2026-11-20 — Phase 2 review fixes
@@ -421,8 +421,8 @@ limitations for every milestone.
 
 ### 2026-11-21 — Phase 3 (Intermediate Representation) implemented
 - Recorded ADR-0013 (stack slots instead of SSA phi) and ADR-0014 (the
-  `nava_ir::lower` seam) before implementing.
-- `nava-ir` now owns the complete IR data model (modules, functions, basic
+  `navascript_ir::lower` seam) before implementing.
+- `navascript-ir` now owns the complete IR data model (modules, functions, basic
   blocks, typed values, instructions, terminators, globals) behind four public
   functions: `lower`, `verify`, `print` and the data types themselves.
 - Lowering handles functions, parameters, locals, arithmetic, comparisons,
@@ -432,7 +432,7 @@ limitations for every milestone.
   get an explicit `ToBool` instruction, so the verifier's type rules stay strict.
 - The verifier checks unique names/labels/ids, terminators, branch targets,
   dominance of values and slots, slot types, operand types and return types.
-- Driver: `nava build` now runs parse → check → lower; `nava build --emit-ir`
+- Driver: `navascript build` now runs parse → check → lower; `navascript build --emit-ir`
   prints the textual IR. Added `tests/ir/{lower,verify,print}.rs` and one driver
   test for `--emit-ir`.
 - Suite grew from 77 to 99 tests; fmt and clippy clean.
@@ -464,16 +464,16 @@ limitations for every milestone.
 - Resolved ADR-0004 in favour of textual LLVM IR driven by `llc`/`clang`:
   no extra build tooling, inspectable `.ll`, and the target triple is queried
   from `llvm-config --host-target` rather than hardcoded to ARM64.
-- `nava-codegen` translates verified Nava IR to LLVM IR: typed functions,
+- `navascript-codegen` translates verified NavaScript IR to LLVM IR: typed functions,
   floating-point arithmetic, comparisons, branches, stack slots, calls and a
   synthetic `main`. At the time it returned explicit errors for unsupported
   constructs (string globals, field/element access, opaque types); string and
   collection support landed in Phase 5, while opaque types are still rejected.
 - Driver pipeline is now parse → check → lower → generate → `llc` → `clang`
   link. Added `-o/--output`, `--release`, and kept `--emit-ir` for LLVM IR
-  output. Added `runtime/nava_runtime.c` for the macOS `main` bridge and
+  output. Added `runtime/navascript_runtime.c` for the macOS `main` bridge and
   numeric `console.log`.
-- **Major boundary crossed:** `nava build examples/fibonacci.ts -o fibonacci`
+- **Major boundary crossed:** `navascript build examples/fibonacci.ns -o fibonacci`
   produces a native executable that prints `55` with no Node.js.
 - Added `tests/codegen/codegen.rs` and `tests/driver/native.rs` (8 new tests).
   Suite grew from 99 to 107 tests; fmt and clippy clean.
@@ -484,8 +484,8 @@ limitations for every milestone.
   - Fixed a per-function `ValueId` collision in codegen: the value-type map is
     now built per function, so multi-function programs with overlapping value
     IDs compile with correct call argument types.
-  - `console.log` now has typed overloads: numbers call `nava_console_log_f64`,
-    booleans call `nava_console_log_bool`. Previously `console.log(1 == 2)`
+  - `console.log` now has typed overloads: numbers call `navascript_console_log_f64`,
+    booleans call `navascript_console_log_bool`. Previously `console.log(1 == 2)`
     silently printed `1` through an ill-typed call.
   - Comparison and logical instructions are emitted with operand type checks
     (`icmp` for booleans, `fcmp` for numbers); unsupported operand types are
@@ -519,8 +519,8 @@ limitations for every milestone.
 
 ### 2026-11-21 — CI fix: missing LLVM on GitHub runners
 - GitHub's macOS runner does not ship LLVM at `/opt/homebrew/opt/llvm`, so two
-  binary tests that invoke `nava build` failed with `could not run llvm-config`.
-- Added `nava_driver::build::native_tools_available()` as the single shared
+  binary tests that invoke `navascript build` failed with `could not run llvm-config`.
+- Added `navascript_driver::build::native_tools_available()` as the single shared
   tool-discovery seam; native tests and the two tool-dependent binary tests now
   skip cleanly when `llvm-config`, `llc` or `clang` is missing. `emit_native`
   returns an actionable error instead of a confusing OS error.
@@ -540,7 +540,7 @@ limitations for every milestone.
 ### 2026-11-21 — Phase 5 (Runtime) implemented
 - Resolved ADR-0005 with a program-lifetime bump arena (16 MiB, 8-byte aligned,
   fatal error on exhaustion) and ADR-0015 deferring closures and exceptions.
-- `runtime/nava_runtime.c` grew from a numeric shim into a real runtime:
+- `runtime/navascript_runtime.c` grew from a numeric shim into a real runtime:
   strings (NUL-terminated arena buffers), arrays and objects with typed slot
   accessors, field-name tables, bounds checks and fatal error reporting.
 - IR gained typed collection instructions (`ArrayNew/Get/Set/Length`,
@@ -551,7 +551,7 @@ limitations for every milestone.
   offset (`s.length`).
 - Typechecker recognizes `string.length`, `array.length`, string indexing and
   string equality; lowering and codegen handle all of them natively.
-- Added examples (`strings.ts`, `arrays.ts`, `objects.ts`, `runtime_error.ts`)
+- Added examples (`strings.ns`, `arrays.ns`, `objects.ns`, `runtime_error.ns`)
   and end-to-end tests. Suite grew from 110 to 117 tests; fmt and clippy clean.
 
 ### 2026-11-21 — Phase 5 review fixes
@@ -564,7 +564,7 @@ limitations for every milestone.
     fractional indices are diagnosed instead of silently truncated.
   - Boolean array/object slots now use the correct 8-byte stride; a stray byte
     write had corrupted neighbouring numeric slots.
-  - String coercion is implemented with a runtime `nava_number_to_string`;
+  - String coercion is implemented with a runtime `navascript_number_to_string`;
     `"a" + 1` and `1 == "1"` now produce well-typed IR and correct output.
   - Mixed coercion is no longer listed as unsupported; the stale "collection
     literals unsupported in IR" entry was removed.
@@ -589,8 +589,8 @@ limitations for every milestone.
     `verify.rs`, `checks.rs`, `print.rs`.
   - `codegen`: `lib.rs`, `runtime.rs`, `module.rs`, `instructions.rs`,
     `types.rs`.
-- Split `runtime/nava_runtime.c` into `runtime/nava_runtime.h`,
-  `runtime/nava_runtime.c` (entry point only) and the per-concern sources
+- Split `runtime/navascript_runtime.c` into `runtime/navascript_runtime.h`,
+  `runtime/navascript_runtime.c` (entry point only) and the per-concern sources
   `memory/memory.c`, `strings/strings.c`, `arrays/arrays.c`,
   `objects/objects.c`, `console/console.c`. The driver compiles all of them.
 - Removed empty placeholder directories (`bootstrap/`, `stdlib/`,
@@ -626,7 +626,7 @@ limitations for every milestone.
   is contextual, not a reserved keyword.
 - Top-level loops are wrapped in `ItemKind::Stmt` and lowered into the synthetic
   `main`, so script-style examples work.
-- `examples/loops.ts` and `examples/for_of.ts` compile and run natively. Added
+- `examples/loops.ns` and `examples/for_of.ns` compile and run natively. Added
   tests for tokenization, parsing, checking, IR back edges, LLVM IR and
   end-to-end output. Suite grew from 120 to 135 tests.
 - Two-axis code review of `cad267b...HEAD` was applied: loop lowering was split
@@ -641,7 +641,7 @@ limitations for every milestone.
 ### 2026-11-21 — Final documentation accuracy audit
 - Re-read every document against the current tree after the Phase 6 loop commit
   (`6f937bb`) and corrected the remaining stale facts:
-  - Workspace count is 11 member crates (`nava-diagnostics` was added in Phase 2);
+  - Workspace count is 11 member crates (`navascript-diagnostics` was added in Phase 2);
     the workspace layout lists in `README.md` and `BUILD.md` now include it.
   - Phase 1's deferred-loops note now says loops were delivered in Phase 6, and
     the Phase 6 roadmap task is annotated with its delivery date.
@@ -668,7 +668,7 @@ limitations for every milestone.
 - Split the three files that exceeded ADR-0016's size guidance into private
   modules: `ir/operators.rs`, `lexer/scanner/{number,string}.rs` and
   `parser/operators.rs`. All public seams are unchanged.
-- Added `examples/operators.ts` and tests across lexer/parser/typechecker/IR/
+- Added `examples/operators.ns` and tests across lexer/parser/typechecker/IR/
   codegen/native surfaces. Suite grew from 135 to 149 tests; fmt and clippy
   clean.
 - **Still pending:** arrow functions, optional chaining, bigint, closures,
@@ -688,7 +688,7 @@ limitations for every milestone.
 - Two-axis code review of `baa6619...HEAD` was applied: the overlong parser file
   was shortened, the Function-to-IR mapping was scoped to arrow return types,
   and the soundness and documentation findings were fixed.
-- Added `examples/arrows.ts` and tests across parser/typechecker/IR/native
+- Added `examples/arrows.ns` and tests across parser/typechecker/IR/native
   surfaces. Suite grew from 149 to 156 tests; fmt and clippy clean.
 - **Still pending:** optional chaining, bigint, function values/closures,
   exceptions, generics, classes, unions, modules and async/await.
@@ -707,7 +707,7 @@ limitations for every milestone.
   replaced by the explicit `IsNull` instruction, the optional-access data is
   now an enum-backed struct (no invalid states), and the double `target.kind`
   switch was folded into one match.
-- Added `examples/optional.ts` and lexer/parser/typechecker/IR/native tests.
+- Added `examples/optional.ns` and lexer/parser/typechecker/IR/native tests.
   Suite grew from 156 to 163 tests; fmt and clippy clean.
 - **Known limitation:** the null branch is unobservable until nullable values
   exist; results are typed `T` until union types land. Optional calls and bigint
@@ -726,7 +726,7 @@ limitations for every milestone.
   let `do { continue; } while (...)` and `for (;;) { continue; }` branch to a
   deleted block); the duplicated push/lower/pop and `do.cond` emission were
   factored into helpers.
-- Extended `examples/break_continue.ts` and tests for do-while, `for (;;)`,
+- Extended `examples/break_continue.ns` and tests for do-while, `for (;;)`,
   `for-of`, nested loops and trailing `continue`. Suite grew from 163 to 169
   tests; fmt and clippy clean.
 
@@ -739,7 +739,7 @@ limitations for every milestone.
   `BUILD.md`'s native-test row omitted arrows, optional chaining and loop
   jumps.
 - Verified the current facts directly: 169 tests pass, 11 workspace members,
-  18 `.ts` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
+  18 `.ns` examples, and the IR's private modules (`calls`, `for_of`, `loops`,
   `operators`). No compiler code changed.
 
 ### 2026-11-21 — Phase 6 (final increment): bigint and optional calls
@@ -756,7 +756,7 @@ limitations for every milestone.
   (`runtime/bigint/bigint.c`); `+ - *` follow LLVM i64 wrap semantics.
 - **Optional calls:** `?.()` is parsed as a `Call` with an `optional` flag,
   type-checked for callability/arity like a direct call, and lowered as a direct
-  call. No null branch is emitted: Nava has no first-class callable values, so
+  call. No null branch is emitted: NavaScript has no first-class callable values, so
   there is nothing nullable to test (documented in ADR-0020).
 - Unified IR instruction result-type mapping in private `ir/results.rs`, shared
   by the verifier and codegen (it also fixed a pre-existing `And`/`Or`
@@ -769,7 +769,7 @@ limitations for every milestone.
   within ADR-0016. The Spec axis' scope question was resolved by noting that the
   §6 row's own reason requires a checker/runtime type, making arithmetic the
   minimum that makes literals testable.
-- Added `examples/bigint.ts`, `examples/optional_call.ts` and tests across
+- Added `examples/bigint.ns`, `examples/optional_call.ns` and tests across
   lexer/parser/typechecker/IR/verifier/codegen/native/runtime surfaces. Suite
   grew from 169 to 192 tests; fmt and clippy clean.
 
@@ -780,7 +780,7 @@ limitations for every milestone.
   (`id<number>(1)`). Type-argument arity and mismatches are diagnosed, and
   `Box<number>` resolves to a concrete object type.
 - Monomorphization: IR emits one specialized function per distinct type-argument
-  combination (`nava_id__number`, `nava_id__string`), keyed by a structural
+  combination (`navascript_id__number`, `navascript_id__string`), keyed by a structural
   mangling that distinguishes object shapes and disambiguates user-defined
   names. Recursive generic calls reuse the reserved specialization.
 - Divergent-resolver review fixes: function signatures now come from the
@@ -791,7 +791,7 @@ limitations for every milestone.
 - Two-axis code review of `33c5656...HEAD` (working tree) was applied: fixed the
   object-type mangling collision, the silent generic-resolution errors, the
   feature-envy lowering helper, and the shared angle-argument parser.
-- Added `examples/generics.ts` and tests across parser/typechecker/IR/codegen/
+- Added `examples/generics.ns` and tests across parser/typechecker/IR/codegen/
   native surfaces. Suite grew from 192 to 213 tests; fmt and clippy clean.
 
 ### 2026-11-21 — Phase 6 (classes and inheritance increment)
@@ -801,7 +801,7 @@ limitations for every milestone.
 - Class instances carry a nominal `Type::ClassInstance` with base-first field
   order. This fixed two soundness bugs found by review: nondeterministic
   dispatch from structural class identity, and inherited field indices shifting
-  when a derived field sorts before a base field. `examples/classes.ts` now
+  when a derived field sorts before a base field. `examples/classes.ns` now
   covers both (`Shifted.sum()` returns 30, not a reinterpreted pointer).
 - Constructors are inherited when a derived class declares none, and
   `super(args)` calls the base constructor on `this`.
@@ -809,7 +809,7 @@ limitations for every milestone.
   the structural dispatch fallback, preserved base-first field layout, added
   constructor inheritance and `super(...)`, split oversized class modules, and
   corrected the native expectation from the mis-indexed `4` to `9`.
-- Added `examples/classes.ts` and tests across lexer/parser/typechecker/IR/
+- Added `examples/classes.ns` and tests across lexer/parser/typechecker/IR/
   codegen/native surfaces. Suite grew from 213 to 227 tests; fmt and clippy
   clean.
 
@@ -826,16 +826,16 @@ limitations for every milestone.
   previously produced invalid IR), fixed order-sensitive union assignability,
   reverted an out-of-scope global pointer-equality change, extended narrowing to
   loops and `&&`/`||`, and removed duplicated object-field resolution.
-- Added `examples/unions.ts` and tests across lexer/parser/typechecker/IR/
+- Added `examples/unions.ns` and tests across lexer/parser/typechecker/IR/
   codegen/native surfaces. Suite grew from 227 to 243 tests; fmt and clippy
   clean.
 
 ### 2026-11-24 — Phase 6 (modules increment)
 - Added `import { ... } from "..."` and `export <declaration>` syntax. `from`
   stays contextual, so `const from = 1` still lexes (ADR-0026).
-- `nava_driver::modules::load` walks the import graph from the entry file,
+- `navascript_driver::modules::load` walks the import graph from the entry file,
   deduplicates visited paths (handling cycles and diamonds), resolves
-  extensionless specifiers to `.ts`, and concatenates sources in dependency
+  extensionless specifiers to `.ns`, and concatenates sources in dependency
   order. The compiler's parse/check/lower/generate seams still see one program.
 - Exported declarations are collected from `export` wrappers and imports are
   validated against them; classes, interfaces and aliases are checked too, not
@@ -848,7 +848,7 @@ limitations for every milestone.
 - Known limitations recorded in ADR-0026: one module-wide namespace, no
   `.d.ts`/package resolution, and diagnostics rendered against the combined
   source rather than the originating file.
-- Added `examples/modules.ts` and `examples/math.ts`. Suite grew from 243 to
+- Added `examples/modules.ns` and `examples/math.ns`. Suite grew from 243 to
   248 tests; fmt and clippy clean.
 
 ---

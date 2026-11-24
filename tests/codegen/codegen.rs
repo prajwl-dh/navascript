@@ -1,9 +1,9 @@
-//! Tests for Nava IR → LLVM IR translation.
+//! Tests for NavaScript IR → LLVM IR translation.
 
-use nava_codegen::generate;
-use nava_ir::lower;
-use nava_parser::parse;
-use nava_typechecker::check;
+use navascript_codegen::generate;
+use navascript_ir::lower;
+use navascript_parser::parse;
+use navascript_typechecker::check;
 
 const TRIPLE: &str = "arm64-apple-darwin23.0.0";
 
@@ -33,27 +33,30 @@ fn emits_target_triple_and_runtime_declaration() {
         "{ir}"
     );
     assert!(
-        ir.contains("declare void @nava_console_log_f64(double)"),
+        ir.contains("declare void @navascript_console_log_f64(double)"),
         "{ir}"
     );
     assert!(
-        ir.contains("declare void @nava_console_log_bool(i1)"),
+        ir.contains("declare void @navascript_console_log_bool(i1)"),
         "{ir}"
     );
 }
 
 #[test]
 fn emits_functions_with_mangled_names() {
-    let source = include_str!("../../examples/fibonacci.ts");
+    let source = include_str!("../../examples/fibonacci.ns");
     let ir = generate_source(source);
     assert!(
-        ir.contains("define double @nava_fibonacci(double %p0)"),
+        ir.contains("define double @navascript_fibonacci(double %p0)"),
         "{ir}"
     );
-    assert!(ir.contains("define void @nava_main()"), "{ir}");
-    assert!(ir.contains("call double @nava_fibonacci(double"), "{ir}");
+    assert!(ir.contains("define void @navascript_main()"), "{ir}");
     assert!(
-        ir.contains("call void @nava_console_log_f64(double"),
+        ir.contains("call double @navascript_fibonacci(double"),
+        "{ir}"
+    );
+    assert!(
+        ir.contains("call void @navascript_console_log_f64(double"),
         "{ir}"
     );
 }
@@ -70,7 +73,7 @@ fn emits_floating_point_arithmetic_and_branches() {
 #[test]
 fn emits_a_main_stub_when_the_module_has_no_top_level_items() {
     let ir = generate_source("function f(): number { return 1; }");
-    assert!(ir.contains("define void @nava_main()"), "{ir}");
+    assert!(ir.contains("define void @navascript_main()"), "{ir}");
 }
 
 #[test]
@@ -78,7 +81,7 @@ fn emits_string_literals_as_llvm_globals() {
     let ir = generate_source("console.log(\"hello\");");
     assert!(ir.contains("c\"hello\\00\""), "{ir}");
     assert!(
-        ir.contains("call void @nava_console_log_str(ptr @g0)"),
+        ir.contains("call void @navascript_console_log_str(ptr @g0)"),
         "{ir}"
     );
 }
@@ -105,35 +108,41 @@ fn emits_runtime_calls_for_collections() {
     let ir = generate_source(
         "let xs: number[] = [1, 2]; console.log(xs[0]); let p = { x: 1 }; console.log(p.x);",
     );
-    assert!(ir.contains("call ptr @nava_array_new(i64 2)"), "{ir}");
-    assert!(ir.contains("call double @nava_array_get_f64"), "{ir}");
-    assert!(ir.contains("call ptr @nava_object_new(i64 1"), "{ir}");
-    assert!(ir.contains("call double @nava_object_get_f64"), "{ir}");
+    assert!(ir.contains("call ptr @navascript_array_new(i64 2)"), "{ir}");
+    assert!(ir.contains("call double @navascript_array_get_f64"), "{ir}");
+    assert!(ir.contains("call ptr @navascript_object_new(i64 1"), "{ir}");
+    assert!(
+        ir.contains("call double @navascript_object_get_f64"),
+        "{ir}"
+    );
 }
 
 #[test]
 fn emits_bigint_constants_and_integer_arithmetic() {
     let ir = generate_source("console.log(123n + 1n); console.log(2n ** 8n);");
     assert!(
-        ir.contains("declare void @nava_console_log_i64(i64)"),
+        ir.contains("declare void @navascript_console_log_i64(i64)"),
         "{ir}"
     );
     assert!(ir.contains("add i64 123, 1"), "{ir}");
     assert!(
-        ir.contains("call i64 @nava_bigint_pow(i64 2, i64 8)"),
+        ir.contains("call i64 @navascript_bigint_pow(i64 2, i64 8)"),
         "{ir}"
     );
-    assert!(ir.contains("call void @nava_console_log_i64(i64"), "{ir}");
+    assert!(
+        ir.contains("call void @navascript_console_log_i64(i64"),
+        "{ir}"
+    );
 }
 
 #[test]
 fn emits_bigint_collection_slots() {
     let ir =
         generate_source("let xs = [1n]; console.log(xs[0]); let p = { v: 2n }; console.log(p.v);");
-    assert!(ir.contains("call void @nava_array_set_i64"), "{ir}");
-    assert!(ir.contains("call i64 @nava_array_get_i64"), "{ir}");
-    assert!(ir.contains("call void @nava_object_set_i64"), "{ir}");
-    assert!(ir.contains("call i64 @nava_object_get_i64"), "{ir}");
+    assert!(ir.contains("call void @navascript_array_set_i64"), "{ir}");
+    assert!(ir.contains("call i64 @navascript_array_get_i64"), "{ir}");
+    assert!(ir.contains("call void @navascript_object_set_i64"), "{ir}");
+    assert!(ir.contains("call i64 @navascript_object_get_i64"), "{ir}");
 }
 
 #[test]
@@ -151,11 +160,14 @@ fn emits_class_methods_as_named_functions() {
         "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());",
     );
     assert!(
-        ir.contains("define void @nava_A__ctor(ptr %p0, double %p1)"),
+        ir.contains("define void @navascript_A__ctor(ptr %p0, double %p1)"),
         "{ir}"
     );
-    assert!(ir.contains("define double @nava_A_value(ptr %p0)"), "{ir}");
-    assert!(ir.contains("call double @nava_A_value(ptr"), "{ir}");
+    assert!(
+        ir.contains("define double @navascript_A_value(ptr %p0)"),
+        "{ir}"
+    );
+    assert!(ir.contains("call double @navascript_A_value(ptr"), "{ir}");
 }
 
 #[test]
@@ -164,16 +176,22 @@ fn emits_monomorphized_generic_functions() {
         "function id<T>(value: T): T { return value; } console.log(id(1)); console.log(id(\"s\"));",
     );
     assert!(
-        ir.contains("define double @nava_id__number(double %p0)"),
+        ir.contains("define double @navascript_id__number(double %p0)"),
         "{ir}"
     );
-    assert!(ir.contains("define ptr @nava_id__string(ptr %p0)"), "{ir}");
-    assert!(ir.contains("call double @nava_id__number(double"), "{ir}");
-    assert!(ir.contains("call ptr @nava_id__string(ptr"), "{ir}");
+    assert!(
+        ir.contains("define ptr @navascript_id__string(ptr %p0)"),
+        "{ir}"
+    );
+    assert!(
+        ir.contains("call double @navascript_id__number(double"),
+        "{ir}"
+    );
+    assert!(ir.contains("call ptr @navascript_id__string(ptr"), "{ir}");
 }
 
 #[test]
 fn emits_optional_calls_as_direct_calls() {
     let ir = generate_source("function f(x: number): number { return x; } console.log(f?.(1));");
-    assert!(ir.contains("call double @nava_f(double"), "{ir}");
+    assert!(ir.contains("call double @navascript_f(double"), "{ir}");
 }

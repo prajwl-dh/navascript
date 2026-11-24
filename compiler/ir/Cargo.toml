@@ -1,6 +1,6 @@
 [package]
-name = "nava-ir"
-description = "Nava platform-independent intermediate representation"
+name = "navascript-ir"
+description = "NavaScript platform-independent intermediate representation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,7 +8,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nava-ast = { path = "../ast" }
-nava-diagnostics = { path = "../diagnostics" }
-nava-symbol = { path = "../symbol" }
-nava-typechecker = { path = "../typechecker" }
+navascript-ast = { path = "../ast" }
+navascript-diagnostics = { path = "../diagnostics" }
+navascript-symbol = { path = "../symbol" }
+navascript-typechecker = { path = "../typechecker" }

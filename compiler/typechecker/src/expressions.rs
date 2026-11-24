@@ -1,7 +1,7 @@
 //! Expression type inference and assignment validation.
 
-use nava_ast::{BinaryOp, Expr, ExprKind, Span, UnaryOp};
-use nava_symbol::Type;
+use navascript_ast::{BinaryOp, Expr, ExprKind, Span, UnaryOp};
+use navascript_symbol::Type;
 use std::collections::BTreeMap;
 
 use super::checker::Checker;

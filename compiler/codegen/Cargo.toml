@@ -1,6 +1,6 @@
 [package]
-name = "nava-codegen"
-description = "Nava LLVM backend and native code generation"
+name = "navascript-codegen"
+description = "NavaScript LLVM backend and native code generation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,4 +8,4 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nava-ir = { path = "../ir" }
+navascript-ir = { path = "../ir" }

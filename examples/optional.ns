@@ -1,5 +1,5 @@
 interface Box { name: string; }
-let box: Box = { name: "nava" };
+let box: Box = { name: "navascript" };
 console.log(box?.name);
 
 let words: string[] = ["a", "b"];

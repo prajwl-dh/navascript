@@ -1,6 +1,6 @@
-# Nava — Language Specification (living document)
+# NavaScript — Language Specification (living document)
 
-Nava uses TypeScript syntax. This document describes the **supported subset**
+NavaScript uses TypeScript syntax. This document describes the **supported subset**
 and the intent to grow toward broad compatibility. Status values mirror
 `docs/COMPATIBILITY.md`: `[x]` supported/tested, `[~]` partial, `[ ]` planned.
 
@@ -9,7 +9,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 1. Source files
 
-- `.ts` is the initial source extension. `.tsx` is planned for a later phase.
+- `.ns` is the source extension for NavaScript programs. A JSX-like `.nsx`
+   extension is planned for a later phase.
 - One module per file; the driver resolves the import graph from the entry file
   and compiles all modules as one program (Phase 6, ADR-0026). Names share a
   module-wide namespace.
@@ -42,7 +43,7 @@ and the intent to grow toward broad compatibility. Status values mirror
   can be constructed; the result is typed as `T` until union types land.
 - [x] Optional calls (`a?.()`) — Phase 6; parsed, type-checked for callability
   and arity, and lowered as direct calls. No null branch is emitted because
-  Nava has no nullable callable values (ADR-0020).
+  NavaScript has no nullable callable values (ADR-0020).
 - [x] Comments: `//` and `/* */`.
 - [x] Every token carries byte offsets; diagnostics derive 1-based line and
   column from them.
@@ -153,7 +154,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] `import { name } from "./path"` and `export <declaration>` (Phase 6).
    `from` is contextual, and imported names must be exported.
 - [~] Module resolution rules compatible with TypeScript where practical —
-   Phase 6 resolves relative paths and extensionless `.ts` specifiers from the
+   Phase 6 resolves relative paths and extensionless `.ns` specifiers from the
    entry file, deduplicates visited files and handles cycles; `.d.ts`, package
    resolution and per-file namespaces are not implemented (ADR-0026).
 - [ ] JavaScript interop (Phase 7, best effort)
@@ -186,7 +187,7 @@ function fibonacci(n: number): number {
 console.log(fibonacci(10)); // prints 55
 ```
 
-Required behavior: read `.ts` → parse → type-check → Nava IR → LLVM IR →
+Required behavior: read `.ns` → parse → type-check → NavaScript IR → LLVM IR →
 native macOS executable → run → print `55`. No Node.js or JavaScript runtime.
 
 **Status (Phase 4):** achieved and covered by `tests/driver/native.rs`. The

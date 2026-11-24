@@ -1,6 +1,6 @@
 //! Statement and control-flow lowering into basic blocks.
 
-use nava_ast::{ArrowBody, Block, Expr, ExprKind, Param, Span, Stmt, StmtKind};
+use navascript_ast::{ArrowBody, Block, Expr, ExprKind, Param, Span, Stmt, StmtKind};
 
 use super::builder::FunctionBuilder;
 use super::ir::{BlockId, Instruction, IrFunction, IrParam, IrType, Terminator, Value};
@@ -62,7 +62,11 @@ impl FunctionBuilder {
         }
     }
 
-    pub(super) fn lower_variable(&mut self, decl: &nava_ast::VariableDecl, lowerer: &mut Lowerer) {
+    pub(super) fn lower_variable(
+        &mut self,
+        decl: &navascript_ast::VariableDecl,
+        lowerer: &mut Lowerer,
+    ) {
         if let Some(init) = &decl.init {
             if let ExprKind::Arrow { params, body, .. } = &init.kind {
                 let result_ty = lowerer.arrow_return_type(init);
@@ -107,7 +111,7 @@ impl FunctionBuilder {
 
     pub(super) fn lower_if(
         &mut self,
-        if_stmt: &nava_ast::IfStmt,
+        if_stmt: &navascript_ast::IfStmt,
         lowerer: &mut Lowerer,
         current: BlockId,
     ) -> Option<BlockId> {
@@ -127,8 +131,10 @@ impl FunctionBuilder {
 
         let then_end = self.lower_block(&if_stmt.then_branch, lowerer, then_block);
         let else_end = match &if_stmt.else_branch {
-            Some(nava_ast::ElseBranch::If(nested)) => self.lower_if(nested, lowerer, else_block),
-            Some(nava_ast::ElseBranch::Block(block)) => {
+            Some(navascript_ast::ElseBranch::If(nested)) => {
+                self.lower_if(nested, lowerer, else_block)
+            }
+            Some(navascript_ast::ElseBranch::Block(block)) => {
                 self.lower_block(block, lowerer, else_block)
             }
             None => Some(else_block),

@@ -1,7 +1,7 @@
 //! Type-expression and type-declaration parsing.
 
-use nava_ast::{InterfaceDecl, Span, TypeAliasDecl, TypeAnnotation, TypeExpr, TypeField};
-use nava_lexer::TokenKind;
+use navascript_ast::{InterfaceDecl, Span, TypeAliasDecl, TypeAnnotation, TypeExpr, TypeField};
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 
@@ -90,7 +90,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Parse a declaration's `<T, U>` parameter list, if present.
-    pub(super) fn parse_decl_type_params(&mut self) -> Option<Vec<nava_ast::Ident>> {
+    pub(super) fn parse_decl_type_params(&mut self) -> Option<Vec<navascript_ast::Ident>> {
         if self.kind() != TokenKind::Lt {
             return Some(Vec::new());
         }

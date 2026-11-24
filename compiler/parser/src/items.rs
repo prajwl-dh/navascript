@@ -1,9 +1,9 @@
 //! Declarations, blocks and identifier parsing.
 
-use nava_ast::{
+use navascript_ast::{
     ClassDecl, ClassMember, FunctionDecl, Ident, Item, ItemKind, Param, Span, VariableDecl,
 };
-use nava_lexer::TokenKind;
+use navascript_lexer::TokenKind;
 
 use super::parser::{Parser, decode_string, token_span};
 

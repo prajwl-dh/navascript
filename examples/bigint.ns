@@ -1,4 +1,4 @@
-// Bigint literals and integer arithmetic (Nava stores bigints as i64).
+// Bigint literals and integer arithmetic (NavaScript stores bigints as i64).
 const a = 123n;
 const hex = 0xffn;
 console.log(a);

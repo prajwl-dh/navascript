@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use nava_ir::{Instruction, IrFunction, IrModule, IrType, Terminator, ValueId};
+use navascript_ir::{Instruction, IrFunction, IrModule, IrType, Terminator, ValueId};
 
 use super::CodegenError;
 use super::instructions::emit_instruction;
@@ -65,7 +65,7 @@ pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<Stri
         emit_function(function, &types, &object_globals, &mut out)?;
     }
     if module.function("main").is_none() {
-        out.push_str("define void @nava_main() {\n  ret void\n}\n\n");
+        out.push_str("define void @navascript_main() {\n  ret void\n}\n\n");
     }
     Ok(out)
 }
@@ -88,7 +88,11 @@ pub(super) fn emit_function(
         })
         .collect::<Result<Vec<_>, _>>()?
         .join(", ");
-    let _ = writeln!(out, "define {ret_ty} @nava_{}({params}) {{", function.name);
+    let _ = writeln!(
+        out,
+        "define {ret_ty} @navascript_{}({params}) {{",
+        function.name
+    );
 
     for block in &function.blocks {
         let _ = writeln!(out, "bb{}:", block.id);

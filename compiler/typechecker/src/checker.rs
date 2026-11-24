@@ -4,9 +4,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::classes::ClassInfo;
 
-use nava_ast::{FileId, Item, ItemKind, Program, Span};
-use nava_diagnostics::{Diagnostic, Diagnostics, LineIndex};
-use nava_symbol::{Symbol, SymbolKind, SymbolTable, Type};
+use navascript_ast::{FileId, Item, ItemKind, Program, Span};
+use navascript_diagnostics::{Diagnostic, Diagnostics, LineIndex};
+use navascript_symbol::{Symbol, SymbolKind, SymbolTable, Type};
 
 use super::types::AliasTable;
 

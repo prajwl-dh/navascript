@@ -1,0 +1,5 @@
+// `navascript build examples/modules.ns` resolves the import graph from this file.
+import { double, SCALE } from "./math.ns";
+
+console.log(double(21));
+console.log(SCALE);

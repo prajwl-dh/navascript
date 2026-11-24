@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use nava_ir::{Instruction, IrFunction, IrType, Value, ValueId};
+use navascript_ir::{Instruction, IrFunction, IrType, Value, ValueId};
 
 use super::CodegenError;
 

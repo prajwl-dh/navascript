@@ -1,4 +1,4 @@
-# Nava — Module Design (deep modules)
+# NavaScript — Module Design (deep modules)
 
 This document records the chosen **interfaces and seams** for the compiler, in
 the vocabulary of the codebase-design skill:
@@ -34,17 +34,17 @@ Revisit when a second real adapter or consumer appears.
 
 ## 1. The deepened module: the front-end seam
 
-**Module:** `nava_parser` (crate `nava-parser`).
-**External seam:** `nava_parser::parse(&str) -> ParseOutput` — one call turns
+**Module:** `navascript_parser` (crate `navascript-parser`).
+**External seam:** `navascript_parser::parse(&str) -> ParseOutput` — one call turns
 source text into a program plus diagnostics.
 
 ```rust
-// nava-ast — dependency-free leaf crate (real second consumers: typechecker, IR)
+// navascript-ast — dependency-free leaf crate (real second consumers: typechecker, IR)
 pub struct FileId(pub u32);
 pub struct Span { pub file: FileId, pub start: u32, pub end: u32 } // half-open byte offsets
 pub struct Program { pub items: Vec<Item>, pub span: Span }
 
-// nava-parser — the external seam
+// navascript-parser — the external seam
 pub fn parse(source: &str) -> ParseOutput;
 
 pub struct ParseOutput {
@@ -81,18 +81,18 @@ pub enum Severity { Error, Warning }
 - `line`/`column` are 1-based and derived from byte offsets; `span` is a valid
   half-open range into `source`.
 - `ParseOutput` owns all data (no lifetimes in the interface) so it ports
-  cleanly to Nava and survives internals refactors.
+  cleanly to NavaScript and survives internals refactors.
 
 ## 2. Hidden behind the seam (implementation, not interface)
 
-- `nava-lexer` as a **private internal seam** of `nava_parser`: byte-offset
+- `navascript-lexer` as a **private internal seam** of `navascript_parser`: byte-offset
   tokenization, trivia handling, keyword table, token spans.
 - Recursive-descent expression parsing with precedence, statement/declaration
   parsing, panic-mode recovery with sync sets.
 - Span attachment, span → line/column mapping via a line-start table.
 - Diagnostic accumulation, deduplication, ordering and caret rendering.
 
-`nava-lexer` is not driver-visible; `nava-ast` stays a **public dependency-free
+`navascript-lexer` is not driver-visible; `navascript-ast` stays a **public dependency-free
 leaf** because the type checker and IR lowering are real second consumers of
 `Program`, `Span` and `FileId`.
 
@@ -111,23 +111,23 @@ diagnostics or a type checker streaming into the same sink).
 
 | Option | Why not |
 | --- | --- |
-| Facade in `nava_driver::front_end` | Couples the front end to the CLI crate; a future language server would depend on the driver. |
+| Facade in `navascript_driver::front_end` | Couples the front end to the CLI crate; a future language server would depend on the driver. |
 | `parse(&[Source], &mut dyn DiagnosticSink)` now | Larger interface before a second adapter or a module system exists. |
 | `FileId`-threading through every phase now | Phase 6 modules concatenate files into one program and still parse with `FileId(0)`; per-file spans/diagnostics remain deferred (ADR-0026). `Span` already carries `FileId`, so the change is contained when it arrives. |
 | Flags/options for recovery policy or incremental ranges | Speculative generality; use a separate function when a real second caller appears. |
 
 ## 5. Consequences for other modules
 
-- **Driver (`cli.rs`)** reads the file, calls `nava_parser::parse(&source)`,
+- **Driver (`cli.rs`)** reads the file, calls `navascript_parser::parse(&source)`,
   renders `diagnostics`, checks `has_errors()`, then passes `program` to the
   next phase. It never imports lexer or AST internals beyond the leaf types.
 - **Type checker (Phase 2)** consumes `&Program` and reports into the same
   `Diagnostics` shape; it does not change `parse`'s signature.
 - **IR lowering (Phase 3)** consumes the typed program through
-  `nava_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput` (ADR-0014).
+  `navascript_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput` (ADR-0014).
   No LLVM types cross the front-end seam. The IR uses stack slots (ADR-0013),
   and `verify` plus `print` are explicit public deliverables. The backend seam
-  (Phase 4) is `nava_codegen::generate(&IrModule, &str) -> Result<String,
+  (Phase 4) is `navascript_codegen::generate(&IrModule, &str) -> Result<String,
   CodegenError>`; it returns textual LLVM IR, keeping LLVM bindings out of the
   crate graph.
 - **Tests** use the same `parse` seam as the driver. All tests live in the

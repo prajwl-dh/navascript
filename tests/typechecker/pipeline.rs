@@ -3,11 +3,11 @@
 //! Both crates are used only through their public seams, so these tests
 //! describe the contract the driver and Phase 3 IR lowering rely on.
 
-use nava_parser::parse;
-use nava_typechecker::check;
+use navascript_parser::parse;
+use navascript_typechecker::check;
 
-const FIBONACCI: &str = include_str!("../../examples/fibonacci.ts");
-const TYPE_ERROR: &str = include_str!("../../examples/type_error.ts");
+const FIBONACCI: &str = include_str!("../../examples/fibonacci.ns");
+const TYPE_ERROR: &str = include_str!("../../examples/type_error.ns");
 
 #[test]
 fn type_checks_the_fibonacci_fixture() {

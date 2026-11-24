@@ -1,6 +1,6 @@
 [package]
-name = "nava-typechecker"
-description = "Nava type checker and inference"
+name = "navascript-typechecker"
+description = "NavaScript type checker and inference"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,9 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nava-ast = { path = "../ast" }
-nava-diagnostics = { path = "../diagnostics" }
-nava-symbol = { path = "../symbol" }
+navascript-ast = { path = "../ast" }
+navascript-diagnostics = { path = "../diagnostics" }
+navascript-symbol = { path = "../symbol" }
 
 [dev-dependencies]
-nava-parser = { path = "../parser" }
+navascript-parser = { path = "../parser" }

@@ -1,6 +1,6 @@
 [package]
-name = "nava-semantic"
-description = "Nava semantic analyzer"
+name = "navascript-semantic"
+description = "NavaScript semantic analyzer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

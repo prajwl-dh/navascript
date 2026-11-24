@@ -1,6 +1,6 @@
 //! Tests for the AST leaf's span type.
 
-use nava_ast::{FileId, Span};
+use navascript_ast::{FileId, Span};
 
 #[test]
 fn span_length_and_emptiness() {

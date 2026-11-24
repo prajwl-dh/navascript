@@ -1,11 +1,11 @@
-//! Shared Nava diagnostics — a dependency-free leaf apart from `nava-ast`.
+//! Shared NavaScript diagnostics — a dependency-free leaf apart from `navascript-ast`.
 //!
 //! Parser, type checker and driver all report through this one type, so the
 //! diagnostics interface is the test surface for every front-end phase.
 
 use std::fmt;
 
-use nava_ast::Span;
+use navascript_ast::Span;
 
 /// Severity of a compiler diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -6,7 +6,7 @@ use super::ir::{
     BasicBlock, BlockId, Instruction, IrFunction, IrParam, IrType, SlotId, Terminator, Value,
     ValueId,
 };
-use nava_ast::Ident;
+use navascript_ast::Ident;
 
 /// Targets for `break` and `continue` in the innermost active loop.
 #[derive(Debug, Clone)]

@@ -1,6 +1,6 @@
 //! Lowering helpers for assignment, update and ternary operators.
 
-use nava_ast::{AssignOp, BinaryOp as AstBinaryOp, Expr, Span, UpdateOp};
+use navascript_ast::{AssignOp, BinaryOp as AstBinaryOp, Expr, Span, UpdateOp};
 
 use super::builder::FunctionBuilder;
 use super::ir::{BinaryOp, Instruction, IrType, Terminator, Value, ValueId};

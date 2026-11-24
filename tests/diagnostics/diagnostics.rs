@@ -1,7 +1,7 @@
 //! Tests for the shared diagnostics leaf.
 
-use nava_ast::{FileId, Span};
-use nava_diagnostics::{Diagnostic, Diagnostics, LineIndex};
+use navascript_ast::{FileId, Span};
+use navascript_diagnostics::{Diagnostic, Diagnostics, LineIndex};
 
 #[test]
 fn positions_are_one_based() {

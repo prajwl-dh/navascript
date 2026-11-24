@@ -1,10 +1,10 @@
 //! Statement and control-flow parsing.
 
-use nava_ast::{
+use navascript_ast::{
     Block, ElseBranch, ExprKind, ForOfStmt, ForStmt, Ident, IfStmt, Span, Stmt, StmtKind,
     VariableDecl, WhileStmt,
 };
-use nava_lexer::TokenKind;
+use navascript_lexer::TokenKind;
 
 use super::parser::Parser;
 

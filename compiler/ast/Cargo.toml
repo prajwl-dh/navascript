@@ -1,6 +1,6 @@
 [package]
-name = "nava-ast"
-description = "Nava abstract syntax tree definitions"
+name = "navascript-ast"
+description = "NavaScript abstract syntax tree definitions"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

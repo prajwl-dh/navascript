@@ -1,14 +1,14 @@
 //! Direct call lowering into IR instructions. Generic callees are specialized
 //! by `Lowerer::specialize_if_generic`.
 
-use nava_ast::Expr;
+use navascript_ast::Expr;
 
 use super::builder::FunctionBuilder;
 use super::ir::{Instruction, Value};
 use super::lower::{Lowerer, ir_type_from_symbol};
 
 impl FunctionBuilder {
-    /// Lower `f(args)` and `f?.(args)`. Both become a direct call: Nava has no
+    /// Lower `f(args)` and `f?.(args)`. Both become a direct call: NavaScript has no
     /// first-class function values, so there is no callable value that could be
     /// null and the optional branch is unobservable until that changes.
     pub(super) fn lower_call(
@@ -16,12 +16,12 @@ impl FunctionBuilder {
         callee: &Expr,
         args: &[Expr],
         _optional: bool,
-        span: nava_ast::Span,
+        span: navascript_ast::Span,
         lowerer: &mut Lowerer,
     ) -> Value {
         if let Some(mangled) = lowerer.typed.method_calls.get(&span).cloned() {
             let object = match &callee.kind {
-                nava_ast::ExprKind::Member { object, .. } => self.lower_expr(object, lowerer),
+                navascript_ast::ExprKind::Member { object, .. } => self.lower_expr(object, lowerer),
                 _ => {
                     lowerer.error("method call requires a receiver", callee.span);
                     Value::Null
@@ -51,11 +51,11 @@ impl FunctionBuilder {
             return result.map_or(Value::Null, Value::Local);
         }
         let callee_name = match &callee.kind {
-            nava_ast::ExprKind::Ident(name) => name.clone(),
-            nava_ast::ExprKind::Member {
+            navascript_ast::ExprKind::Ident(name) => name.clone(),
+            navascript_ast::ExprKind::Member {
                 object, property, ..
             } => match &object.kind {
-                nava_ast::ExprKind::Ident(object) => format!("{object}.{property}"),
+                navascript_ast::ExprKind::Ident(object) => format!("{object}.{property}"),
                 _ => {
                     lowerer.error("unsupported call target in IR", callee.span);
                     "unknown".to_owned()

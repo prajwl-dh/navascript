@@ -1,4 +1,4 @@
-//! Command-line parsing and dispatch for the Nava compiler.
+//! Command-line parsing and dispatch for the NavaScript compiler.
 //!
 //! The parser is deliberately dependency-free: argument handling is simple in
 //! Phase 0 and a hand-rolled parser keeps the bootstrap compiler easy to build.
@@ -9,13 +9,13 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Help text shown for `--help` and for an empty invocation.
 pub const HELP: &str = "\
-Nava — a TypeScript-compatible language compiled to native machine code
+NavaScript — a TypeScript-compatible language compiled to native machine code
 
 Usage:
-  nava [OPTIONS] <COMMAND>
+  navascript [OPTIONS] <COMMAND>
 
 Commands:
-  build <FILE.ts>   Compile a source file to a native macOS executable
+  build <FILE.ns>   Compile a source file to a native macOS executable
 
 Options:
   -h, --help        Print this help message
@@ -25,10 +25,10 @@ Options:
       --emit-ir     With build, print LLVM IR instead of compiling
 
 Examples:
-  nava --version
-  nava --help
-  nava build examples/fibonacci.ts -o fibonacci
-  nava build --emit-ir examples/fibonacci.ts
+  navascript --version
+  navascript --help
+  navascript build examples/fibonacci.ns -o fibonacci
+  navascript build --emit-ir examples/fibonacci.ns
 ";
 
 /// A successfully parsed invocation, or a description of an invalid one.
@@ -56,7 +56,7 @@ where
     S: AsRef<str>,
 {
     if args.next().is_some() {
-        Command::Error(format!("nava: {flag} takes no arguments"))
+        Command::Error(format!("navascript: {flag} takes no arguments"))
     } else {
         command
     }
@@ -94,30 +94,32 @@ where
                     "-o" | "--output" => match iter.next() {
                         Some(path) => output = Some(PathBuf::from(path)),
                         None => {
-                            return Command::Error(format!("nava build: {arg} needs a path"));
+                            return Command::Error(format!("navascript build: {arg} needs a path"));
                         }
                     },
                     other if other.starts_with('-') => {
-                        return Command::Error(format!("nava build: unknown option '{other}'"));
+                        return Command::Error(format!(
+                            "navascript build: unknown option '{other}'"
+                        ));
                     }
                     other => inputs.push(other.to_owned()),
                 }
             }
             match inputs.as_slice() {
-                [] => Command::Error("nava build: missing input file".to_owned()),
+                [] => Command::Error("navascript build: missing input file".to_owned()),
                 [input] => Command::Build {
                     input: PathBuf::from(input),
                     output,
                     emit_ir,
                     release,
                 },
-                _ => Command::Error("nava build: expected exactly one input file".to_owned()),
+                _ => Command::Error("navascript build: expected exactly one input file".to_owned()),
             }
         }
         other if other.starts_with('-') => {
-            Command::Error(format!("nava: unknown option '{other}'"))
+            Command::Error(format!("navascript: unknown option '{other}'"))
         }
-        other => Command::Error(format!("nava: unknown command '{other}'")),
+        other => Command::Error(format!("navascript: unknown command '{other}'")),
     }
 }
 
@@ -134,7 +136,7 @@ fn dispatch(command: Command) -> i32 {
             0
         }
         Command::Version => {
-            println!("nava {VERSION}");
+            println!("navascript {VERSION}");
             0
         }
         Command::Build {
@@ -146,22 +148,22 @@ fn dispatch(command: Command) -> i32 {
             let loaded = match super::modules::load(&input) {
                 Ok(loaded) => loaded,
                 Err(error) => {
-                    eprintln!("nava: {error}");
+                    eprintln!("navascript: {error}");
                     return 1;
                 }
             };
             let source = loaded.source;
-            let parsed = nava_parser::parse(&source);
+            let parsed = navascript_parser::parse(&source);
             if parsed.diagnostics.has_errors() {
                 eprint!("{}", parsed.diagnostics.render(&source));
                 return 1;
             }
-            let checked = nava_typechecker::check(&parsed.program, &source);
+            let checked = navascript_typechecker::check(&parsed.program, &source);
             if checked.diagnostics.has_errors() {
                 eprint!("{}", checked.diagnostics.render(&source));
                 return 1;
             }
-            let lowered = nava_ir::lower(&parsed.program, &checked.typed, &source);
+            let lowered = navascript_ir::lower(&parsed.program, &checked.typed, &source);
             if lowered.diagnostics.has_errors() {
                 eprint!("{}", lowered.diagnostics.render(&source));
                 return 1;
@@ -169,14 +171,14 @@ fn dispatch(command: Command) -> i32 {
             let triple = match super::build::host_triple() {
                 Ok(triple) => triple,
                 Err(error) => {
-                    eprintln!("nava: {error}");
+                    eprintln!("navascript: {error}");
                     return 1;
                 }
             };
-            let llvm_ir = match nava_codegen::generate(&lowered.module, &triple) {
+            let llvm_ir = match navascript_codegen::generate(&lowered.module, &triple) {
                 Ok(ir) => ir,
                 Err(error) => {
-                    eprintln!("nava: code generation failed: {error}");
+                    eprintln!("navascript: code generation failed: {error}");
                     return 1;
                 }
             };
@@ -193,18 +195,21 @@ fn dispatch(command: Command) -> i32 {
                         .unwrap_or("a.out"),
                 )
             });
-            if let Err(error) =
-                super::build::emit_native(&llvm_ir, nava_codegen::RUNTIME_FILES, &output, release)
-            {
-                eprintln!("nava: native build failed: {error}");
+            if let Err(error) = super::build::emit_native(
+                &llvm_ir,
+                navascript_codegen::RUNTIME_FILES,
+                &output,
+                release,
+            ) {
+                eprintln!("navascript: native build failed: {error}");
                 return 1;
             }
-            println!("nava: built {}", output.display());
+            println!("navascript: built {}", output.display());
             0
         }
         Command::Error(message) => {
             eprintln!("{message}");
-            eprintln!("Run 'nava --help' for usage.");
+            eprintln!("Run 'navascript --help' for usage.");
             2
         }
     }

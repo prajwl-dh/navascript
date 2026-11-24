@@ -11,7 +11,7 @@ pub struct Expr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
     Number(f64),
-    /// A `123n` literal. Nava currently represents bigints as signed 64-bit
+    /// A `123n` literal. NavaScript currently represents bigints as signed 64-bit
     /// integers; wider values are diagnosed rather than silently wrapped.
     BigInt(i64),
     String(String),

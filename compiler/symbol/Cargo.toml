@@ -1,6 +1,6 @@
 [package]
-name = "nava-symbol"
-description = "Nava symbol table and scope resolution"
+name = "navascript-symbol"
+description = "NavaScript symbol table and scope resolution"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,4 +8,4 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
-nava-ast = { path = "../ast" }
+navascript-ast = { path = "../ast" }

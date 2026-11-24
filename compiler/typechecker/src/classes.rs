@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use nava_ast::{ClassDecl, ClassMember, ItemKind};
-use nava_symbol::Type;
+use navascript_ast::{ClassDecl, ClassMember, ItemKind};
+use navascript_symbol::Type;
 
 use super::checker::Checker;
 use super::types::{Subst, resolve_named_type, union_layout_error};

@@ -1,5 +1,5 @@
 /* String values are NUL-terminated arena buffers; literals are LLVM globals. */
-#include "nava_runtime.h"
+#include "navascript_runtime.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void nava_format_number(double value, char *buffer, size_t capacity) {
+void navascript_format_number(double value, char *buffer, size_t capacity) {
     char general[64];
 
     if (value == (double)(long long)value && value >= -9e18 && value <= 9e18) {
@@ -52,39 +52,39 @@ void nava_format_number(double value, char *buffer, size_t capacity) {
     }
 }
 
-char *nava_number_to_string(double value) {
+char *navascript_number_to_string(double value) {
     char buffer[64];
-    nava_format_number(value, buffer, sizeof(buffer));
+    navascript_format_number(value, buffer, sizeof(buffer));
     size_t length = strlen(buffer);
-    char *result = (char *)nava_alloc(length + 1);
+    char *result = (char *)navascript_alloc(length + 1);
     memcpy(result, buffer, length + 1);
     return result;
 }
 
-char *nava_string_concat(const char *left, const char *right) {
+char *navascript_string_concat(const char *left, const char *right) {
     size_t left_length = strlen(left);
     size_t right_length = strlen(right);
-    char *result = (char *)nava_alloc(left_length + right_length + 1);
+    char *result = (char *)navascript_alloc(left_length + right_length + 1);
     memcpy(result, left, left_length);
     memcpy(result + left_length, right, right_length);
     result[left_length + right_length] = '\0';
     return result;
 }
 
-int nava_string_equals(const char *left, const char *right) {
+int navascript_string_equals(const char *left, const char *right) {
     return strcmp(left, right) == 0;
 }
 
-int64_t nava_string_length(const char *string) {
+int64_t navascript_string_length(const char *string) {
     return (int64_t)strlen(string);
 }
 
-char *nava_string_char_at(const char *string, int64_t index) {
+char *navascript_string_char_at(const char *string, int64_t index) {
     size_t length = strlen(string);
     if (index < 0 || (size_t)index >= length) {
-        nava_runtime_error("string index out of bounds");
+        navascript_runtime_error("string index out of bounds");
     }
-    char *result = (char *)nava_alloc(2);
+    char *result = (char *)navascript_alloc(2);
     result[0] = string[index];
     result[1] = '\0';
     return result;

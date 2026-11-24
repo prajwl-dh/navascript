@@ -2,8 +2,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use nava_ast::TypeExpr;
-use nava_symbol::Type;
+use navascript_ast::TypeExpr;
+use navascript_symbol::Type;
 
 pub type AliasTable = HashMap<String, Type>;
 /// Maps a generic type parameter name to its instantiated type.

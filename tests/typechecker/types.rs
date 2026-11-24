@@ -2,9 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use nava_ast::TypeExpr;
-use nava_symbol::Type;
-use nava_typechecker::{AliasTable, is_assignable, resolve_type};
+use navascript_ast::TypeExpr;
+use navascript_symbol::Type;
+use navascript_typechecker::{AliasTable, is_assignable, resolve_type};
 
 #[test]
 fn resolves_primitive_and_array_types() {

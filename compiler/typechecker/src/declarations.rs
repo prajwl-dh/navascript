@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use nava_ast::{Block, FunctionDecl, Ident, ItemKind, Stmt, StmtKind, TypeField};
-use nava_symbol::{Symbol, SymbolKind, Type};
+use navascript_ast::{Block, FunctionDecl, Ident, ItemKind, Stmt, StmtKind, TypeField};
+use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
 use super::types::{Subst, resolve_named_type, union_layout_error};
@@ -171,7 +171,7 @@ impl<'a> Checker<'a> {
                 }
                 StmtKind::If(if_stmt) => {
                     self.collect_returns(&if_stmt.then_branch.statements, found);
-                    if let Some(nava_ast::ElseBranch::Block(block)) = &if_stmt.else_branch {
+                    if let Some(navascript_ast::ElseBranch::Block(block)) = &if_stmt.else_branch {
                         self.collect_returns(&block.statements, found);
                     }
                 }

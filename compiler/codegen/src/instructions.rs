@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::fmt::Write;
 
-use nava_ir::{BinaryOp, Instruction, IrType, UnaryOp, Value, ValueId};
+use navascript_ir::{BinaryOp, Instruction, IrType, UnaryOp, Value, ValueId};
 
 use super::CodegenError;
 use super::runtime::encode_field_names;
@@ -115,9 +115,9 @@ pub(super) fn emit_instruction(
                 BinaryOp::Sub => format!("sub i64 {lhs}, {rhs}"),
                 BinaryOp::Mul => format!("mul i64 {lhs}, {rhs}"),
                 // Runtime helpers check division by zero and negative exponents.
-                BinaryOp::Div => format!("call i64 @nava_bigint_div(i64 {lhs}, i64 {rhs})"),
-                BinaryOp::Mod => format!("call i64 @nava_bigint_mod(i64 {lhs}, i64 {rhs})"),
-                BinaryOp::Pow => format!("call i64 @nava_bigint_pow(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Div => format!("call i64 @navascript_bigint_div(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Mod => format!("call i64 @navascript_bigint_mod(i64 {lhs}, i64 {rhs})"),
+                BinaryOp::Pow => format!("call i64 @navascript_bigint_pow(i64 {lhs}, i64 {rhs})"),
                 BinaryOp::Eq => format!("icmp eq i64 {lhs}, {rhs}"),
                 BinaryOp::Ne => format!("icmp ne i64 {lhs}, {rhs}"),
                 BinaryOp::Lt => format!("icmp slt i64 {lhs}, {rhs}"),
@@ -192,12 +192,12 @@ pub(super) fn emit_instruction(
             let (name, ret) = if callee == "console.log" {
                 let arg_ty = arg_tys.first().cloned();
                 let name = match arg_ty {
-                    Some(IrType::Boolean) => "nava_console_log_bool",
+                    Some(IrType::Boolean) => "navascript_console_log_bool",
                     Some(IrType::String) | Some(IrType::Array(_)) | Some(IrType::Object(_)) => {
-                        "nava_console_log_str"
+                        "navascript_console_log_str"
                     }
-                    Some(IrType::Number) | None => "nava_console_log_f64",
-                    Some(IrType::BigInt) => "nava_console_log_i64",
+                    Some(IrType::Number) | None => "navascript_console_log_f64",
+                    Some(IrType::BigInt) => "navascript_console_log_i64",
                     Some(other) => {
                         return Err(CodegenError {
                             message: format!(
@@ -210,7 +210,7 @@ pub(super) fn emit_instruction(
                 (name.to_owned(), "void".to_owned())
             } else {
                 (
-                    format!("nava_{callee}"),
+                    format!("navascript_{callee}"),
                     llvm_type(result_ty).map_err(|message| CodegenError { message })?,
                 )
             };
@@ -230,7 +230,7 @@ pub(super) fn emit_instruction(
         } => {
             let _ = writeln!(
                 out,
-                "  %v{result} = call ptr @nava_string_concat(ptr {}, ptr {})",
+                "  %v{result} = call ptr @navascript_string_concat(ptr {}, ptr {})",
                 llvm_value(left),
                 llvm_value(right)
             );
@@ -238,7 +238,7 @@ pub(super) fn emit_instruction(
         Instruction::NumberToString { result, value } => {
             let _ = writeln!(
                 out,
-                "  %v{result} = call ptr @nava_number_to_string(double {})",
+                "  %v{result} = call ptr @navascript_number_to_string(double {})",
                 llvm_value(value)
             );
         }
@@ -249,7 +249,7 @@ pub(super) fn emit_instruction(
         } => {
             let _ = writeln!(
                 out,
-                "  %raw{result} = call i32 @nava_string_equals(ptr {}, ptr {})",
+                "  %raw{result} = call i32 @navascript_string_equals(ptr {}, ptr {})",
                 llvm_value(left),
                 llvm_value(right)
             );
@@ -258,7 +258,7 @@ pub(super) fn emit_instruction(
         Instruction::StringLength { result, value } => {
             let _ = writeln!(
                 out,
-                "  %len{result} = call i64 @nava_string_length(ptr {})",
+                "  %len{result} = call i64 @navascript_string_length(ptr {})",
                 llvm_value(value)
             );
             let _ = writeln!(out, "  %v{result} = sitofp i64 %len{result} to double");
@@ -271,12 +271,15 @@ pub(super) fn emit_instruction(
             let index = index_arg(index, types, out)?;
             let _ = writeln!(
                 out,
-                "  %v{result} = call ptr @nava_string_char_at(ptr {}, i64 {index})",
+                "  %v{result} = call ptr @navascript_string_char_at(ptr {}, i64 {index})",
                 llvm_value(value)
             );
         }
         Instruction::ArrayNew { result, length, .. } => {
-            let _ = writeln!(out, "  %v{result} = call ptr @nava_array_new(i64 {length})");
+            let _ = writeln!(
+                out,
+                "  %v{result} = call ptr @navascript_array_new(i64 {length})"
+            );
         }
         Instruction::ArrayGet {
             result,
@@ -293,7 +296,7 @@ pub(super) fn emit_instruction(
             let index = index_arg(index, types, out)?;
             let _ = writeln!(
                 out,
-                "  %{}{} = call {} @nava_array_get_{}(ptr {}, i64 {index})",
+                "  %{}{} = call {} @navascript_array_get_{}(ptr {}, i64 {index})",
                 if *element_ty == IrType::Boolean {
                     "raw"
                 } else {
@@ -326,7 +329,7 @@ pub(super) fn emit_instruction(
             let index = index_arg(index, types, out)?;
             let _ = writeln!(
                 out,
-                "  call void @nava_array_set_{}(ptr {}, i64 {index}, {} {arg})",
+                "  call void @navascript_array_set_{}(ptr {}, i64 {index}, {} {arg})",
                 suffix,
                 llvm_value(array),
                 arg_ty
@@ -335,7 +338,7 @@ pub(super) fn emit_instruction(
         Instruction::ArrayLength { result, array } => {
             let _ = writeln!(
                 out,
-                "  %len{result} = call i64 @nava_array_length(ptr {})",
+                "  %len{result} = call i64 @navascript_array_length(ptr {})",
                 llvm_value(array)
             );
             let _ = writeln!(out, "  %v{result} = sitofp i64 %len{result} to double");
@@ -347,7 +350,7 @@ pub(super) fn emit_instruction(
             })?;
             let _ = writeln!(
                 out,
-                "  %v{result} = call ptr @nava_object_new(i64 {}, ptr {names_global})",
+                "  %v{result} = call ptr @navascript_object_new(i64 {}, ptr {names_global})",
                 fields.len()
             );
         }
@@ -365,7 +368,7 @@ pub(super) fn emit_instruction(
             };
             let _ = writeln!(
                 out,
-                "  %{}{} = call {} @nava_object_get_{}(ptr {}, i64 {})",
+                "  %{}{} = call {} @navascript_object_get_{}(ptr {}, i64 {})",
                 if *field_ty == IrType::Boolean {
                     "raw"
                 } else {
@@ -398,7 +401,7 @@ pub(super) fn emit_instruction(
             };
             let _ = writeln!(
                 out,
-                "  call void @nava_object_set_{}(ptr {}, i64 {}, {} {})",
+                "  call void @navascript_object_set_{}(ptr {}, i64 {}, {} {})",
                 suffix,
                 llvm_value(object),
                 field_index,

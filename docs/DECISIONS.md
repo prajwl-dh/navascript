@@ -1,20 +1,20 @@
-# Nava — Architecture Decision Records (ADRs)
+# NavaScript — Architecture Decision Records (ADRs)
 
 Decisions are numbered and immutable once accepted. A superseding decision gets
 a new number and references the old one. Keep entries short and factual.
 
 ---
 
-## ADR-0001 — Project name: `nava`
+## ADR-0001 — Project name: `navascript`
 
 - **Date:** 2026-11-20
 - **Status:** Accepted
-- **Context:** The source spec used `nova` in some places and `nava` in others.
-- **Decision:** Use **nava** as the project/language name. The CLI binary is
-  `nava`. Keep `nova0`/`nova1`/`nova2` as *bootstrap stage* names only, as
+- **Context:** The source spec used `nova` in some places and `navascript` in others.
+- **Decision:** Use **navascript** as the project/language name. The CLI binary is
+  `navascript`. Keep `nova0`/`nova1`/`nova2` as *bootstrap stage* names only, as
   defined by the bootstrap strategy, to avoid confusing the compiler name with
   stage artifacts.
-- **Consequences:** All docs, paths, and commands use `nava`; stage artifacts
+- **Consequences:** All docs, paths, and commands use `navascript`; stage artifacts
   use the `novaN` convention from `BOOTSTRAP.md`.
 
 ## ADR-0002 — Rust as the bootstrap implementation language
@@ -23,9 +23,9 @@ a new number and references the old one. Keep entries short and factual.
 - **Status:** Accepted
 - **Context:** Need a productive language for initial compiler development;
   self-hosting is a later goal.
-- **Decision:** Implement `nova0` in Rust; progressively rewrite in Nava
+- **Decision:** Implement `nova0` in Rust; progressively rewrite in NavaScript
   (Phase 9) while keeping Rust functional.
-- **Consequences:** Rust toolchain is a build-time dependency only; final Nava
+- **Consequences:** Rust toolchain is a build-time dependency only; final NavaScript
   compilation must not need it.
 
 ## ADR-0003 — LLVM as the backend
@@ -35,7 +35,7 @@ a new number and references the old one. Keep entries short and factual.
 - **Context:** Need native ARM64 codegen with optimization; hand-writing
   assembly would be impractical.
 - **Decision:** Use LLVM 23.1.6 for instruction selection, register allocation,
-  optimization, and object emission; emit LLVM IR from Nava IR.
+  optimization, and object emission; emit LLVM IR from NavaScript IR.
 - **Consequences:** LLVM is confined to the `codegen` module. Front end stays
   backend-independent. Do not hardcode target arch; query the triple.
 
@@ -58,7 +58,7 @@ a new number and references the old one. Keep entries short and factual.
   required, the build stays reproducible on this machine, and the generated
   `.ll` is directly inspectable for debugging. The target triple is queried
   with `llvm-config --host-target`; it is never hardcoded to ARM64.
-- **Consequences:** The `codegen` crate depends only on `nava-ir` and the
+- **Consequences:** The `codegen` crate depends only on `navascript-ir` and the
   standard library — no LLVM Rust bindings. Build reliability now depends on
   the external toolchain being on `PATH`/at the LLVM prefix; the driver reports
   a clear error if `llc`, `llvm-config` or `clang` is missing.
@@ -78,7 +78,7 @@ a new number and references the old one. Keep entries short and factual.
   running programs that allocate in loops will grow until the arena is
   exhausted. This is a deliberate, documented divergence from JavaScript's GC
   semantics. The compact ABI keeps the backend simple; a tracing collector or
-  reference counting can replace `nava_alloc` later without changing the IR or
+  reference counting can replace `navascript_alloc` later without changing the IR or
   front end.
 
 ## ADR-0006 — Numeric model
@@ -132,12 +132,12 @@ a new number and references the old one. Keep entries short and factual.
 - **Date:** 2026-11-20
 - **Status:** Accepted
 - **Context:** Phase 2 needs the type checker to add diagnostics in the same
-  shape as the parser. Keeping `Diagnostic`/`Diagnostics` inside `nava-parser`
-  would force `nava-typechecker` to depend on the parser for a data type, even
+  shape as the parser. Keeping `Diagnostic`/`Diagnostics` inside `navascript-parser`
+  would force `navascript-typechecker` to depend on the parser for a data type, even
   though it only consumes the AST.
 - **Decision:** Move `Diagnostic`, `Severity`, `LineIndex` and `Diagnostics`
-  into a new dependency-light crate `nava-diagnostics` with three real
-  consumers (parser, type checker, driver). `nava-parser` re-exports them, so
+  into a new dependency-light crate `navascript-diagnostics` with three real
+  consumers (parser, type checker, driver). `navascript-parser` re-exports them, so
   the Phase 1 `parse` seam is unchanged.
 - **Consequences:** One sorting/dedup/rendering implementation for every
   front-end phase; no port or sink trait until a second real adapter exists.
@@ -153,13 +153,13 @@ a new number and references the old one. Keep entries short and factual.
   building, duplicate declarations, name resolution, unknown identifiers — is
   inseparable from symbol-table construction and inference. Splitting them
   would create a shallow middle module that passes data straight through.
-- **Decision:** Implement these semantic checks inside `nava-typechecker`
+- **Decision:** Implement these semantic checks inside `navascript-typechecker`
   behind its single `check` seam. `compiler/semantic/` remains reserved as a
   placeholder; if a genuinely independent semantic pass appears later, it can
   be extracted from the checker without changing the seam.
-- **Consequences:** `nava-semantic` has no implementation in Phase 2. This is a
+- **Consequences:** `navascript-semantic` has no implementation in Phase 2. This is a
   documented deviation, not an omission: the checks are implemented and tested
-  in `nava-typechecker`, satisfying "no feature claim without a passing test".
+  in `navascript-typechecker`, satisfying "no feature claim without a passing test".
 
 ## ADR-0011 — Type-only `console` builtin
 
@@ -170,7 +170,7 @@ a new number and references the old one. Keep entries short and factual.
   very program the project uses as its first milestone.
 - **Decision:** Seed the checker with a type-only `console` symbol exposing
   `log(value: unknown): void`. No runtime implementation is implied.
-- **Consequences:** `examples/fibonacci.ts` type-checks in Phase 2. The real
+- **Consequences:** `examples/fibonacci.ns` type-checks in Phase 2. The real
   `console.log` implementation and its full signature belong to Phase 5.
 
 ---
@@ -197,7 +197,7 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
-## ADR-0013 — Stack slots instead of SSA phi nodes in Nava IR
+## ADR-0013 — Stack slots instead of SSA phi nodes in NavaScript IR
 
 - **Date:** 2026-11-21
 - **Status:** Accepted
@@ -205,8 +205,8 @@ a new number and references the old one. Keep entries short and factual.
   such as stack slots. LLVM's `mem2reg` pass reliably promotes simple stack
   slots to SSA, and our front end already allocates one location per variable.
   Phi insertion during lowering would complicate the lowering, the verifier
-  and the planned Nava rewrite for no measurable benefit at this stage.
-- **Decision:** Nava IR uses explicit `alloca`/`store`/`load` stack slots for
+  and the planned NavaScript rewrite for no measurable benefit at this stage.
+- **Decision:** NavaScript IR uses explicit `alloca`/`store`/`load` stack slots for
   local variables. Control flow is expressed only with unconditional and
   conditional branches; there are no phi nodes. Instruction results are
   SSA-like values but are scoped to their block's dominance region.
@@ -222,13 +222,13 @@ a new number and references the old one. Keep entries short and factual.
 - **Context:** Phase 3 needs a platform-independent representation that Phase 4
   can lower to LLVM. The driver already owns the parsed program, the typed
   program and the source text.
-- **Decision:** `nava_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput`
+- **Decision:** `navascript_ir::lower(&Program, &TypedProgram, &str) -> LowerOutput`
   is the single external seam. `LowerOutput` owns an `IrModule` plus
   `Diagnostics` in the same shape as earlier phases. `verify` and `print` are
   separate public functions because the verifier and IR debug output are
   explicit roadmap deliverables with real callers (driver, tests).
-- **Consequences:** IR depends only on `nava-ast`, `nava-diagnostics` and
-  `nava-symbol` — never LLVM. The driver calls parse → check → lower and
+- **Consequences:** IR depends only on `navascript-ast`, `navascript-diagnostics` and
+  `navascript-symbol` — never LLVM. The driver calls parse → check → lower and
   renders diagnostics from all three uniformly.
 
 ---
@@ -259,22 +259,22 @@ a new number and references the old one. Keep entries short and factual.
 - **Status:** Accepted
 - **Context:** Several implementation files had grown past 600 lines
   (`parser/src/lib.rs`, `ir/src/lower.rs`, `codegen/src/lib.rs`,
-  `typechecker/src/checker.rs`, `runtime/nava_runtime.c`) and the repository
+  `typechecker/src/checker.rs`, `runtime/navascript_runtime.c`) and the repository
   carried empty `.gitkeep` directories for features not yet implemented.
   This made navigation harder and blurred the seams described in
   `DESIGN.md`.
 - **Decision:** Split each large module into private implementation files
   behind its existing public seam (`parse`, `check`, `lower`, `generate`,
   `tokenize`). Split the C runtime into `runtime/{memory,strings,arrays,objects,
-  console}/` sources plus a shared header, with `runtime/nava_runtime.c`
+  console}/` sources plus a shared header, with `runtime/navascript_runtime.c`
   reduced to the process entry point. Remove empty placeholder directories
   (`bootstrap/`, `stdlib/`, `benchmarks/`, `runtime/exceptions/`,
   `tests/compatibility/`); recreate them when the corresponding phase begins.
 - **Consequences:** All compiler public seams (`parse`, `check`, `lower`,
   `generate`) and every test target are unchanged; all 120 tests still pass.
   Two incidental public items of the runtime bundle changed:
-  `nava_codegen::RUNTIME_C` became `RUNTIME_FILES` (the runtime is now multiple
-  sources), and `nava_driver::build::emit_native` takes that source list. Both
+  `navascript_codegen::RUNTIME_C` became `RUNTIME_FILES` (the runtime is now multiple
+  sources), and `navascript_driver::build::emit_native` takes that source list. Both
   are build plumbing, not compiler interfaces, and their callers were updated
   in the same change. Files are now typically 100–300 lines. Each crate keeps
   one public façade and private internal modules, matching the deep-module
@@ -321,7 +321,7 @@ a new number and references the old one. Keep entries short and factual.
 - **Decision:** Ternary lowers to a result stack slot written in both arms and
   read in a join block (consistent with ADR-0013). `**` maps to the LLVM
   `@llvm.pow.f64` intrinsic, declared in codegen only. Radix-prefix knowledge
-  lives in one shared `nava_lexer::radix_prefix` helper used by both the
+  lives in one shared `navascript_lexer::radix_prefix` helper used by both the
   scanner and parser. Invalid `\x`/`\u` escapes are lex diagnostics, never
   silently decoded to an empty string. The three files that grew past ADR-0016's
   size guidance were split into private modules behind their existing façades.
@@ -439,7 +439,7 @@ a new number and references the old one. Keep entries short and factual.
 
 - **Date:** 2026-11-21
 - **Status:** Accepted
-- **Context:** Phase 6 adds generics to broaden TypeScript compatibility. Nava
+- **Context:** Phase 6 adds generics to broaden TypeScript compatibility. NavaScript
   IR has concrete types only — every function has a fixed signature and a named
   LLVM symbol — so there is no representation for an unbound type parameter at
   the backend. A "generic" function lowered with `Opaque` parameters would
@@ -474,7 +474,7 @@ a new number and references the old one. Keep entries short and factual.
 
 - **Date:** 2026-11-21
 - **Status:** Accepted
-- **Context:** Phase 6 adds classes and inheritance. Nava objects are flat
+- **Context:** Phase 6 adds classes and inheritance. NavaScript objects are flat
   arrays of 8-byte slots, and IR functions have concrete signatures. A derived
   instance has more fields than its base, so a base method that indexes `this`
   by position could read a different field than the same index in the derived
@@ -504,7 +504,7 @@ a new number and references the old one. Keep entries short and factual.
 - **Status:** Accepted
 - **Context:** ADR-0020 deferred a unions ADR and left optional-chaining results
   typed `T` because no nullable value could be represented. Phase 6 now adds
-  `A | B` / `A & B`, but Nava values are unboxed and untagged: `number | string`
+  `A | B` / `A & B`, but NavaScript values are unboxed and untagged: `number | string`
   has no single native representation, and storing `null` in a numeric slot
   would produce invalid LLVM IR.
 - **Decision:** Union and intersection types are normalized and resolved in the
@@ -538,7 +538,7 @@ a new number and references the old one. Keep entries short and factual.
 - **Decision:** The driver resolves the import graph from the entry file before
   compilation. Each file is parsed once to discover its imports, visited paths
   are deduplicated (so cycles and diamonds terminate), extensionless specifiers
-  gain `.ts`, and file texts are concatenated in dependency order. The existing
+  gain `.ns`, and file texts are concatenated in dependency order. The existing
   seams then see one program. `import { ... } from "..."` and `export
   <declaration>` are AST items; exported declarations are collected from
   `export` wrappers and imports are validated against them. `from` stays
@@ -548,7 +548,7 @@ a new number and references the old one. Keep entries short and factual.
   visible across files, and two modules declaring the same name collide.
   Diagnostics are rendered against the concatenated source, so line/column
   point into combined text rather than the originating file. Resolution covers
-  relative `.ts`/extensionless paths only; `.d.ts`, packages and per-file
+  relative `.ns`/extensionless paths only; `.d.ts`, packages and per-file
   namespaces are out of scope and recorded in `COMPATIBILITY.md`.
 
 ---

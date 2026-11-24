@@ -1,4 +1,4 @@
-//! Nava IR — the platform-independent middle of the compiler.
+//! NavaScript IR — the platform-independent middle of the compiler.
 //!
 //! The external seam is [`lower`]. It consumes the typed AST and produces an
 //! owned [`IrModule`] plus diagnostics in the same shape as earlier phases.

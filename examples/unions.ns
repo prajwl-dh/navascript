@@ -9,7 +9,7 @@ interface Aged {
 }
 
 function run(): void {
-    let maybe: string | null = "nava";
+    let maybe: string | null = "navascript";
     if (maybe != null) {
         console.log(maybe.length);
     } else {

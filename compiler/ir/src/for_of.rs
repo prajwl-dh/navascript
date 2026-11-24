@@ -1,6 +1,6 @@
 //! `for (let x of xs)` lowering into an index-driven loop.
 
-use nava_ast::{Expr, ExprKind, ForOfStmt};
+use navascript_ast::{Expr, ExprKind, ForOfStmt};
 
 use super::builder::FunctionBuilder;
 use super::ir::{BinaryOp, BlockId, Instruction, IrType, Terminator, Value};

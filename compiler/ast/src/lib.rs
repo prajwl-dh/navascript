@@ -1,4 +1,4 @@
-//! Nava abstract syntax tree — a dependency-free leaf crate.
+//! NavaScript abstract syntax tree — a dependency-free leaf crate.
 //!
 //! `Program`, `Span` and `FileId` are shared with the type checker and IR
 //! lowering. The crate has one public surface (this module) and three private

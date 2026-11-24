@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use nava_ast::{ItemKind, Span};
-use nava_symbol::Type;
+use navascript_ast::{ItemKind, Span};
+use navascript_symbol::Type;
 
 use super::ir::IrType;
 use super::lower::{Lowerer, ir_type_from_symbol};

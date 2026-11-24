@@ -1,4 +1,4 @@
-//! The Nava IR data model — platform-independent by construction.
+//! The NavaScript IR data model — platform-independent by construction.
 
 pub use super::values::{BlockId, GlobalId, IrType, SlotId, Value, ValueId};
 

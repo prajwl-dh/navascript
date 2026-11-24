@@ -2,14 +2,14 @@
 
 use std::fmt::Write;
 
-use nava_ir::IrType;
+use navascript_ir::IrType;
 
 /// (flattened output name, repository-relative path, source text).
 pub const RUNTIME_FILES: &[(&str, &str, &str)] = &[
     (
-        "nava_runtime.h",
-        "nava_runtime.h",
-        include_str!("../../../runtime/nava_runtime.h"),
+        "navascript_runtime.h",
+        "navascript_runtime.h",
+        include_str!("../../../runtime/navascript_runtime.h"),
     ),
     (
         "memory.c",
@@ -42,46 +42,46 @@ pub const RUNTIME_FILES: &[(&str, &str, &str)] = &[
         include_str!("../../../runtime/console/console.c"),
     ),
     (
-        "nava_runtime.c",
-        "nava_runtime.c",
-        include_str!("../../../runtime/nava_runtime.c"),
+        "navascript_runtime.c",
+        "navascript_runtime.c",
+        include_str!("../../../runtime/navascript_runtime.c"),
     ),
 ];
 
 pub(super) const RUNTIME_DECLS: &[&str] = &[
     "declare double @llvm.pow.f64(double, double) nounwind readnone",
-    "declare void @nava_console_log_f64(double) nounwind",
-    "declare void @nava_console_log_bool(i1) nounwind",
-    "declare void @nava_console_log_str(ptr) nounwind",
-    "declare void @nava_console_log_i64(i64) nounwind",
-    "declare i64 @nava_bigint_div(i64, i64) nounwind",
-    "declare i64 @nava_bigint_mod(i64, i64) nounwind",
-    "declare i64 @nava_bigint_pow(i64, i64) nounwind",
-    "declare void @nava_runtime_error(ptr) nounwind",
-    "declare ptr @nava_string_concat(ptr, ptr) nounwind",
-    "declare ptr @nava_number_to_string(double) nounwind",
-    "declare i32 @nava_string_equals(ptr, ptr) nounwind",
-    "declare i64 @nava_string_length(ptr) nounwind",
-    "declare ptr @nava_string_char_at(ptr, i64) nounwind",
-    "declare ptr @nava_array_new(i64) nounwind",
-    "declare void @nava_array_set_f64(ptr, i64, double) nounwind",
-    "declare double @nava_array_get_f64(ptr, i64) nounwind",
-    "declare void @nava_array_set_i64(ptr, i64, i64) nounwind",
-    "declare i64 @nava_array_get_i64(ptr, i64) nounwind",
-    "declare void @nava_array_set_bool(ptr, i64, i32) nounwind",
-    "declare i32 @nava_array_get_bool(ptr, i64) nounwind",
-    "declare void @nava_array_set_ptr(ptr, i64, ptr) nounwind",
-    "declare ptr @nava_array_get_ptr(ptr, i64) nounwind",
-    "declare i64 @nava_array_length(ptr) nounwind",
-    "declare ptr @nava_object_new(i64, ptr) nounwind",
-    "declare void @nava_object_set_f64(ptr, i64, double) nounwind",
-    "declare double @nava_object_get_f64(ptr, i64) nounwind",
-    "declare void @nava_object_set_i64(ptr, i64, i64) nounwind",
-    "declare i64 @nava_object_get_i64(ptr, i64) nounwind",
-    "declare void @nava_object_set_bool(ptr, i64, i32) nounwind",
-    "declare i32 @nava_object_get_bool(ptr, i64) nounwind",
-    "declare void @nava_object_set_ptr(ptr, i64, ptr) nounwind",
-    "declare ptr @nava_object_get_ptr(ptr, i64) nounwind",
+    "declare void @navascript_console_log_f64(double) nounwind",
+    "declare void @navascript_console_log_bool(i1) nounwind",
+    "declare void @navascript_console_log_str(ptr) nounwind",
+    "declare void @navascript_console_log_i64(i64) nounwind",
+    "declare i64 @navascript_bigint_div(i64, i64) nounwind",
+    "declare i64 @navascript_bigint_mod(i64, i64) nounwind",
+    "declare i64 @navascript_bigint_pow(i64, i64) nounwind",
+    "declare void @navascript_runtime_error(ptr) nounwind",
+    "declare ptr @navascript_string_concat(ptr, ptr) nounwind",
+    "declare ptr @navascript_number_to_string(double) nounwind",
+    "declare i32 @navascript_string_equals(ptr, ptr) nounwind",
+    "declare i64 @navascript_string_length(ptr) nounwind",
+    "declare ptr @navascript_string_char_at(ptr, i64) nounwind",
+    "declare ptr @navascript_array_new(i64) nounwind",
+    "declare void @navascript_array_set_f64(ptr, i64, double) nounwind",
+    "declare double @navascript_array_get_f64(ptr, i64) nounwind",
+    "declare void @navascript_array_set_i64(ptr, i64, i64) nounwind",
+    "declare i64 @navascript_array_get_i64(ptr, i64) nounwind",
+    "declare void @navascript_array_set_bool(ptr, i64, i32) nounwind",
+    "declare i32 @navascript_array_get_bool(ptr, i64) nounwind",
+    "declare void @navascript_array_set_ptr(ptr, i64, ptr) nounwind",
+    "declare ptr @navascript_array_get_ptr(ptr, i64) nounwind",
+    "declare i64 @navascript_array_length(ptr) nounwind",
+    "declare ptr @navascript_object_new(i64, ptr) nounwind",
+    "declare void @navascript_object_set_f64(ptr, i64, double) nounwind",
+    "declare double @navascript_object_get_f64(ptr, i64) nounwind",
+    "declare void @navascript_object_set_i64(ptr, i64, i64) nounwind",
+    "declare i64 @navascript_object_get_i64(ptr, i64) nounwind",
+    "declare void @navascript_object_set_bool(ptr, i64, i32) nounwind",
+    "declare i32 @navascript_object_get_bool(ptr, i64) nounwind",
+    "declare void @navascript_object_set_ptr(ptr, i64, ptr) nounwind",
+    "declare ptr @navascript_object_get_ptr(ptr, i64) nounwind",
 ];
 
 pub(super) fn escape_llvm_string(text: &str) -> String {
@@ -102,7 +102,7 @@ pub(super) fn escape_llvm_string(text: &str) -> String {
     out
 }
 
-/// Generate textual LLVM IR for a verified Nava module.
+/// Generate textual LLVM IR for a verified NavaScript module.
 pub(super) fn llvm_string_bytes(encoded: &str) -> usize {
     let chars: Vec<char> = encoded.chars().collect();
     let mut index = 0;

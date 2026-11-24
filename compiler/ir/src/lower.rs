@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 
-use nava_ast::{Expr, FunctionDecl, ItemKind, Program, Span, TypeAnnotation, TypeExpr};
-use nava_diagnostics::{Diagnostic, Diagnostics, LineIndex};
-use nava_symbol::Type;
-use nava_typechecker::TypedProgram;
+use navascript_ast::{Expr, FunctionDecl, ItemKind, Program, Span, TypeAnnotation, TypeExpr};
+use navascript_diagnostics::{Diagnostic, Diagnostics, LineIndex};
+use navascript_symbol::Type;
+use navascript_typechecker::TypedProgram;
 
 use super::builder::FunctionBuilder;
 use super::ir::{GlobalId, IrGlobal, IrModule, IrParam, IrType, Terminator, Value};
@@ -68,7 +68,7 @@ impl<'a> Lowerer<'a> {
             .push(Diagnostic::error(message, span, &self.lines));
     }
 
-    pub(super) fn lower_program(&mut self, program: &nava_ast::Program) {
+    pub(super) fn lower_program(&mut self, program: &navascript_ast::Program) {
         let mut main_body = Vec::new();
         for item in &program.items {
             self.lower_program_item(item, &mut main_body);
@@ -80,8 +80,8 @@ impl<'a> Lowerer<'a> {
 
     fn lower_program_item<'p>(
         &mut self,
-        item: &'p nava_ast::Item,
-        main_body: &mut Vec<&'p nava_ast::Item>,
+        item: &'p navascript_ast::Item,
+        main_body: &mut Vec<&'p navascript_ast::Item>,
     ) {
         match item.kind.unwrap_export() {
             ItemKind::Function(decl) if decl.type_params.is_empty() => {
@@ -94,7 +94,7 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    pub(super) fn lower_main(&mut self, items: &[&nava_ast::Item]) {
+    pub(super) fn lower_main(&mut self, items: &[&navascript_ast::Item]) {
         let mut builder = FunctionBuilder::new("main".to_owned(), Vec::new(), IrType::Void);
         for item in items {
             match item.kind.unwrap_export() {

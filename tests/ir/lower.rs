@@ -1,10 +1,10 @@
 //! Golden-style tests for AST → IR lowering via the public `lower` seam.
 
-use nava_ir::{Instruction, Terminator, Value, lower};
-use nava_parser::parse;
-use nava_typechecker::check;
+use navascript_ir::{Instruction, Terminator, Value, lower};
+use navascript_parser::parse;
+use navascript_typechecker::check;
 
-fn lower_source(source: &str) -> (nava_ir::IrModule, String) {
+fn lower_source(source: &str) -> (navascript_ir::IrModule, String) {
     let parsed = parse(source);
     assert!(
         !parsed.diagnostics.has_errors(),
@@ -30,7 +30,7 @@ fn lower_source(source: &str) -> (nava_ir::IrModule, String) {
 fn lowers_a_simple_function_with_a_stack_slot() {
     let (module, _) = lower_source("function f(x: number): number { return x; }");
     let function = module.function("f").expect("function f");
-    assert_eq!(function.return_ty, nava_ir::IrType::Number);
+    assert_eq!(function.return_ty, navascript_ir::IrType::Number);
     assert_eq!(function.params.len(), 1);
     let entry = function.block(function.entry).expect("entry block");
     assert!(
@@ -63,7 +63,7 @@ fn lowers_conditionals_into_basic_blocks() {
 
 #[test]
 fn lowers_the_fibonacci_acceptance_program() {
-    let source = include_str!("../../examples/fibonacci.ts");
+    let source = include_str!("../../examples/fibonacci.ns");
     let (module, _) = lower_source(source);
     let fib = module.function("fibonacci").expect("fibonacci");
     assert_eq!(fib.params.len(), 1);
@@ -108,13 +108,13 @@ fn lower_supports_collection_literals() {
         block
             .instructions
             .iter()
-            .any(|instruction| matches!(instruction, nava_ir::Instruction::ArrayNew { .. }))
+            .any(|instruction| matches!(instruction, navascript_ir::Instruction::ArrayNew { .. }))
     }));
     assert!(module.functions[0].blocks.iter().any(|block| {
         block
             .instructions
             .iter()
-            .any(|instruction| matches!(instruction, nava_ir::Instruction::ObjectNew { .. }))
+            .any(|instruction| matches!(instruction, navascript_ir::Instruction::ObjectNew { .. }))
     }));
 }
 
@@ -173,7 +173,7 @@ fn loops_lower_to_verifiable_back_edges() {
     let (module, _) = lower_source(
         "function f(n: number): number { let i = 0; while (i < n) { i = i + 1; } return i; }",
     );
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let function = module.function("f").expect("function f");
     let has_back_edge = function.blocks.iter().any(|block| match block.terminator {
         Some(Terminator::Br(target)) => target <= block.id,
@@ -201,7 +201,7 @@ fn continue_keeps_do_and_infinite_loop_targets_alive() {
         "function f(): number { let i = 0; while (true) { i = i + 1; continue; } return i; }",
     ] {
         let (module, _) = lower_source(source);
-        assert!(nava_ir::verify(&module).is_empty(), "{source}");
+        assert!(navascript_ir::verify(&module).is_empty(), "{source}");
     }
 }
 
@@ -210,7 +210,7 @@ fn break_and_continue_lower_to_loop_targets() {
     let (module, _) = lower_source(
         "function f(): number { let i = 0; while (i < 4) { i = i + 1; if (i == 2) continue; break; } return i; }",
     );
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let function = module.function("f").expect("function f");
     let blocks = &function.blocks;
     let has_back_edge = blocks.iter().any(|block| match block.terminator {
@@ -229,7 +229,7 @@ fn break_and_continue_lower_to_loop_targets() {
 fn optional_access_lowers_to_a_null_check() {
     let source = "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name;";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     assert!(
         main.blocks
@@ -257,10 +257,10 @@ fn arrow_captures_and_value_aliases_are_diagnosed() {
 fn arrow_initializers_lower_to_named_functions() {
     let (module, _) =
         lower_source("let add = (a: number, b: number): number => a + b; let n = add(1, 2);");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let function = module.function("add").expect("named arrow function");
     assert_eq!(function.params.len(), 2);
-    assert_eq!(function.return_ty, nava_ir::IrType::Number);
+    assert_eq!(function.return_ty, navascript_ir::IrType::Number);
 }
 
 #[test]
@@ -268,13 +268,13 @@ fn ternary_in_declarations_and_statements_verifies() {
     let (module, _) = lower_source(
         "function f(n: number): number { let x = n > 0 ? 1 : 0; console.log(n > 0 ? \"a\" : \"b\"); return x; }",
     );
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
 }
 
 #[test]
 fn lowers_ternary_into_basic_blocks() {
     let (module, _) = lower_source("function f(n: number): number { return n > 0 ? 1 : -1; }");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let function = module.function("f").expect("function f");
     assert!(
         function
@@ -293,7 +293,7 @@ fn lowers_ternary_into_basic_blocks() {
 #[test]
 fn lowers_power_and_compound_updates() {
     let (module, _) = lower_source("let x = 2; x += 3; x++; let p = x ** 2;");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     let has_power = main
         .blocks
@@ -303,7 +303,7 @@ fn lowers_power_and_compound_updates() {
             matches!(
                 instruction,
                 Instruction::Binary {
-                    op: nava_ir::BinaryOp::Pow,
+                    op: navascript_ir::BinaryOp::Pow,
                     ..
                 }
             )
@@ -318,14 +318,14 @@ fn infinite_loops_that_always_return_do_not_need_a_fallthrough() {
         "function f(n: number): number { for (;;) { return n; } }",
     ] {
         let (module, _) = lower_source(source);
-        assert!(nava_ir::verify(&module).is_empty(), "{source}");
+        assert!(navascript_ir::verify(&module).is_empty(), "{source}");
     }
 }
 
 #[test]
 fn for_of_lowers_to_an_index_loop() {
     let (module, _) = lower_source("let xs = [1, 2]; for (let x of xs) { console.log(x); }");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     assert!(main.blocks.iter().any(
         |block| matches!(block.terminator, Some(Terminator::Br(target)) if target <= block.id)
@@ -341,7 +341,7 @@ fn for_of_lowers_to_an_index_loop() {
 #[test]
 fn lowers_bigint_literals_and_integer_operations() {
     let (module, _) = lower_source("let a = 123n; let b = a + 1n; let c = a > b; let d = -a;");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     let instructions: Vec<&Instruction> = main
         .blocks
@@ -358,21 +358,21 @@ fn lowers_bigint_literals_and_integer_operations() {
     assert!(instructions.iter().any(|instruction| matches!(
         instruction,
         Instruction::Alloc {
-            ty: nava_ir::IrType::BigInt,
+            ty: navascript_ir::IrType::BigInt,
             ..
         }
     )));
     assert!(instructions.iter().any(|instruction| matches!(
         instruction,
         Instruction::BigIntBinary {
-            op: nava_ir::BinaryOp::Add,
+            op: navascript_ir::BinaryOp::Add,
             ..
         }
     )));
     assert!(instructions.iter().any(|instruction| matches!(
         instruction,
         Instruction::Unary {
-            op: nava_ir::UnaryOp::NegBigInt,
+            op: navascript_ir::UnaryOp::NegBigInt,
             ..
         }
     )));
@@ -383,7 +383,7 @@ fn null_comparisons_lower_to_is_null() {
     let source =
         "function f(x: string | null): number { if (x != null) { return x.length; } return 0; }";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let function = module.function("f").expect("f");
     assert!(function.blocks.iter().any(|block| {
         block
@@ -397,7 +397,7 @@ fn null_comparisons_lower_to_is_null() {
 fn intersections_merge_object_fields_for_layout() {
     let source = "interface A { a: number; } interface B { b: string; } let both: A & B = { a: 1, b: \"x\" }; console.log(both.b);";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
@@ -411,7 +411,7 @@ fn intersections_merge_object_fields_for_layout() {
 fn omitted_optional_reference_field_is_null_initialized() {
     let source = "interface P { name: string; nickname?: string; } let p: P = { name: \"x\" };";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
@@ -428,12 +428,12 @@ fn omitted_optional_reference_field_is_null_initialized() {
 fn classes_emit_named_method_functions() {
     let source = "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } let a = new A(2); console.log(a.value());";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let ctor = module.function("A__ctor").expect("constructor function");
     assert_eq!(ctor.params.len(), 2);
     assert_eq!(ctor.params[0].name, "this");
     let method = module.function("A_value").expect("method function");
-    assert_eq!(method.return_ty, nava_ir::IrType::Number);
+    assert_eq!(method.return_ty, navascript_ir::IrType::Number);
     let main = module.function("main").expect("main");
     assert!(main.blocks.iter().any(|block| {
         block
@@ -452,7 +452,7 @@ fn classes_emit_named_method_functions() {
 fn inherited_and_super_calls_target_the_base_function() {
     let source = "class A { n: number; constructor(n: number) { this.n = n; } value(): number { return this.n; } } class B extends A { constructor(n: number) { this.n = n; } value(): number { return super.value() + 1; } } let b = new B(4); console.log(b.value());";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     assert!(module.function("A_value").is_some());
     assert!(module.function("B_value").is_some());
     let base_calls: usize = module
@@ -471,7 +471,7 @@ fn inherited_and_super_calls_target_the_base_function() {
 fn generic_calls_emit_monomorphized_functions() {
     let source = "function id<T>(value: T): T { return value; } let n = id(1); let s = id(\"x\");";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     assert!(
         module.function("id").is_none(),
         "generic template must not be emitted"
@@ -479,25 +479,25 @@ fn generic_calls_emit_monomorphized_functions() {
     let number_fn = module
         .function("id__number")
         .expect("number specialization");
-    assert_eq!(number_fn.return_ty, nava_ir::IrType::Number);
-    assert_eq!(number_fn.params[0].ty, nava_ir::IrType::Number);
+    assert_eq!(number_fn.return_ty, navascript_ir::IrType::Number);
+    assert_eq!(number_fn.params[0].ty, navascript_ir::IrType::Number);
     let string_fn = module
         .function("id__string")
         .expect("string specialization");
-    assert_eq!(string_fn.return_ty, nava_ir::IrType::String);
+    assert_eq!(string_fn.return_ty, navascript_ir::IrType::String);
 }
 
 #[test]
 fn generic_array_parameter_is_specialized_by_element_type() {
     let source = "function first<T>(items: T[]): T { return items[0]; } let n = first([1, 2]); let s = first([\"a\"]);";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let numbers = module
         .function("first__number")
         .expect("number array specialization");
     assert_eq!(
         numbers.params[0].ty,
-        nava_ir::IrType::Array(Box::new(nava_ir::IrType::Number))
+        navascript_ir::IrType::Array(Box::new(navascript_ir::IrType::Number))
     );
     assert!(module.function("first__string").is_some());
 }
@@ -506,18 +506,18 @@ fn generic_array_parameter_is_specialized_by_element_type() {
 fn explicit_generic_type_arguments_select_the_specialization() {
     let (module, _) =
         lower_source("function id<T>(value: T): T { return value; } let b = id<boolean>(true);");
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let boolean_fn = module
         .function("id__boolean")
         .expect("boolean specialization");
-    assert_eq!(boolean_fn.return_ty, nava_ir::IrType::Boolean);
+    assert_eq!(boolean_fn.return_ty, navascript_ir::IrType::Boolean);
 }
 
 #[test]
 fn object_type_arguments_get_distinct_specialization_names() {
     let source = "interface A { a: number; } interface B { b: string; } function id<T>(value: T): T { return value; } let a: A = { a: 1 }; let b: B = { b: \"s\" }; console.log(id(a)); console.log(id(b));";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let names: Vec<&str> = module
         .functions
         .iter()
@@ -532,7 +532,7 @@ fn object_type_arguments_get_distinct_specialization_names() {
 fn generic_specializations_do_not_collide_with_user_functions() {
     let source = "function id__number(value: number): number { return value; } function id<T>(value: T): T { return value; } console.log(id(1));";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     assert!(module.function("id__number").is_some());
     assert!(
         module
@@ -547,7 +547,7 @@ fn generic_specializations_do_not_collide_with_user_functions() {
 fn recursive_generic_calls_reuse_one_specialization() {
     let source = "function count<T>(n: number, x: T): number { if (n <= 0) { return 0; } return count(n - 1, x); } console.log(count(3, \"z\"));";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     assert_eq!(
         module
             .functions
@@ -562,7 +562,7 @@ fn recursive_generic_calls_reuse_one_specialization() {
 fn optional_calls_lower_to_direct_calls() {
     let source = "function f(x: number): number { return x; } console.log(f?.(1));";
     let (module, _) = lower_source(source);
-    assert!(nava_ir::verify(&module).is_empty());
+    assert!(navascript_ir::verify(&module).is_empty());
     let main = module.function("main").expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
@@ -587,6 +587,9 @@ fn every_lowered_module_verifies() {
     ];
     for source in sources {
         let (module, _) = lower_source(source);
-        assert!(nava_ir::verify(&module).is_empty(), "failed for: {source}");
+        assert!(
+            navascript_ir::verify(&module).is_empty(),
+            "failed for: {source}"
+        );
     }
 }

@@ -13,7 +13,7 @@ interface Box<T> {
 }
 
 console.log(identity(42));
-console.log(identity("nava"));
+console.log(identity("navascript"));
 console.log(identity<boolean>(true));
 console.log(first([1, 2, 3]));
 console.log(first(["a", "b"]));
