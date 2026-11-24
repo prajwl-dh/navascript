@@ -32,6 +32,9 @@ pub enum Type {
         params: Vec<Type>,
         ret: Box<Type>,
     },
+    /// A promise value wrapping a result type (ADR-0029). NavaScript promises
+    /// are synchronous: `await` unwraps them without suspending.
+    Promise(Box<Type>),
     /// A named type awaiting alias/interface resolution.
     Named(String),
     /// A generic type parameter, bound at a call site (ADR-0023).
@@ -79,6 +82,7 @@ impl Type {
                     .join(", ");
                 format!("({params}) => {}", ret.display())
             }
+            Type::Promise(inner) => format!("Promise<{}>", inner.display()),
             Type::Named(name) => name.clone(),
             Type::TypeParam(name) => name.clone(),
             Type::Unknown => "unknown".to_owned(),

@@ -366,6 +366,19 @@ fn closures_and_higher_order_functions_run_natively() {
 }
 
 #[test]
+fn async_await_runs_natively() {
+    let Some(binary) = compile("async_await.ns", "async-await", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run async program");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "10\n6\nhello\n2\n4\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
 fn exceptions_run_natively() {
     let Some(binary) = compile("exceptions.ns", "exceptions", &[]) else {
         return;

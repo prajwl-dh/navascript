@@ -37,6 +37,8 @@ pub(super) struct FunctionBuilder {
     pub(super) scopes: Vec<HashMap<String, SlotId>>,
     pub(super) loops: Vec<LoopContext>,
     pub(super) tries: Vec<TryContext>,
+    /// Inner type for `async function` return wrapping (ADR-0029).
+    pub(super) async_return: Option<IrType>,
     /// The `this` stack slot and its object type inside a class member.
     pub(super) this_slot: Option<SlotId>,
     pub(super) this_ty: Option<IrType>,
@@ -69,6 +71,7 @@ impl FunctionBuilder {
             scopes: vec![HashMap::new()],
             loops: Vec::new(),
             tries: Vec::new(),
+            async_return: None,
             this_slot: None,
             this_ty: None,
             captures: HashMap::new(),

@@ -78,6 +78,9 @@ pub(super) struct Checker<'a> {
     /// Depth of catch/finally bodies, where `throw` is unsupported because it
     /// would bypass the finally block (ADR-0028).
     pub(super) throw_forbidden: u32,
+    /// `Some(false)` inside a non-async function, `None` at program scope where
+    /// top-level `await` is allowed (ADR-0029).
+    pub(super) current_function_async: Option<bool>,
     pub(super) generic_params: HashMap<String, Vec<String>>,
     pub(super) call_instantiations: HashMap<Span, Vec<Type>>,
     pub(super) classes: HashMap<String, ClassInfo>,
@@ -101,6 +104,7 @@ impl<'a> Checker<'a> {
             catch_types: Vec::new(),
             protected_depth: 0,
             throw_forbidden: 0,
+            current_function_async: None,
             generic_params: HashMap::new(),
             call_instantiations: HashMap::new(),
             classes: HashMap::new(),

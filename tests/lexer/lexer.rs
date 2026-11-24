@@ -303,6 +303,14 @@ fn recognizes_exception_keywords() {
 }
 
 #[test]
+fn recognizes_async_keywords() {
+    assert_eq!(
+        kinds("async await"),
+        vec![TokenKind::Async, TokenKind::Await, TokenKind::Eof]
+    );
+}
+
+#[test]
 fn lexes_optional_calls() {
     assert_eq!(
         kinds("f?.()"),

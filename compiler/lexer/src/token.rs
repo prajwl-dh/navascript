@@ -36,6 +36,8 @@ pub enum TokenKind {
     Try,
     Catch,
     Finally,
+    Async,
+    Await,
     LParen,
     RParen,
     LBrace,
@@ -148,6 +150,8 @@ pub(super) fn keyword(word: &str) -> TokenKind {
         "try" => TokenKind::Try,
         "catch" => TokenKind::Catch,
         "finally" => TokenKind::Finally,
+        "async" => TokenKind::Async,
+        "await" => TokenKind::Await,
         _ => TokenKind::Ident,
     }
 }

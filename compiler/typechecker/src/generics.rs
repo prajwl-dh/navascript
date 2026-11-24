@@ -38,6 +38,19 @@ impl Checker<'_> {
                 for arg in args {
                     resolved.push(self.resolve(arg, subst, span));
                 }
+                if name == "Promise" {
+                    if resolved.len() != 1 {
+                        self.error(
+                            format!(
+                                "expected 1 type argument for 'Promise', found {}",
+                                resolved.len()
+                            ),
+                            span,
+                        );
+                        return Type::Error;
+                    }
+                    return Type::Promise(Box::new(resolved.remove(0)));
+                }
                 let (Some(params), Some(body)) = (
                     self.generic_params.get(name).cloned(),
                     self.aliases.get(name).cloned(),

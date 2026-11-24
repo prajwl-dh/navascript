@@ -10,7 +10,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
   `break`/`continue`), additional literals/operators, arrow functions, optional
   chaining, bigint literals, optional calls, generics, classes with inheritance,
   unions/intersections, full structural typing, modules, closures/higher-order
-  functions and same-function exceptions complete
+  functions, same-function exceptions and synchronous async/await complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -29,7 +29,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 3 — IR | [x] Complete |
 | Phase 4 — Native backend | [x] Complete |
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
-| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions done) |
+| Phase 6 — Language expansion | [~] In progress (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions, async/await done) |
 | Phase 7 — Compatibility | [ ] Not started |
 | Phase 8 — Optimization | [ ] Not started |
 | Phase 9 — Self-hosting | [ ] Not started |
@@ -39,7 +39,7 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 **Overall:** 6 of 12 implementation phases complete; Phase 6 is in progress
 (loops + jumps, syntax expansion, arrows, optional chaining, bigint, optional
 calls, generics, classes, unions/intersections, structural typing, modules,
-closures and exceptions delivered; async/await pending).
+closures, exceptions and async/await delivered; Phase 6 expansion complete).
 
 ---
 
@@ -212,17 +212,19 @@ limitations for every milestone.
 - [x] Closures, higher-order functions — first-class function values, shared
   captured bindings, nested closures, named function values and indirect calls;
   done 2026-11-24 (ADR-0027)
-- [ ] Async/await, promises
+- [x] Async/await, promises — synchronous promise values from `async function`
+  and `await` unwrapping; no event loop or combinators; done 2026-11-24 (ADR-0029)
 - [x] Exceptions (`throw`/`try`/`catch`/`finally`) — same-function handling with
   diagnosed unsupported cases; deferred from Phase 5, done 2026-11-24 (ADR-0028)
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings` and
-  `cargo test --workspace` (268 passed, 0 failed) succeed;
+  `cargo test --workspace` (277 passed, 0 failed) succeed;
   `examples/loops.ns`, `examples/for_of.ns`, `examples/break_continue.ns`,
   `examples/operators.ns`, `examples/arrows.ns`, `examples/optional.ns`,
   `examples/bigint.ns`, `examples/optional_call.ns`, `examples/generics.ns`,
   `examples/classes.ns`, `examples/unions.ns`, `examples/modules.ns`,
-  `examples/closures.ns` and `examples/exceptions.ns` run natively.
+  `examples/closures.ns`, `examples/exceptions.ns` and
+  `examples/async_await.ns` run natively.
 - **Exit condition:** larger compatibility suite passes (still pending — Phase 6
   is incomplete).
 
@@ -937,15 +939,38 @@ limitations for every milestone.
   native surfaces. Suite grew from 258 to 268 tests; fmt and clippy clean.
   All current-state documents were re-synced for this feature.
 
+### 2026-11-24 — Phase 6 (async/await increment)
+- Implemented the final Phase 6 expansion item: `async function`, `Promise<T>`
+  and `await` with synchronous promise values (ADR-0029). `async` wraps return
+  values in a one-slot runtime object (`__value`), and `await` reads that slot;
+  there is no suspension, event loop, microtask queue, `.then`/`.catch` or
+  `Promise.all`. All divergences are recorded in `COMPATIBILITY.md` §6.
+- `Promise<T>` resolves to a `Type::Promise` in the checker and an object type
+  in IR; `Promise<void>` maps to `void` so an async function with no return
+  produces valid IR. `await` in a non-async function is diagnosed, while
+  top-level await is allowed (module concatenation makes program scope the
+  equivalent of a module body).
+- Two-axis code review of `40972df...HEAD` (working tree) was applied: the
+  Standards axis asked for a private promise module and a single layout helper
+  instead of a magic `"__value"` string spread over four files, and for
+  out-of-context `await` diagnosis; the Spec axis found that `Promise<void>`
+  produced invalid IR and a spurious fallthrough diagnostic. Both were fixed
+  with IR/checker/codegen tests.
+- Moved promise layout/wrap/unwrap into private `ir/promises.rs` behind the
+  unchanged `lower` seam, keeping the touched files within ADR-0016 guidance.
+- Added `examples/async_await.ns` and tests across lexer/parser/typechecker/
+  IR/codegen/native surfaces. Suite grew from 268 to 277 tests; fmt and clippy
+  clean. All current-state documents were re-synced for the completed phase.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Continue Phase 6 (Language expansion) in the priority order defined in
-   `ROADMAP.md`: async/await and promises. Loops (including `break`/`continue`),
-   the additional literals/operators, arrow functions, optional chaining,
-   bigint, optional calls, generics, classes, unions/intersections, structural
-   typing, modules, closures (ADR-0027) and exceptions (ADR-0028) are done.
+1. All Phase 6 expansion tasks are done (loops, literals/operators, arrows,
+   optional chaining, bigint, optional calls, generics, classes,
+   unions/intersections, structural typing, modules, closures ADR-0027,
+   exceptions ADR-0028 and async/await ADR-0029). The remaining Phase 6 exit
+   condition is the larger Phase 7 compatibility suite.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
 3. Update this file after each completed task, using the phase exit protocol in
    `docs/ROADMAP.md`.

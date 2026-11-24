@@ -13,6 +13,11 @@ impl FunctionBuilder {
             ExprKind::BigInt(value) => Value::BigInt(*value),
             ExprKind::Bool(value) => Value::Bool(*value),
             ExprKind::Null => Value::Null,
+            ExprKind::Await(inner) => {
+                let inner_ty = lowerer.promise_inner_type(inner);
+                let promise = self.lower_expr(inner, lowerer);
+                self.unwrap_promise(promise, inner_ty)
+            }
             ExprKind::This | ExprKind::Super => self.lower_self(expr, lowerer),
             ExprKind::New { class, args } => self.lower_new(class, args, lowerer),
             ExprKind::SuperCall { args } => self.lower_super_call(expr, args, lowerer),

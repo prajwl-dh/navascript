@@ -268,6 +268,15 @@ impl<'a> Parser<'a> {
                     span,
                 });
             }
+            TokenKind::Await => {
+                self.bump();
+                let inner = self.parse_expr(0)?;
+                let end = self.previous_end(token.start as usize);
+                return Some(Expr {
+                    kind: ExprKind::Await(Box::new(inner)),
+                    span: Span::new(self.file, token.start as usize, end),
+                });
+            }
             TokenKind::Ident => return self.parse_primary_ident(&token),
             TokenKind::LBracket => {
                 self.bump();

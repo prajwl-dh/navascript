@@ -6,7 +6,10 @@ use navascript_ast::{
 use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{Subst, is_assignable, resolve_named_type, union_layout_error};
+use super::types::{
+    Subst, async_return_type, awaited_return_type, is_assignable, resolve_named_type,
+    union_layout_error,
+};
 
 use super::exceptions::ExceptionContext;
 
@@ -70,6 +73,7 @@ impl<'a> Checker<'a> {
     pub(super) fn check_function(&mut self, decl: &FunctionDecl) {
         self.symbols.enter_scope();
         let outer_exceptions: ExceptionContext = self.suspend_exception_context();
+        let outer_async = self.current_function_async.replace(decl.is_async);
         let subst = self.type_param_subst(&decl.type_params);
         for param in &decl.type_params {
             self.symbols.insert(Symbol {
@@ -92,14 +96,16 @@ impl<'a> Checker<'a> {
                 span: param.name.span,
             });
         }
-        let expected_ret = decl
+        let declared_ret = decl
             .return_ty
             .as_ref()
             .map(|annotation| self.resolve(&annotation.expr, &subst, decl.name.span))
             .unwrap_or_else(|| self.infer_return_type(&decl.body));
+        let expected_ret = awaited_return_type(&declared_ret, decl.is_async);
 
         self.check_block(&decl.body, Some(&expected_ret));
         self.restore_exception_context(outer_exceptions);
+        self.current_function_async = outer_async;
         self.symbols.leave_scope();
 
         // Refresh the *global* signature so later functions and IR lowering
@@ -115,7 +121,7 @@ impl<'a> Checker<'a> {
                 kind: SymbolKind::Function,
                 ty: Type::Function {
                     params,
-                    ret: Box::new(expected_ret),
+                    ret: Box::new(async_return_type(declared_ret, decl.is_async)),
                 },
                 span: decl.name.span,
             });

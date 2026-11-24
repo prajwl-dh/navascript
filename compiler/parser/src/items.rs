@@ -14,7 +14,15 @@ impl<'a> Parser<'a> {
             TokenKind::Let | TokenKind::Const | TokenKind::Var => {
                 ItemKind::Variable(self.parse_variable_decl()?)
             }
-            TokenKind::Function => ItemKind::Function(self.parse_function()?),
+            TokenKind::Function => ItemKind::Function(self.parse_function(false)?),
+            TokenKind::Async => {
+                self.bump(); // `async`
+                if self.kind() != TokenKind::Function {
+                    self.error("expected 'function' after 'async'", self.current_span());
+                    return None;
+                }
+                ItemKind::Function(self.parse_function(true)?)
+            }
             TokenKind::Class => ItemKind::Class(self.parse_class()?),
             TokenKind::Import => {
                 let (names, source, source_span) = self.parse_import()?;
@@ -68,7 +76,7 @@ impl<'a> Parser<'a> {
         Some(VariableDecl { name, ty, init })
     }
 
-    pub(super) fn parse_function(&mut self) -> Option<FunctionDecl> {
+    pub(super) fn parse_function(&mut self, is_async: bool) -> Option<FunctionDecl> {
         self.bump(); // `function`
         let name = self.parse_ident("expected a function name")?;
         let type_params = self.parse_decl_type_params()?;
@@ -81,6 +89,7 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?;
         Some(FunctionDecl {
             name,
+            is_async,
             type_params,
             params,
             return_ty,

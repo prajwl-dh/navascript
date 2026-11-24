@@ -34,7 +34,13 @@ impl FunctionBuilder {
         self.current = Some(current);
         match &statement.kind {
             StmtKind::Return(value) => {
-                let value = value.as_ref().map(|expr| self.lower_expr(expr, lowerer));
+                let value = value.as_ref().map(|expr| {
+                    let inner = self.lower_expr(expr, lowerer);
+                    match self.async_return.clone() {
+                        None => inner,
+                        Some(inner_ty) => self.wrap_in_promise(inner, inner_ty),
+                    }
+                });
                 // Expression lowering may have created new blocks (e.g. a
                 // ternary), so the return belongs to the current block.
                 let end = self.current.unwrap_or(current);

@@ -1,0 +1,17 @@
+// Async/await with synchronous promise values (Phase 6, ADR-0029).
+async function double(n: number): number {
+    return n * 2;
+}
+let p: Promise<number> = double(5);
+console.log(await p);
+console.log(await double(3));
+
+async function greet(): Promise<string> {
+    return "hello";
+}
+console.log(await greet());
+
+// Promises can be stored in collections and awaited later.
+let promises: Promise<number>[] = [double(1), double(2)];
+console.log(await promises[0]);
+console.log(await promises[1]);

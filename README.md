@@ -8,8 +8,8 @@ self-hosting.
 `break`/`continue`), the additional literals/operators, arrow functions,
 optional chaining, bigint literals, optional calls, generics, classes with
 inheritance, unions/intersections, full structural typing, modules,
-closures/higher-order functions and same-function exceptions are complete;
-async/await is pending.
+closures/higher-order functions, same-function exceptions and synchronous
+async/await are complete — Phase 6 is the last remaining expansion milestone.
 
 ## Goals (tracked independently)
 
@@ -62,7 +62,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 268 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions)
+cargo test --workspace     # 277 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions, async/await)
 target/debug/navascript --version
 target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
@@ -115,8 +115,11 @@ fibonacci printing `55` without Node.js — is verified by
 - Exceptions (`examples/exceptions.ns`) — `throw`/`try`/`catch`/`finally` with
    same-function handling; cross-function unwinding, abrupt control flow out of
    protected regions and unannotated catch bindings are diagnosed (ADR-0028).
+- Async/await (`examples/async_await.ns`) — `async function` returns a promise
+   value and `await` unwraps it synchronously; there is no event loop,
+   microtask queue, `.then`/`.catch` or `Promise.all` (ADR-0029).
 
-Still pending in Phase 6: async/await.
+All Phase 6 expansion items are now delivered.
 
 ## Documentation
 

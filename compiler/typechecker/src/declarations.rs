@@ -6,7 +6,7 @@ use navascript_ast::{Block, FunctionDecl, Ident, ItemKind, Stmt, StmtKind, TypeF
 use navascript_symbol::{Symbol, SymbolKind, Type};
 
 use super::checker::Checker;
-use super::types::{Subst, resolve_named_type, union_layout_error};
+use super::types::{Subst, async_return_type, resolve_named_type, union_layout_error};
 
 impl<'a> Checker<'a> {
     pub(super) fn collect_aliases(&mut self) {
@@ -133,6 +133,7 @@ impl<'a> Checker<'a> {
             .as_ref()
             .map(|annotation| self.resolve(&annotation.expr, &subst, decl.name.span))
             .unwrap_or(Type::Unknown);
+        let ret = async_return_type(ret, decl.is_async);
         for ty in &params {
             if let Some(message) = union_layout_error(ty, &self.aliases) {
                 self.error(message, decl.name.span);

@@ -631,6 +631,34 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0029 — Synchronous async/await and promises
+
+- **Date:** 2026-11-24
+- **Status:** Accepted (completes the Phase 6 expansion list)
+- **Context:** The final Phase 6 item is "Async/await and promises". Full
+  JavaScript promises require suspension, an event loop and a microtask queue;
+  none exist in the single-threaded native runtime. Adding them would be a
+  larger change than this increment, and a misleading partial implementation
+  would silently miscompile TypeScript (README working rule).
+- **Decision:** `async function` wraps every returned value in a promise object
+  with one `__value` slot; `await promise` reads that slot synchronously. The
+  layout and wrap/unwrap helpers live in private `ir/promises.rs` behind the
+  `lower` seam (ADR-0016). The checker adds a built-in `Promise<T>` generic and
+  a `Type::Promise` variant; the resolved type is recorded on function
+  signatures, and `Promise<void>` maps to `void` so an async function without a
+  return lowers cleanly. `await` is allowed at program scope (module
+  concatenation makes it the module body) and in async functions; elsewhere it
+  is diagnosed. Only `async function` declarations are parsed.
+- **Consequences:** `examples/async_await.ns` runs natively, including promises
+  stored in collections. There is **no** suspension, event loop, microtask
+  queue, `.then`/`.catch`, `Promise.resolve` or `Promise.all`; `async` arrows
+  and methods and out-of-context `await` are diagnosed, not silently accepted.
+  These gaps are recorded in `COMPATIBILITY.md` §6. Cross-frame unwinding and a
+  real scheduler remain deferred; ADR-0007 keeps this separate from the
+  TypeScript-compatibility and native-compilation goals.
+
+---
+
 ## Template for new decisions
 
 ```

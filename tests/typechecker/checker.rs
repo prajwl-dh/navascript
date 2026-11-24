@@ -717,6 +717,50 @@ fn infers_returns_inside_loops() {
 }
 
 #[test]
+fn type_checks_async_functions_and_await() {
+    let (output, _) = check_source(
+        "async function double(n: number): number { return n * 2; } let p: Promise<number> = double(3); let n = await p; console.log(await double(4));",
+    );
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn accepts_void_async_functions_and_diagnoses_out_of_context_await() {
+    let (output, _) = check_source("async function noop(): void {} noop();");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source(
+        "async function p(): number { return 1; } function sync(): number { return await p(); }",
+    );
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("await requires an async function"))
+    );
+}
+
+#[test]
+fn rejects_await_on_non_promises_and_async_return_mismatches() {
+    let (output, _) = check_source("console.log(await 1);");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("await requires a Promise"))
+    );
+    let (output, _) = check_source("async function f(): number { return \"bad\"; }");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("return type 'string' is not assignable"))
+    );
+    let (output, _) = check_source("let p: Promise<number> = 1;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("cannot assign 'number' to 'Promise<number>'"))
+    );
+}
+
+#[test]
 fn checks_throw_against_the_catch_type() {
     let (output, _) = check_source(
         "try { throw \"bad\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); }",

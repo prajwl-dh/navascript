@@ -268,7 +268,8 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   **Delivered 2026-11-24** (status in `PROGRESS.md`; ADR-0027).
 - Exceptions (`throw`/`try`/`catch`/`finally`), deferred from Phase 5 (ADR-0015).
   **Delivered 2026-11-24** (status in `PROGRESS.md`; ADR-0028).
-- Async/await and promises.
+- Async/await and promises — synchronous promise values. **Delivered 2026-11-24**
+  (status in `PROGRESS.md`; ADR-0029).
 
 **Tests**
 - Feature tests added per capability.
@@ -312,7 +313,10 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   (ADR-0028): a `throw` cannot cross a function boundary, `return`/`break`/
   `continue` out of protected regions and `throw` in catch/finally are
   diagnosed, catch bindings require a type annotation, and `try` requires a
-  catch clause. Iteration is limited to arrays/strings.
+  catch clause. Async/await is synchronous (ADR-0029): promises wrap a value in
+  an object slot and `await` reads it without suspending; there is no event
+  loop, microtask queue, `.then`/`.catch` or `Promise.all`, and `await` in a
+  non-async function is diagnosed. Iteration is limited to arrays/strings.
 
 ---
 

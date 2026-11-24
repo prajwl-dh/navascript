@@ -17,6 +17,8 @@ pub enum ExprKind {
     String(String),
     Bool(bool),
     Null,
+    /// `await promise` — unwraps a promise value (ADR-0029).
+    Await(Box<Expr>),
     Ident(String),
     /// `this` inside a class method.
     This,

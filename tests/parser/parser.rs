@@ -349,6 +349,21 @@ fn parses_optional_member_and_index() {
 }
 
 #[test]
+fn parses_async_functions_and_await_expressions() {
+    let output = ok(
+        "async function f(n: number): Promise<number> { return await g(n); } let p = f(1); console.log(await p);",
+    );
+    let navascript_ast::ItemKind::Function(f) = &output.program.items[0].kind else {
+        panic!("expected a function");
+    };
+    assert!(f.is_async);
+    let navascript_ast::StmtKind::Return(Some(value)) = &f.body.statements[0].kind else {
+        panic!("expected a return");
+    };
+    assert!(matches!(value.kind, navascript_ast::ExprKind::Await(_)));
+}
+
+#[test]
 fn parses_try_catch_finally_and_throw() {
     let output = ok(
         "try { throw \"boom\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); }",

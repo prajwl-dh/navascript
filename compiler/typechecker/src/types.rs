@@ -68,6 +68,28 @@ fn resolve(expr: &TypeExpr, aliases: &AliasTable, depth: u8) -> Type {
     }
 }
 
+/// Wrap an async function's declared/inferred return type in `Promise<T>`
+/// unless the annotation is already a promise (ADR-0029).
+pub(super) fn async_return_type(ret: Type, is_async: bool) -> Type {
+    if !is_async || matches!(ret, Type::Promise(_)) {
+        ret
+    } else {
+        Type::Promise(Box::new(ret))
+    }
+}
+
+/// The type `return` statements are checked against inside an async function.
+pub(super) fn awaited_return_type(ret: &Type, is_async: bool) -> Type {
+    if is_async {
+        match ret {
+            Type::Promise(inner) => (**inner).clone(),
+            other => other.clone(),
+        }
+    } else {
+        ret.clone()
+    }
+}
+
 /// Whether a value of `actual` may be used where `target` is expected.
 ///
 /// `Unknown` and `Error` are permissive so one bad expression does not cascade
@@ -122,6 +144,7 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
             })
         }
         (Type::Array(a), Type::Array(b)) => is_assignable(a, b, aliases),
+        (Type::Promise(a), Type::Promise(b)) => is_assignable(a, b, aliases),
         (Type::Object(target_fields), Type::Object(actual_fields)) => {
             target_fields.iter().all(|(name, expected)| {
                 match actual_fields.get(name) {
@@ -307,6 +330,7 @@ pub fn substitute(ty: &Type, subst: &Subst) -> Type {
                 .collect(),
             ret: Box::new(substitute(ret, subst)),
         },
+        Type::Promise(inner) => Type::Promise(Box::new(substitute(inner, subst))),
         _ => ty.clone(),
     }
 }

@@ -21,6 +21,7 @@ mod loops;
 mod lower;
 mod operators;
 mod print;
+mod promises;
 mod results;
 mod statements;
 mod values;

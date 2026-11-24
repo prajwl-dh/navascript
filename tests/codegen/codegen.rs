@@ -191,6 +191,20 @@ fn emits_monomorphized_generic_functions() {
 }
 
 #[test]
+fn emits_promise_objects_for_async_functions_and_await() {
+    let ir = generate_source(
+        "async function double(n: number): number { return n * 2; } console.log(await double(3));",
+    );
+    assert!(
+        ir.contains("define ptr @navascript_double(double %p0)"),
+        "{ir}"
+    );
+    assert!(ir.contains("navascript_object_new"), "{ir}");
+    assert!(ir.contains("navascript_object_set_f64"), "{ir}");
+    assert!(ir.contains("navascript_object_get_f64"), "{ir}");
+}
+
+#[test]
 fn emits_indirect_calls_for_function_values() {
     let ir = generate_source(
         "function apply(f: (n: number) => number, n: number): number { return f(n); } let g = (x: number): number => x + 1; console.log(apply(g, 4));",

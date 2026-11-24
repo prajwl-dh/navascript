@@ -21,9 +21,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
   `true`, `false`, `null`, `void`, `type`, `interface`, `import`, `export`,
   `class`, `extends`, `new`, `this`, `super`, `while`, `do`, `for`, `break`,
-  `continue`, `throw`, `try`, `catch`, `finally`.
-- [ ] Keywords `switch`, `async`, `await` (their features are unimplemented;
-  not yet recognized by the lexer). `of` in `for-of` and `from` in imports are
+  `continue`, `throw`, `try`, `catch`, `finally`, `async`, `await`.
+- [ ] Keyword `switch` (its feature is unimplemented; not yet recognized by the
+  lexer). `of` in `for-of` and `from` in imports are
   contextual, not keywords.
 - [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
 - [x] Numeric literals: decimal integers and floats (including exponents),
@@ -126,6 +126,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Arrow functions (Phase 6) — `x => expr`, `(a, b) => expr`,
   `(a: T): R => { ... }`; any expression position, with annotated parameters.
   Unannotated shorthand arrows are diagnosed by the checker.
+- [x] `await promise` (Phase 6; ADR-0029) — unwraps a promise synchronously in
+  an async function or at program scope; `await` in a non-async function is
+  diagnosed.
 - [x] Closures / captured environments (Phase 6; ADR-0027) — captured bindings
   are shared cells, so closures observe assignments in the enclosing frame and
   vice versa; nested closures share the same cell. `this` is captured by value.
@@ -167,7 +170,10 @@ and the intent to grow toward broad compatibility. Status values mirror
   parameters, returns, arrays and object fields and are called via an indirect
   ABI. Recursive self-capture of an arrow binding is unsupported; use a named
   function.
-- [ ] Async functions and promises (Phase 6)
+- [x] Async functions and promises (Phase 6; ADR-0029) — `async function`
+  returns `Promise<T>`, `await` unwraps it. Promises are synchronous values:
+  no suspension, event loop, `.then`/`.catch` or `Promise.all`; only named
+  async functions are parsed.
 
 ## 7. Modules
 
@@ -191,6 +197,8 @@ and the intent to grow toward broad compatibility. Status values mirror
   a code pointer and captured bindings; closures receive the object as a hidden
   parameter and use the typed object slot accessors. Allocations live in the
   program-lifetime arena.
+- [x] Promises (Phase 6, ADR-0029) — one-slot runtime objects produced by
+   `async function`; `Promise<void>` lowers to `void`. No runtime scheduler.
 - [x] Exceptions (Phase 6, ADR-0028) — same-function `throw`/`try`/`catch`/
   `finally` work natively; the catch type constrains thrown values. Runtime
   bounds/field errors still terminate the process (they are not catchable).

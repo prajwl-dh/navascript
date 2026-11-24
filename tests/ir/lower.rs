@@ -712,6 +712,40 @@ fn try_catch_finally_lowers_to_branches_and_a_value_slot() {
 }
 
 #[test]
+fn async_returns_wrap_values_and_await_unwraps_them() {
+    let source =
+        "async function double(n: number): number { return n * 2; } console.log(await double(3));";
+    let (module, _) = lower_source(source);
+    assert!(navascript_ir::verify(&module).is_empty());
+    let function = module.function("double").expect("async function");
+    assert_eq!(
+        function.return_ty,
+        navascript_ir::IrType::Object(vec![("__value".to_owned(), navascript_ir::IrType::Number)])
+    );
+    let main = module.function("main").expect("main");
+    assert!(main.blocks.iter().any(|block| {
+        block.instructions.iter().any(|instruction| {
+            matches!(
+                instruction,
+                Instruction::ObjectGet {
+                    field_index: 0,
+                    field_ty: navascript_ir::IrType::Number,
+                    ..
+                }
+            )
+        })
+    }));
+}
+
+#[test]
+fn void_async_functions_have_a_void_return_type() {
+    let (module, _) = lower_source("async function noop(): void {} noop();");
+    assert!(navascript_ir::verify(&module).is_empty());
+    let function = module.function("noop").expect("async void function");
+    assert_eq!(function.return_ty, navascript_ir::IrType::Void);
+}
+
+#[test]
 fn resolved_alias_catch_types_lower_to_concrete_slots() {
     let source =
         "type Failure = string; try { throw \"bad\"; } catch (e: Failure) { console.log(e); }";

@@ -15,6 +15,25 @@ impl<'a> Checker<'a> {
             ExprKind::String(_) => Type::String,
             ExprKind::Bool(_) => Type::Boolean,
             ExprKind::Null => Type::Null,
+            ExprKind::Await(inner) => {
+                if self.current_function_async == Some(false) {
+                    self.error(
+                        "await requires an async function (or program scope)",
+                        expr.span,
+                    );
+                }
+                let ty = resolve_named_type(&self.infer_expr(inner), &self.aliases);
+                match ty {
+                    Type::Promise(value) => *value,
+                    other => {
+                        self.error(
+                            format!("await requires a Promise, found '{}'", other.display()),
+                            expr.span,
+                        );
+                        Type::Error
+                    }
+                }
+            }
             ExprKind::This | ExprKind::Super => {
                 let name = if matches!(expr.kind, ExprKind::This) {
                     "this"

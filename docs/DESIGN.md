@@ -20,15 +20,15 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 Status: **accepted and implemented through Phase 6 (loops with
 `break`/`continue`, additional literals/operators, arrow functions, optional
 chaining, bigint, optional calls, generics, classes, unions, structural typing,
-modules, closures and same-function exceptions)**. The front-end seam (`parse`),
+modules, closures, same-function exceptions and synchronous async/await)**. The front-end seam (`parse`),
 the shared diagnostics leaf, the type-checker seam (`check`), the IR seam
 (`lower`) and the backend seam (`generate`) are all in use by the driver pipeline
 and covered by tests in `tests/`. Loop, operator, call, optional-access, bigint,
 generic, class, closure and exception lowering live in private implementation
 modules (`ir/loops.rs`, `ir/for_of.rs`, `ir/operators.rs`, `ir/calls.rs`,
 `ir/results.rs`, `ir/values.rs`, `ir/generics.rs`, `ir/classes.rs`,
-`ir/closures.rs`, `ir/closure_names.rs`, `ir/bindings.rs`, `ir/exceptions.rs`)
-behind the unchanged `lower` seam; bigint, generic, class and exception typing
+`ir/closures.rs`, `ir/closure_names.rs`, `ir/bindings.rs`, `ir/exceptions.rs`,
+`ir/promises.rs`) behind the unchanged `lower` seam; bigint, generic, class and exception typing
 live in `typechecker/bigint.rs`, `typechecker/generics.rs`,
 `typechecker/exceptions.rs`, `typechecker/classes.rs`,
 `typechecker/class_check.rs` and `typechecker/narrowing.rs`.

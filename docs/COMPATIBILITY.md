@@ -15,7 +15,8 @@ and fatal error reporting; Phase 6 has delivered loops with
 escapes), arrow functions, optional member/index chaining, bigint literals and
 optional calls, generics, classes, unions/intersections, full structural
 typing, modules, closures/higher-order functions (ADR-0027) and same-function
-exceptions (ADR-0028). Async/await is still pending.
+exceptions (ADR-0028) and synchronous async/await (ADR-0029). All Phase 6
+expansion items are delivered.
 
 ## 1. Syntax
 
@@ -49,7 +50,7 @@ exceptions (ADR-0028). Async/await is still pending.
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
 | Unions / intersections | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; nullable reference unions, intersection field merging, `== null`/`!= null` narrowing; mixed-representation unions are diagnosed (ADR-0025) |
 | Modules (`import`/`export`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; import-graph resolution from the entry file with validated exports; one module-wide namespace, relative `.ns` paths only; diagnostics rendered against combined source (ADR-0026) |
-| Async/await, promises | [ ] | — | Phase 6 |
+| Async/await, promises | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; `async function` returns a `Promise<T>` object and `await` unwraps it synchronously; no suspension, event loop, combinators or `.then`/`.catch` (ADR-0029) |
 | Decorators | [-] | — | Deferred; not in initial scope |
 | JSX (NavaScript `.nsx`, TypeScript `.tsx`) | [-] | — | Deferred |
 
@@ -68,6 +69,7 @@ exceptions (ADR-0028). Async/await is still pending.
 | Assignability checks | [x] | `tests/typechecker/` | assignments, arguments, returns |
 | Structural typing | [x] | `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; union/intersection-aware assignability, optional properties, merged intersection layouts, class instances |
 | Generics | [x] | `tests/typechecker/`, `tests/ir/` | Phase 6; generic parameters unify with argument types; annotated generic references (`Box<number>`) resolve to concrete object types; bad references are diagnosed |
+| `Promise<T>` | [~] | `tests/typechecker/`, `tests/ir/`, `tests/codegen/` | Phase 6; built-in generic resolving to a one-slot object (`Promise<void>` is `void`); values come from `async function`, not `Promise.resolve` (ADR-0029) |
 | `any` / `unknown` | [ ] | — | Restricted semantics TBD |
 | Conditional / mapped types | [-] | — | Long-term |
 
@@ -80,6 +82,7 @@ exceptions (ADR-0028). Async/await is still pending.
 | Strings | [x] | `tests/driver/native.rs` | literal, `+`, `length`, indexing, `==`, `console.log` |
 | Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
 | Closures / function values | [x] | `tests/driver/native.rs`, `examples/closures.ns` | Phase 6; shared captured bindings, higher-order calls and nested closures run natively (ADR-0027) |
+| Async/await | [~] | `tests/driver/native.rs`, `examples/async_await.ns` | Phase 6; `async function` and `await` run natively with synchronous promise values (ADR-0029) |
 | Exceptions | [~] | `tests/driver/native.rs`, `examples/exceptions.ns` | Phase 6; same-function `throw`/`try`/`catch`/`finally` run natively without a runtime ABI (ADR-0028); runtime bounds/field errors are still fatal |
 | `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
 | Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
@@ -135,3 +138,7 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Catch bindings | a type annotation is required and constrains throw types, unlike JavaScript's untyped `catch (e)` | deferred |
 | Runtime errors | bounds/field/runtime failures still terminate the process; they are not catchable exceptions | deferred |
 | `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | deferred |
+| Asynchronous suspension | promises are synchronous values; there is no event loop, microtask queue or suspension at `await` (ADR-0029) | deferred |
+| Promise combinators and methods | `.then`, `.catch`, `Promise.resolve` and `Promise.all` are not provided; promises come from `async function` only | deferred |
+| Async arrows and methods | only `async function` declarations are parsed; `async` arrows/methods are diagnosed | deferred |
+| `await` context | top-level and async-function `await` are supported; `await` in a non-async function is diagnosed | Phase 6 (documented) |

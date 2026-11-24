@@ -166,6 +166,16 @@ impl<'a> Lowerer<'a> {
             .collect();
         let return_ty = ir_type_from_symbol(&ret_ty, &self.current_subst);
         let mut builder = FunctionBuilder::new(name, params, return_ty.clone());
+        if decl.is_async {
+            if let IrType::Object(fields) = &return_ty {
+                if let Some((_, inner)) = fields
+                    .iter()
+                    .find(|(name, _)| name == super::promises::VALUE_FIELD)
+                {
+                    builder.async_return = Some(inner.clone());
+                }
+            }
+        }
         builder.set_captured_names(captures_in_block(&decl.body));
 
         let entry = builder.function.entry;
@@ -341,6 +351,7 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
                 .collect(),
             ret: Box::new(ir_type_from_symbol(ret, subst)),
         },
+        Type::Promise(inner) => super::promises::promise_type(ir_type_from_symbol(inner, subst)),
         Type::Array(inner) => IrType::Array(Box::new(ir_type_from_symbol(inner, subst))),
         Type::Object(fields) => IrType::Object(
             fields

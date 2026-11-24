@@ -125,6 +125,7 @@ impl FreeNameCollector {
                 self.expr(left);
                 self.expr(right);
             }
+            ExprKind::Await(operand) => self.expr(operand),
             ExprKind::Unary { operand, .. }
             | ExprKind::Update { operand, .. }
             | ExprKind::Member {
