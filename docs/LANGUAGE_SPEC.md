@@ -19,11 +19,13 @@ and the intent to grow toward broad compatibility. Status values mirror
 ## 2. Lexical structure
 
 - [x] Keywords: `let`, `const`, `var`, `function`, `return`, `if`, `else`,
-  `true`, `false`, `null`, `void`, `type`, `interface`, `while`, `do`, `for`,
-  `break`, `continue`.
+  `true`, `false`, `null`, `void`, `type`, `interface`, `import`, `export`,
+  `class`, `extends`, `new`, `this`, `super`, `while`, `do`, `for`, `break`,
+  `continue`.
 - [ ] Keywords `switch`, `async`, `await`, `throw`,
   `try`, `catch`, `finally` (their features are unimplemented; not yet
-  recognized by the lexer). `of` in `for-of` is contextual, not a keyword.
+  recognized by the lexer). `of` in `for-of` and `from` in imports are
+  contextual, not keywords.
 - [x] Identifiers: Unicode letters, `_`, `$`, then alphanumeric/`_`/`$`.
 - [x] Numeric literals: decimal integers and floats (including exponents),
   hex (`0x`), binary (`0b`) and octal (`0o`) integers, and `_` separators.
@@ -37,10 +39,11 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Operators: arithmetic (`+ - * / % **`), comparison (`== === != !== < <=
   >= >`), logical (`&& ||`), unary (`! - + ++ --`), assignment (`=`), compound
   assignment (`+= -= *= /= %=`), ternary (`?:`), and `=>` in function *type
-  annotations*.
+  annotations* and arrow expressions.
 - [x] Optional chaining (`a?.b`, `a?.[i]`) — Phase 6; reference-typed results
-  only. The null branch is currently unobservable because no null object/array
-  can be constructed; the result is typed as `T` until union types land.
+  only. Lowering emits an `IsNull` branch, but the checker rejects a nullable
+  receiver (`T | null`), so `?.` cannot observe null yet; narrowing on
+  `b != null` does work (ADR-0025).
 - [x] Optional calls (`a?.()`) — Phase 6; parsed and type-checked for callability
   and arity. Named callees lower as direct calls; function values lower as
   indirect calls (ADR-0027). No null branch is emitted because NavaScript has no
@@ -62,8 +65,9 @@ and the intent to grow toward broad compatibility. Status values mirror
   `length`, indexing and equality work natively.
 - [x] `void`
 - [~] `null` — type-checks and prints as `null`; usable as the null member of a
-  nullable reference union (`string | null`), where narrowing and `?.` observe
-  it. A bare inferred `null` still cannot be lowered (its IR type is opaque).
+  nullable reference union (`string | null`), where narrowing observes it.
+  `?.` on a nullable receiver is currently diagnosed. A bare inferred `null`
+  still cannot be lowered (its IR type is opaque).
 - [ ] `undefined` — not yet implemented.
 
 ### Composites (Phase 2 type checking; native layout in Phase 5)
@@ -109,7 +113,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 - [x] Literals (number, bigint, string, boolean, null), identifiers
 - [x] Binary/unary operators with TypeScript precedence
-- [x] Function calls (direct calls lower and link natively)
+- [x] Function calls (named functions lower as direct calls; function values
+  lower as indirect calls — ADR-0027)
 - [x] Member access `obj.prop` (parsed, type-checked, lowered; native field
   layout works — Phase 5)
 - [x] Array indexing `arr[i]` (parsed, type-checked; native indexing works — Phase 5)
@@ -125,7 +130,7 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Closures / captured environments (Phase 6; ADR-0027) — captured bindings
   are shared cells, so closures observe assignments in the enclosing frame and
   vice versa; nested closures share the same cell. `this` is captured by value.
-- [ ] Template literals (Phase 6)
+- [ ] Template literals (deferred beyond Phase 6)
 - [x] Ternary `cond ? a : b` (Phase 6)
 - [x] Exponentiation `a ** b` (right-associative, Phase 6)
 - [x] Compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`) and `++`/`--`

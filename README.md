@@ -92,7 +92,6 @@ fibonacci printing `55` without Node.js — is verified by
   (`examples/arrows.ns`, `examples/closures.ns`; ADR-0027).
 - Optional chaining `a?.b` / `a?.[i]` for reference-typed results
   (`examples/optional.ns`).
-
 - Bigint literals (`123n`, `0xffn`, `1_000n`) as a `bigint` type backed by a
    signed 64-bit integer, with integer arithmetic, comparisons, `++`/`--`,
    bigint arrays/objects and `console.log` (`examples/bigint.ns`).

@@ -113,7 +113,7 @@ diagnostics or a type checker streaming into the same sink).
 | Option | Why not |
 | --- | --- |
 | Facade in `navascript_driver::front_end` | Couples the front end to the CLI crate; a future language server would depend on the driver. |
-| `parse(&[Source], &mut dyn DiagnosticSink)` now | Larger interface before a second adapter or a module system exists. |
+| `parse(&[Source], &mut dyn DiagnosticSink)` now | Larger interface before a second adapter exists; Phase 6 modules concatenate sources instead (ADR-0026). |
 | `FileId`-threading through every phase now | Phase 6 modules concatenate files into one program and still parse with `FileId(0)`; per-file spans/diagnostics remain deferred (ADR-0026). `Span` already carries `FileId`, so the change is contained when it arrives. |
 | Flags/options for recovery policy or incremental ranges | Speculative generality; use a separate function when a real second caller appears. |
 

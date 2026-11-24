@@ -374,12 +374,14 @@ a new number and references the old one. Keep entries short and factual.
 - **Consequences:** Existing `==`/`!=` semantics are untouched. Since no
   nullable object/array value can currently be constructed, the null branch is
   unobservable at the time, and results were typed `T` until unions landed in
-  ADR-0025 (which made the null branch observable for nullable references).
+  ADR-0025 (which made null tests and narrowing observable; a nullable `?.`
+  receiver is still diagnosed).
   Optional calls `a?.()` were added in ADR-0022: the
-  AST records the `optional` flag, but lowering treats them as direct calls
-  because a statically named function cannot be null — no null branch is
-  emitted. This is a documented limitation, not a silent miscompile; callability
-  and arity are still checked, so `null?.()` is diagnosed.
+  AST records the `optional` flag; named callees lower as direct calls and
+  function values as indirect calls (ADR-0027). No null branch is emitted
+  because callable values cannot be null. This is a documented limitation, not
+  a silent miscompile; callability and arity are still checked, so `null?.()` is
+  diagnosed. A nullable `?.` receiver is likewise diagnosed (see ADR-0025).
 
 ---
 
@@ -425,13 +427,14 @@ a new number and references the old one. Keep entries short and factual.
   power call checked runtime helpers (`runtime/bigint/bigint.c`) that diagnose
   zero divisors, negative exponents and overflowing powers. Bigint arrays and
   objects use new i64 slot accessors. Optional calls are parsed as `Call` with
-  an `optional` flag, share direct-call type checking, and lower as direct calls
-  (see ADR-0020). Shared call-tail parsing lives in `parser/calls.rs`; shared
+  an `optional` flag and share call type checking; at the time they lowered as
+  direct calls (see ADR-0020), and ADR-0027 added indirect calls for function
+  values. Shared call-tail parsing lives in `parser/calls.rs`; shared
   instruction result-type logic lives in `ir/results.rs` and is used by both the
   verifier and codegen.
 - **Consequences:** Bigint is *not* arbitrary precision; mixing it with `number`
   is diagnosed rather than coerced, and `+ - *` wrap on overflow. Optional calls
-  have no null branch until first-class callable values exist. The unified
+  have no null branch because callable values cannot be null (ADR-0027). The unified
   result-type mapping also corrected a pre-existing `And`/`Or` divergence
   between verifier and codegen. Arbitrary precision and nullable callables
   remain out of scope; first-class functions were delivered later in Phase 6 by
@@ -517,7 +520,9 @@ a new number and references the old one. Keep entries short and factual.
   not share a runtime representation, and rejects nullable primitives; only
   nullable reference types (`T | null`) are lowered. For those, the IR uses the
   reference member's pointer representation and the existing `IsNull`
-  instruction, so the null branch of `a?.b` is now observable. Optional object
+  instruction, so null tests and narrowing are observable. The checker does not
+  yet accept a nullable receiver for `a?.b`, so that branch is emitted but not
+  reachable through `?.` (recorded in `COMPATIBILITY.md`). Optional object
   properties resolve to `T | null` and may be omitted; omitted fields are
   initialized to null (references) or zero (scalars). Intersections merge their
   object fields in sorted order so member indices match object literals.

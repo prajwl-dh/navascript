@@ -70,7 +70,8 @@ Before a phase is marked complete in `PROGRESS.md`:
   ADR-0008 and ADR-0004.
 - CMake/Ninja were not installed at the time and are not required by the chosen
   LLVM path; both were installed on 2026-11-21 for future C++/CMake work.
-- CI workflow exists but has not been exercised outside this machine yet.
+- At Phase 0 the CI workflow had not been exercised outside this machine; CI
+  now installs LLVM on the macOS runner and runs fmt, clippy and the full suite.
 
 ---
 
@@ -116,8 +117,8 @@ Before a phase is marked complete in `PROGRESS.md`:
 **Known limitations**
 - No type checking yet — resolved in Phase 2.
 - No classes, generics, interfaces, modules, loops — interfaces, type aliases
-  and type checking landed in Phase 2; loops were delivered in Phase 6;
-  classes, generics and modules remain Phase 6/7.
+  and type checking landed in Phase 2; loops, classes, generics, unions, modules
+  and closures were delivered in Phase 6 (see `PROGRESS.md`).
 - JSX (`.nsx`) not supported.
 - No `DiagnosticSink` trait yet: only one adapter exists (the returned value).
 - Multi-file parsing is deferred; `Span` carries `FileId(0)` for now.
@@ -146,7 +147,8 @@ Before a phase is marked complete in `PROGRESS.md`:
 - Correctly type-checks a meaningful subset of TypeScript.
 
 **Known limitations**
-- No generics, unions/intersections, structural typing, or overloads yet.
+- No overloads yet; generics, unions/intersections and structural typing were
+  delivered in Phase 6 (see `PROGRESS.md`).
 - `any`/`unknown` semantics deliberately restricted.
 
 ---
@@ -281,10 +283,12 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   literals/operators, arrow functions, optional member/index chaining, bigint,
   optional calls, generics, classes, modules and closures (see `PROGRESS.md`).
   Arrows require annotated parameters but may appear in any expression position;
-  captures are shared cells. Optional chaining is limited to reference-typed
-  results and cannot be observed as null yet. Optional calls lower as direct
-  calls for named functions and indirect calls through function values, with no
-  null branch because there are no nullable callable values. Bigint is
+  captures are shared cells. Optional chaining emits an `IsNull` branch but is
+  limited to reference-typed results; a nullable receiver (`T | null`) is
+  diagnosed by the checker, so `?.` cannot observe null yet (narrowing on
+  `b != null` does work). Optional calls lower as direct calls for named
+  functions and indirect calls through function values, with no null branch
+  because there are no nullable callable values. Bigint is
   backed by a signed 64-bit integer: `+ - *` wrap on overflow while division,
   modulo and power are checked; arbitrary precision is out of scope. Generics
   cover functions and interfaces only: generic type aliases are out of scope,

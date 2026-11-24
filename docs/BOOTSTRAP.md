@@ -26,9 +26,9 @@ Stage 2  nova2 (NavaScript compiler)
   with Cargo and is the only artifact that depends on Rust.
 - **Stage 1 (`nova1`):** the first compiler written in NavaScript, produced by
   `nova0`. At this point most/all compiler components are NavaScript source.
-- **Stage 2 (`nova2`) / Stage 3 (`nova3`):** produced entirely by NavaScript
-  compilers. Comparing behavior and outputs across these stages verifies the
-  bootstrap.
+- **Stage 1 (`nova1`) produces `nova2`; Stage 2 (`nova2`) produces `nova3`:**
+  `nova2` and `nova3` are produced entirely by NavaScript compilers. Comparing
+  behavior and outputs across these stages verifies the bootstrap.
 
 Artifacts and sources will live under `bootstrap/stage0`, `bootstrap/stage1`,
 and `bootstrap/stage2`. These directories do not exist yet — the empty

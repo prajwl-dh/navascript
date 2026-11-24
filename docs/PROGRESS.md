@@ -176,7 +176,7 @@ limitations for every milestone.
 - [x] Arrays: literals, indexing, assignment, `length` (numbers, booleans, refs)
 - [x] Objects: literals, field get/set with runtime field validation
 - [x] Runtime error reporting (fatal bounds/field errors with clear messages)
-- [ ] Closures / function values — deferred from Phase 5 to Phase 6; delivered there by ADR-0027 on 2026-11-24
+- [x] Closures / function values — deferred from Phase 5, delivered in Phase 6 by ADR-0027 on 2026-11-24
 - [ ] Exceptions (`throw`/`try`) — deferred from Phase 5 to Phase 6, still pending (ADR-0015)
 - **Exit condition met:** nontrivial programs using strings, collections and
   objects run natively without Node.js; runtime errors are reported.
@@ -229,8 +229,8 @@ limitations for every milestone.
 - [ ] Harness against official `tsc`
 - [ ] Type checking / inference / runtime behavior tests
 - [ ] Module resolution, stdlib, JS interop tests
-- [ ] Measured compatibility report
-- [ ] Unsupported-feature list
+- [ ] Measured compatibility report (the unsupported-feature register already
+  exists in `COMPATIBILITY.md` §6; the measured report and counts are pending)
 - **Exit condition:** reproducible compatibility report exists.
 
 ### Phase 8 — Optimization
@@ -823,8 +823,10 @@ limitations for every milestone.
   layouts. Optional properties (`field?: T`) resolve to `T | null` and omitted
   reference fields are initialized to null (ADR-0025).
 - Null narrowing in `if`, `while`, logical conditions and branch bodies, backed
-  by the existing `IsNull` instruction — the null branch of `a?.b` is now
-  observable for nullable reference types.
+  by the existing `IsNull` instruction. At the time this was expected to make the
+  null branch of `a?.b` observable for nullable references; a later audit found
+  the checker still rejects nullable `?.` receivers (see the 2026-11-24 audit
+  entry below).
 - Two-axis code review of `b251e15...HEAD` (working tree) was applied: rejected
   unions with mixed runtime representations and nullable primitives (they
   previously produced invalid IR), fixed order-sensitive union assignability,
@@ -886,6 +888,27 @@ limitations for every milestone.
 - Added `examples/closures.ns`. Suite grew from 248 to 258 tests;
   fmt and clippy clean. All current-state documents were re-synced; earlier
   work-log entries describe the state at their respective dates.
+
+### 2026-11-24 — Full documentation accuracy audit
+- Re-read all 11 documents (README, nine `docs/` files and `runtime/README.md`)
+  and cross-checked every current-state claim against the code, tests, examples
+  and toolchain. Verified: 258 tests, 11 workspace crates, 16 explicit test
+  targets, all documented tool versions, CLI commands, build pipeline and ADR
+  numbering/statuses.
+- Fixed the contradictory Phase 5 closure checkbox, the stale Phase 1/Phase 2
+  roadmap limitations, and the "CI has not been exercised outside this machine"
+  note (CI now installs LLVM on the macOS runner).
+- Corrected an overclaim shared by `LANGUAGE_SPEC.md`, `COMPATIBILITY.md`,
+  `ROADMAP.md` and ADR-0025: the IR emits an `IsNull` branch for `?.`, but the
+  checker rejects a nullable receiver (`T | null`), so the null branch is not
+  reachable through `?.` yet. Narrowing on `b != null` does work. The gap is
+  now recorded in the unsupported-features register.
+- Updated the keyword list (modules/classes keywords are real tokens), arrow
+  and function-call descriptions, the native-test feature list, the bootstrap
+  stage wording, the runtime ABI description and the ADR-0020/0022 optional-call
+  notes for indirect calls through function values.
+- No compiler code changed; `cargo test --workspace` still passes 258 tests,
+  fmt and clippy remain clean.
 
 ---
 

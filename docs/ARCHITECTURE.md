@@ -92,9 +92,10 @@ interface. A change to a module must be accompanied by its tests passing
 6. **LLVM → object → executable:** target-specific emission + system linker.
 
 The runtime defines an ABI contract that codegen must honor (layout of strings,
-arrays and objects; runtime errors are fatal, so there is no exception ABI). This
-contract is versioned in `runtime/README.md`, and exercised by
-`tests/runtime/runtime_test.c` plus the end-to-end collection tests.
+arrays, objects and closure environments; runtime errors are fatal, so there is
+no exception ABI). This contract is documented in `runtime/README.md` and
+exercised by `tests/runtime/runtime_test.c` plus the end-to-end collection and
+closure tests.
 
 ## 4. LLVM strategy
 

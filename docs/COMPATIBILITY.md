@@ -34,7 +34,7 @@ async/await are still pending.
 | Bigint literals (`123n`) | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; radix/separator forms decode to a signed 64-bit value; out-of-range and fractional suffixes are diagnosed; i64 arithmetic/comparisons and `console.log` work natively |
 | Non-ASCII identifiers | [x] | `tests/lexer/` | Phase 6 |
 | `\x`/`\u` string escapes | [x] | `tests/lexer/`, `tests/parser/` | Phase 6 (`\xNN`, `\uNNNN`, `\u{...}`) |
-| Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; the null branch is observable for `T | null` receivers (ADR-0025), but scalar results are still diagnosed and `undefined` does not exist |
+| Optional chaining (`?.`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; `a?.b`/`a?.[i]` with reference-typed results; IR emits an `IsNull` branch, but a nullable receiver (`T | null`) is diagnosed by the checker, so the null branch is not reachable through `?.` yet (ADR-0025); scalar results are diagnosed and `undefined` does not exist |
 | Optional call (`a?.()`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; type-checked for callability/arity; named callees lower as direct calls and function values as indirect calls (ADR-0027); no null branch because NavaScript has no nullable callable values |
 | Arrow functions | [~] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; any expression position, annotated parameters required, shared captures and first-class values (ADR-0027); unannotated shorthand arrows are diagnosed |
 | Function type annotations (`(n: T) => R`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolved to `Type::Function`/`IrType::Function`; usable in variables, parameters, returns, arrays and object fields |
@@ -113,20 +113,21 @@ Maintain this list so gaps are explicit and never silently miscompiled:
 | Full `lib.d.ts` | large surface | long-term |
 | Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
 | `eval` / dynamic code | incompatible with native model | not planned |
-| `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | Phase 6 |
+| `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | deferred |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect call signatures | calls through function values cast the code pointer to the statically known signature; a mismatched function type is diagnosed by the checker, not converted at runtime | Phase 6 (documented) |
 | Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
-| Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | Phase 6 (pending) |
+| Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | deferred (ADR-0026) |
 | `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | Phase 7 |
-| Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | Phase 6 (pending) |
+| Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | deferred (ADR-0026) |
 | Mixed-representation unions | `number | string` and nullable primitives are diagnosed because values are unboxed and untagged | Phase 6 (diagnosed, not miscompiled) |
-| Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | Phase 6 (pending) |
+| Optional chaining on nullable receivers | IR emits `IsNull`, but the checker rejects `T | null` receivers; narrowing on `b != null` works | deferred |
+| Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | deferred |
 | Optional non-reference field defaults | omitted optional numeric/bigint/boolean fields are zero-initialized rather than `undefined` | Phase 6 (documented) |
-| Virtual method dispatch | class methods are mangled direct calls; a base-typed reference calls the base implementation | Phase 6 (pending) |
-| Class field initialisers | fields are declared without initialisers; assign them in a constructor | Phase 6 (pending) |
+| Virtual method dispatch | class methods are mangled direct calls; a base-typed reference calls the base implementation | deferred (ADR-0024) |
+| Class field initialisers | fields are declared without initialisers; assign them in a constructor | deferred (ADR-0024) |
 | Recursion via a captured arrow binding | a `const`/`let` arrow binding is not initialised when the arrow is created, so self-capture is unsupported; use a named function | Phase 6 (documented) |
 | Nullable function values | optional calls have no null branch because a callable value cannot be null; `console.log` of a function value is diagnosed | Phase 6 (documented) |
 | Nested function types in annotations | `() => (() => number)` hits a parser ambiguity; introduce a type alias (`type F = () => number`) instead | Phase 6 (documented) |
 | `throw` / `try` / `catch` / `finally` | not parsed; runtime errors terminate the process | Phase 6 (pending) |
-| `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | Phase 6 (pending) |
+| `for-of` over general iterables | only arrays and strings are lowered (index-based); objects and custom iterables are unsupported | deferred |
