@@ -63,7 +63,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 299 tests after the pre-bootstrap audit
+cargo test --workspace     # 304 tests through Phase 8.1
 python3 -m unittest discover -s tests/compatibility -p 'test_*.py'  # 8 harness tests
 python3 -m unittest discover -s tests/benchmark -p 'test_*.py'      # 4 harness tests
 python3 scripts/compat.py   # regenerate docs/COMPATIBILITY_REPORT.md (needs tsc + node)
@@ -147,6 +147,7 @@ outputs, ADR-0031).
 - `docs/COMPATIBILITY_REPORT.md` — measured, reproducible Phase 7 results.
 - `docs/BENCHMARKS.md` — Phase 8 baseline/optimized results.
 - `docs/PREBOOTSTRAP_AUDIT.md` — audit findings, fixes and remaining long-term gaps.
+- Phase 8.1 adds `any`, tagged unions, conservative GC and per-file diagnostics (ADR-0034).
 - `docs/BOOTSTRAP.md` — three-stage self-hosting strategy.
 - `docs/DECISIONS.md` — architecture decision records.
 

@@ -6,11 +6,9 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-25 — Phases 0–8 plus the pre-bootstrap audit are complete.
-Phase 7 measured the matrix below against `tsc` + Node (results in
-`docs/COMPATIBILITY_REPORT.md`); Phase 8 measured speedups in
-`docs/BENCHMARKS.md`; the audit added typed file/argv/string/array builtins and
-is recorded in `docs/PREBOOTSTRAP_AUDIT.md`.
+Last updated: 2026-11-25 — Phases 0–8 and Phase 8.1 are complete. Phase 7
+measured the matrix below against `tsc` + Node; Phase 8 measured speedups;
+Phase 8.1 added tagged `any`/unions, conservative GC and per-file diagnostics.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects, closure environments
 and fatal error reporting; Phase 6 has delivered loops with
@@ -52,7 +50,7 @@ expansion items are delivered.
 | Interfaces | [x] | `tests/parser/` + `tests/typechecker/` | parsed and type-checked in Phase 2; full structural typing in Phase 6 with optional properties and intersection merging |
 | Optional properties (`field?: T`) | [x] | `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; resolve to `T | null`, may be omitted from object literals; omitted reference fields are null-initialized |
 | Type aliases | [x] | `tests/parser/` + `tests/typechecker/` | chains and cycles handled in Phase 2 |
-| Unions / intersections | [x] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; nullable reference unions, intersection field merging, `== null`/`!= null` narrowing; mixed-representation unions are diagnosed (ADR-0025) |
+| Unions / intersections | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs`, `examples/tagged_values.ns` | nullable reference unions and intersections as before; mixed-representation unions now use tagged values with explicit boxing (ADR-0034) |
 | Modules (`import`/`export`) | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/driver/native.rs` | Phase 6; import-graph resolution from the entry file with validated exports; one module-wide namespace, relative `.ns` paths only; diagnostics rendered against combined source (ADR-0026) |
 | Async/await, promises | [~] | `tests/lexer/`, `tests/parser/`, `tests/typechecker/`, `tests/ir/`, `tests/codegen/`, `tests/driver/native.rs` | Phase 6; `async function` returns a `Promise<T>` object and `await` unwraps it synchronously; no suspension, event loop, combinators or `.then`/`.catch` (ADR-0029) |
 | Decorators | [-] | — | Deferred; not in initial scope |
@@ -74,7 +72,8 @@ expansion items are delivered.
 | Structural typing | [x] | `tests/typechecker/`, `tests/ir/`, `tests/driver/native.rs` | Phase 6; union/intersection-aware assignability, optional properties, merged intersection layouts, class instances |
 | Generics | [x] | `tests/typechecker/`, `tests/ir/` | Phase 6; generic parameters unify with argument types; annotated generic references (`Box<number>`) resolve to concrete object types; bad references are diagnosed |
 | `Promise<T>` | [~] | `tests/typechecker/`, `tests/ir/`, `tests/codegen/` | Phase 6; built-in generic resolving to a one-slot object (`Promise<void>` is `void`); values come from `async function`, not `Promise.resolve` (ADR-0029) |
-| `any` / `unknown` | [ ] | — | Restricted semantics TBD |
+| `any` | [~] | `examples/tagged_values.ns`, `tests/typechecker/checker.rs` | tagged runtime value; explicit `to_any_*` / `as_*` conversions; no automatic coercion or narrowing (ADR-0034) |
+| `unknown` | [ ] | — | internal inference fallback only |
 | Conditional / mapped types | [-] | — | Long-term |
 
 ## 3. Runtime behavior
@@ -89,7 +88,7 @@ expansion items are delivered.
 | Async/await | [~] | `tests/driver/native.rs`, `examples/async_await.ns` | Phase 6; `async function` and `await` run natively with synchronous promise values (ADR-0029) |
 | Exceptions | [~] | `tests/driver/native.rs`, `examples/exceptions.ns` | Phase 6; same-function `throw`/`try`/`catch`/`finally` run natively without a runtime ABI (ADR-0028); runtime bounds/field errors are still fatal |
 | `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
-| Memory management | [x] | runtime arena + native test | growable program-lifetime arena, ADR-0033; no reclamation until exit |
+| Memory management | [~] | `examples/gc.ns`, `tests/driver/native.rs` | conservative mark-sweep via `collect()` with block headers and root scanning; explicit, may retain garbage (ADR-0034) |
 | File I/O and process arguments | [x] | `examples/self_host_stdlib.ns`, `tests/driver/native.rs` | typed `read_file`, `write_file`, `get_argv` builtins (ADR-0033) |
 | Array growth helpers | [x] | `examples/self_host_stdlib.ns` | `array_push_number`, `array_push_string` return a new array |
 
@@ -137,13 +136,14 @@ the measured outcomes are linked from `docs/COMPATIBILITY_REPORT.md`:
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | deferred |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect call signatures | calls through function values cast the code pointer to the statically known signature; a mismatched function type is diagnosed by the checker, not converted at runtime | Phase 6 (documented) |
-| Garbage collection | growable arena, but nothing is reclaimed until process exit (ADR-0033) | long-term (needs tagged values and barriers) |
+| Garbage collection | conservative mark-sweep is explicit (`collect()`), not automatic or generational (ADR-0034) | incremental/automatic collection |
 | String concatenation with objects/functions | diagnosed instead of lowering a pointer through number-to-string coercion | documented |
-| Ported code using GC / tagged unions / per-file namespaces / `any` | unimplemented; see `docs/PREBOOTSTRAP_AUDIT.md` §3 | explicit future phases |
+| Per-file name scoping | diagnostics are per-file but imports still share one namespace (ADR-0034) | future phase |
+| Automatic coercion for `any` / unions | values must be explicitly boxed and unboxed; no narrowing from tag tests | future phase |
 | Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | deferred (ADR-0026) |
 | `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | Phase 7 |
 | Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | deferred (ADR-0026) |
-| Mixed-representation unions | `number | string` and nullable primitives are diagnosed because values are unboxed and untagged | Phase 6 (diagnosed, not miscompiled) |
+| Mixed-representation unions | now boxed into tagged values; untagged assignment is diagnosed; nullable primitives still rejected | Phase 8.1 (tagged values) |
 | Optional chaining on nullable receivers | IR emits `IsNull`, but the checker rejects `T | null` receivers; narrowing on `b != null` works | deferred |
 | Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | deferred |
 | Optional non-reference field defaults | omitted optional numeric/bigint/boolean fields are zero-initialized rather than `undefined` | Phase 6 (documented) |

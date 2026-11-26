@@ -1,0 +1,13 @@
+// Phase 8.1: explicit conservative collection.
+let keep: any = to_any_string("alive");
+for (let i = 0; i < 100; i = i + 1) {
+    let garbage: string = str_slice("aaaaaaaaaa", 0, 5);
+}
+collect();
+console.log(as_string(keep));
+console.log(live_bytes() > 0);
+for (let i = 0; i < 100; i = i + 1) {
+    let more_garbage: string = str_slice("bbbbbbbbbb", 0, 4);
+}
+collect();
+console.log(as_string(keep));

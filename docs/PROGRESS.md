@@ -6,10 +6,9 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-25
-- **Current phase:** Pre-bootstrap audit complete (2026-11-25); Phases 0–8 are
-  complete. Phase 9 (Compiler Rewrite in NavaScript) is ready to start with the
-  lexer port; the audit, fixes and remaining long-term gaps are recorded in
-  `docs/PREBOOTSTRAP_AUDIT.md`
+- **Current phase:** Phase 8.1 (Pre-bootstrap Representation Hardening) complete:
+  tagged `any`/mixed unions, conservative GC and per-file diagnostic attribution
+  are implemented and tested; Phases 0–8 are also complete. Phase 9 is next.
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -32,7 +31,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 7 — Compatibility | [x] Complete (32-case corpus, measured report, 19/19 executed cases pass) |
 | Phase 8 — Optimization | [x] Complete (IR passes, LLVM pipelines, escape analysis, 4-benchmark report) |
 | Pre-bootstrap audit | [x] Complete (provable bugs fixed, stdlib/argv/file I/O added, gaps recorded) |
-| Phase 9 — Self-hosting | [ ] Not started (readiness established by the audit) |
+| Phase 8.1 — Representation hardening | [x] Complete (tagged any/unions, conservative GC, per-file diagnostics) |
+| Phase 9 — Self-hosting | [ ] Not started |
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
@@ -274,6 +274,19 @@ limitations for every milestone.
   provably non-escaping stack slots, not by changing runtime object layouts;
   general escape analysis across blocks or closures, tagged values and garbage
   collection remain future work (ADR-0031).
+
+### Phase 8.1 — Representation hardening
+- [x] `any` and mixed unions use runtime-tagged values with checked boxing and
+  unboxing; assignments between untagged and tagged types are diagnosed
+- [x] Conservative mark-sweep GC (`collect()`, `live_bytes()`) with recycled
+  blocks re-registered for marking; two collection cycles are tested
+- [x] Per-file diagnostic attribution through `SourceMap`; errors name the
+  originating module and its own line/column
+- **Current evidence:** `cargo fmt --all -- --check`, `cargo clippy --workspace
+  --all-targets -- -D warnings`, `cargo test --workspace` (304 passed), 8 + 4
+  Python harness tests, both report `--check` gates all succeed.
+- **Known limitation:** per-file *name scoping* is still unimplemented; imports
+  share one namespace (ADR-0034).
 
 ### Phase 9 — Self-hosting (rewrite in NavaScript)
 - [ ] Lexer → Parser → AST → Symbol table → Semantic → Type checker → IR → Driver
@@ -1082,15 +1095,30 @@ limitations for every milestone.
   8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
   and `python3 scripts/benchmark.py --check`.
 
+### 2026-11-25 — Phase 8.1 (representation hardening)
+- Added `Type::Any` / `IrType::Dynamic` with a runtime `NavaScriptValue` tag and
+  checked `to_any_*` / `as_*` builtins; mixed unions now lower to tagged values
+  and untagged assignment is diagnosed.
+- Added conservative mark-sweep reclamation: block headers, stack and
+  callee-saved register root scanning, `collect()` / `live_bytes()` builtins.
+  A review defect (recycled blocks missing from the live list) was fixed and a
+  two-cycle collection test added.
+- Added `SourceMap` so diagnostics name the originating file; `modules::load`
+  records each source range. Full per-file symbol scoping remains future work.
+- Two-axis review of the diff was applied before this doc update: corrected the
+  GC free-list, the `as_bool`/`to_any_bool` ABI paths, `any` annotation lowering,
+  and removed duplicated union-category logic via `Type::runtime_category`.
+- Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (304 passed),
+  8 compatibility + 4 benchmark Python tests, and both report `--check` gates.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. The pre-bootstrap audit is complete: provable bugs are fixed and the
-   self-hosting stdlib is tested. Phase 9 (Self-hosting) can now start with the
-   lexer port, using only features proven by `docs/PREBOOTSTRAP_AUDIT.md`.
-2. Do not use GC, tagged unions, per-file namespaces or `any` in ported code;
-   they are unimplemented and recorded in `COMPATIBILITY.md` §6.
+1. Phase 8.1 is complete: `any`, mixed unions and conservative GC are tested.
+   Phase 9 (Self-hosting) can start with the lexer port.
+2. Per-file name scoping is still unimplemented; ported code must not rely on
+   it. It remains recorded in `COMPATIBILITY.md` §6.
 3. Add x86-64 target validation once LLVM targets beyond the host are needed.
 4. Keep both reports current: re-run `python3 scripts/compat.py` after semantic
    changes and `python3 scripts/benchmark.py` after pipeline changes.

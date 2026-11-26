@@ -454,3 +454,39 @@ fn self_hosting_stdlib_builtins_run_natively() {
     let _ = std::fs::remove_dir_all(&directory);
     let _ = std::fs::remove_file(binary);
 }
+
+#[test]
+fn tagged_values_run_natively() {
+    let Some(binary) = compile("tagged_values.ns", "tagged", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run tagged values");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "0\n42\n3\ntagged\n1\n7\n2\ntrue\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}
+
+#[test]
+fn conservative_collection_preserves_live_values() {
+    let Some(binary) = compile("gc.ns", "gc", &[]) else {
+        return;
+    };
+    let output = Command::new(&binary).output().expect("run gc program");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "alive\ntrue\nalive\n"
+    );
+    let _ = std::fs::remove_file(binary);
+}

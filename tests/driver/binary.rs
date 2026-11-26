@@ -292,3 +292,36 @@ fn user_names_cannot_collide_with_generated_closures() {
     assert_eq!(stdout(&run), "7\n3\n");
     let _ = std::fs::remove_dir_all(&directory);
 }
+
+#[test]
+fn diagnostics_name_the_originating_module() {
+    let directory = std::env::temp_dir().join(format!("nava-files-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&directory);
+    let main = directory.join("main.ns");
+    let math = directory.join("math.ns");
+    std::fs::write(
+        &main,
+        "import { square } from \"./math\";\nconsole.log(square(2));\n",
+    )
+    .expect("write main");
+    std::fs::write(
+        &math,
+        "export function square(x: number): number {\n  let bad: number = \"oops\";\n  return x;\n}\n",
+    )
+    .expect("write math");
+    let output = navascript()
+        .arg("build")
+        .arg(&main)
+        .arg("-o")
+        .arg(directory.join("program-bin"))
+        .output()
+        .expect("build multi-file program");
+    assert!(!output.status.success());
+    let text = stderr(&output);
+    assert!(
+        text.contains("math.ns:2:"),
+        "unexpected diagnostics: {text}"
+    );
+    assert!(!text.contains("<input>"), "unexpected diagnostics: {text}");
+    let _ = std::fs::remove_dir_all(&directory);
+}

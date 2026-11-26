@@ -84,6 +84,9 @@ pub(super) const RUNTIME_DECLS: &[&str] = &[
     "declare void @navascript_object_set_ptr(ptr, i64, ptr) nounwind",
     "declare ptr @navascript_object_get_ptr(ptr, i64) nounwind",
     // Internal helpers declared for ABI completeness (ADR-0016 audit).
+    "declare void @navascript_gc_init()",
+    "declare void @navascript_collect()",
+    "declare double @navascript_live_bytes()",
     "declare ptr @navascript_alloc(i64) nounwind",
     "declare void @navascript_format_number(double, ptr, i64) nounwind",
     // Phase 9 stdlib: file I/O, process arguments and collection helpers.
@@ -95,6 +98,17 @@ pub(super) const RUNTIME_DECLS: &[&str] = &[
     "declare double @navascript_str_compare(ptr, ptr) nounwind",
     "declare double @navascript_str_char_code_at(ptr, double) nounwind",
     "declare i64 @navascript_number_index(double)",
+    // Tagged dynamic values (`any` and mixed unions).
+    "declare ptr @navascript_box_number(double)",
+    "declare ptr @navascript_box_bigint(i64)",
+    "declare ptr @navascript_box_bool(i32)",
+    "declare ptr @navascript_box_string(ptr)",
+    "declare ptr @navascript_box_null()",
+    "declare double @navascript_as_number(ptr)",
+    "declare i64 @navascript_as_bigint(ptr)",
+    "declare i32 @navascript_as_bool(ptr)",
+    "declare ptr @navascript_as_string(ptr)",
+    "declare double @navascript_tag_of(ptr)",
     "declare ptr @navascript_array_push_number(ptr, double) nounwind",
     "declare ptr @navascript_array_push_string(ptr, ptr) nounwind",
 ];

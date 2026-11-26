@@ -183,8 +183,8 @@ pub(super) fn emit_instruction(
             let arg_tys: Vec<IrType> = args.iter().map(|arg| value_type(arg, types)).collect();
             // The C runtime takes `int` for booleans, so widen the i1 argument
             // at the call boundary instead of emitting an ill-typed LLVM call.
-            let widen_bool =
-                callee == "console.log" && arg_tys.first().is_some_and(|ty| *ty == IrType::Boolean);
+            let widen_bool = matches!(callee.as_str(), "console.log" | "to_any_bool")
+                && arg_tys.first().is_some_and(|ty| *ty == IrType::Boolean);
             let args = args
                 .iter()
                 .zip(&arg_tys)
@@ -219,17 +219,37 @@ pub(super) fn emit_instruction(
                 };
                 (name.to_owned(), "void".to_owned())
             } else {
+                let symbol = match callee.as_str() {
+                    "to_any_number" => "navascript_box_number".to_owned(),
+                    "to_any_bigint" => "navascript_box_bigint".to_owned(),
+                    "to_any_bool" => "navascript_box_bool".to_owned(),
+                    "to_any_string" => "navascript_box_string".to_owned(),
+                    "to_any_null" => "navascript_box_null".to_owned(),
+                    _ => function_symbol(callee),
+                };
                 (
-                    function_symbol(callee),
+                    symbol,
                     llvm_type(result_ty).map_err(|message| CodegenError { message })?,
                 )
             };
+            // `as_bool` follows the C i32 ABI but the checker expects an i1;
+            // truncate the returned word at the boundary.
+            let call_ret = if name == "navascript_as_bool" {
+                "i32"
+            } else {
+                &ret
+            };
             match result {
                 Some(result) => {
-                    let _ = writeln!(out, "  %v{result} = call {ret} @{name}({args})");
+                    if name == "navascript_as_bool" {
+                        let _ = writeln!(out, "  %raw{result} = call i32 @{name}({args})");
+                        let _ = writeln!(out, "  %v{result} = trunc i32 %raw{result} to i1");
+                    } else {
+                        let _ = writeln!(out, "  %v{result} = call {call_ret} @{name}({args})");
+                    }
                 }
                 None => {
-                    let _ = writeln!(out, "  call {ret} @{name}({args})");
+                    let _ = writeln!(out, "  call {call_ret} @{name}({args})");
                 }
             }
         }

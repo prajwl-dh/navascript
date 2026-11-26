@@ -751,6 +751,33 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0034 — Tagged values, conservative GC and per-file diagnostics
+
+- **Date:** 2026-11-25
+- **Status:** Accepted
+- **Context:** Phase 8.1 closes the representation gaps found before the
+  compiler rewrite: `any` and mixed unions need a common runtime layout,
+  reclamation needs block boundaries and root discovery, and diagnostics need
+  to name the file that produced them.
+- **Decision:** Add `Type::Any` / `IrType::Dynamic` backed by a runtime
+  `NavaScriptValue` with a tag and payload union. Boxing and unboxing are
+  explicit builtins with checked tags; assignability requires both sides to be
+  tagged. Unions with mixed runtime categories use the tagged representation,
+  while nullable reference unions keep the pointer representation. Add a
+  conservative mark-sweep collector: every allocation carries a header, roots
+  come from the live stack range and AArch64 callee-saved registers, and
+  recycled blocks are re-linked into the live list for future marking.
+  `collect()` and `live_bytes()` are typed builtins. Add `SourceMap` so
+  diagnostics map concatenated offsets back to originating files. All category
+  decisions use `Type::runtime_category` in the dependency-free symbol leaf.
+- **Consequences:** A compiler written in NavaScript can use dynamic values and
+  explicit reclamation. Collection is conservative (false positives may retain
+  garbage) and AArch64-specific in its register scan; the arch-detection rule is
+  revisited when x86-64 bootstrap work begins. Per-file **name scoping** is not
+  delivered by this ADR — imports still share one namespace.
+
+---
+
 ## Template for new decisions
 
 ```

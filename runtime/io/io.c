@@ -166,3 +166,71 @@ NavaScriptArray *navascript_array_push_string(NavaScriptArray *array, const char
     navascript_array_set_ptr(result, count, (void *)value);
     return result;
 }
+
+/* Tagged values for `any` and mixed unions (Phase 8.1). The tag is checked on
+ * every unbox, so a wrong cast is a runtime error rather than a reinterpreted
+ * pointer. */
+NavaScriptValue *navascript_box_number(double value) {
+    NavaScriptValue *boxed = (NavaScriptValue *)navascript_alloc(sizeof(NavaScriptValue));
+    boxed->tag = 0;
+    boxed->payload.number = value;
+    return boxed;
+}
+
+NavaScriptValue *navascript_box_bigint(int64_t value) {
+    NavaScriptValue *boxed = (NavaScriptValue *)navascript_alloc(sizeof(NavaScriptValue));
+    boxed->tag = 1;
+    boxed->payload.bigint = value;
+    return boxed;
+}
+
+NavaScriptValue *navascript_box_bool(int32_t value) {
+    NavaScriptValue *boxed = (NavaScriptValue *)navascript_alloc(sizeof(NavaScriptValue));
+    boxed->tag = 2;
+    boxed->payload.boolean = value;
+    return boxed;
+}
+
+NavaScriptValue *navascript_box_string(const char *value) {
+    NavaScriptValue *boxed = (NavaScriptValue *)navascript_alloc(sizeof(NavaScriptValue));
+    boxed->tag = 3;
+    boxed->payload.ref = (void *)value;
+    return boxed;
+}
+
+NavaScriptValue *navascript_box_null(void) {
+    NavaScriptValue *boxed = (NavaScriptValue *)navascript_alloc(sizeof(NavaScriptValue));
+    boxed->tag = 5;
+    boxed->payload.ref = NULL;
+    return boxed;
+}
+
+static NavaScriptValue *expect_tag(NavaScriptValue *value, int64_t tag, const char *name) {
+    if (value == NULL || value->tag != tag) {
+        navascript_runtime_error(name);
+    }
+    return value;
+}
+
+double navascript_as_number(NavaScriptValue *value) {
+    return expect_tag(value, 0, "as_number: value is not a number")->payload.number;
+}
+
+int64_t navascript_as_bigint(NavaScriptValue *value) {
+    return expect_tag(value, 1, "as_bigint: value is not a bigint")->payload.bigint;
+}
+
+int32_t navascript_as_bool(NavaScriptValue *value) {
+    return expect_tag(value, 2, "as_bool: value is not a boolean")->payload.boolean;
+}
+
+const char *navascript_as_string(NavaScriptValue *value) {
+    return (const char *)expect_tag(value, 3, "as_string: value is not a string")->payload.ref;
+}
+
+double navascript_tag_of(NavaScriptValue *value) {
+    if (value == NULL) {
+        navascript_runtime_error("tag_of: null value");
+    }
+    return (double)value->tag;
+}

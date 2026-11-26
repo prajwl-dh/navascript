@@ -22,6 +22,7 @@ impl Checker<'_> {
                     "boolean" => Type::Boolean,
                     "void" => Type::Void,
                     "null" => Type::Null,
+                    "any" => Type::Any,
                     other => {
                         if let Some(ty) = self.aliases.get(other) {
                             substitute(ty, subst)

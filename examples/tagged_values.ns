@@ -1,0 +1,13 @@
+// Phase 8.1: `any` and mixed unions use a runtime-tagged value.
+let number_value: any = to_any_number(42);
+console.log(tag_of(number_value));
+console.log(as_number(number_value));
+let string_value: any = to_any_string("tagged");
+console.log(tag_of(string_value));
+console.log(as_string(string_value));
+let mixed: number | string = to_any_bigint(7n);
+console.log(tag_of(mixed));
+console.log(as_bigint(mixed));
+let flag: any = to_any_bool(true);
+console.log(tag_of(flag));
+console.log(as_bool(flag));

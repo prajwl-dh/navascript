@@ -40,6 +40,8 @@ pub enum Type {
     /// A generic type parameter, bound at a call site (ADR-0023).
     TypeParam(String),
     /// No information yet (inference fallback).
+    /// A runtime-tagged value that can hold any primitive or reference.
+    Any,
     Unknown,
     /// A type that already produced a diagnostic.
     Error,
@@ -85,8 +87,31 @@ impl Type {
             Type::Promise(inner) => format!("Promise<{}>", inner.display()),
             Type::Named(name) => name.clone(),
             Type::TypeParam(name) => name.clone(),
+            Type::Any => "any".to_owned(),
             Type::Unknown => "unknown".to_owned(),
             Type::Error => "<error>".to_owned(),
+        }
+    }
+}
+
+impl Type {
+    /// Runtime representation category used to decide when a union needs
+    /// tagged boxing. Shared by the checker and IR lowering (ADR-0034).
+    pub fn runtime_category(&self) -> &'static str {
+        match self {
+            Type::Null => "null",
+            Type::Number => "number",
+            Type::BigInt => "bigint",
+            Type::Boolean => "boolean",
+            Type::String | Type::Array(_) | Type::Object(_) | Type::ClassInstance { .. } => {
+                "reference"
+            }
+            Type::Any
+            | Type::Union(_)
+            | Type::Intersection(_)
+            | Type::Function { .. }
+            | Type::Promise(_) => "tagged",
+            _ => "other",
         }
     }
 }

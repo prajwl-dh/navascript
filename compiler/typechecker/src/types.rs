@@ -28,6 +28,7 @@ fn resolve(expr: &TypeExpr, aliases: &AliasTable, depth: u8) -> Type {
             "boolean" => Type::Boolean,
             "void" => Type::Void,
             "null" => Type::Null,
+            "any" => Type::Any,
             other => aliases
                 .get(other)
                 .cloned()
@@ -100,6 +101,16 @@ pub fn is_assignable(target: &Type, actual: &Type, aliases: &AliasTable) -> bool
         || matches!(actual, Type::Unknown | Type::Error)
     {
         return true;
+    }
+    // `any` is the tagged dynamic representation: values must be explicitly
+    // boxed/unboxed through the stdlib builtins, so it is only assignable to
+    // itself (handled by `target == actual` above).
+    let target_tagged = matches!(target, Type::Any) || is_tagged_union(target, aliases);
+    let actual_tagged = matches!(actual, Type::Any) || is_tagged_union(actual, aliases);
+    if target_tagged || actual_tagged {
+        // Tagged values only convert to other tagged types; use the explicit
+        // boxing/unboxing builtins otherwise.
+        return target_tagged && actual_tagged;
     }
     let target = &resolve_named_type(target, aliases);
     let actual = &resolve_named_type(actual, aliases);
@@ -291,20 +302,9 @@ pub fn union_layout_error(ty: &Type, aliases: &AliasTable) -> Option<String> {
     let has_null = members.iter().any(|member| matches!(member, Type::Null));
     let mut categories = std::collections::BTreeSet::new();
     for member in &members {
-        let category = match member {
-            Type::Null => continue,
-            Type::Number => "number",
-            Type::BigInt => "bigint",
-            Type::Boolean => "boolean",
-            Type::String | Type::Array(_) | Type::Object(_) | Type::ClassInstance { .. } => {
-                "reference"
-            }
-            _ => "other",
-        };
-        categories.insert(category);
-    }
-    if categories.len() > 1 {
-        return Some("union members must share a runtime representation".to_owned());
+        if !matches!(member, Type::Null) {
+            categories.insert(member.runtime_category());
+        }
     }
     if has_null && !categories.is_empty() && !categories.contains("reference") {
         return Some("nullable unions require a reference type".to_owned());
@@ -333,4 +333,19 @@ pub fn substitute(ty: &Type, subst: &Subst) -> Type {
         Type::Promise(inner) => Type::Promise(Box::new(substitute(inner, subst))),
         _ => ty.clone(),
     }
+}
+
+/// Whether a union needs the tagged `any` representation (mixed primitive
+/// categories, not a nullable reference union).
+pub fn is_tagged_union(ty: &Type, aliases: &AliasTable) -> bool {
+    let Type::Union(members) = resolve_named_type(ty, aliases) else {
+        return false;
+    };
+    let mut categories = std::collections::BTreeSet::new();
+    for member in members {
+        if !matches!(member, Type::Null) {
+            categories.insert(member.runtime_category());
+        }
+    }
+    categories.len() > 1
 }

@@ -30,7 +30,7 @@ NavaScript source (.ns, TypeScript-compatible syntax)
                         │
                         ▼
                  ┌─────────────┐
-                 │ IR optimizer│   Phase 8 — folding, DCE, inlining, escape
+                 │ IR optimizer│   Phases 8/8.1 — folding, DCE, inlining, escape
                  └─────────────┘
                         │
                         ▼
@@ -67,11 +67,12 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Semantic | `compiler/semantic/` | Reserved placeholder; scope building/validity checks live in the type checker (ADR-0010) | ast, symbol |
 | Type checker | `compiler/typechecker/` | Types, inference, assignability, semantic checks | ast, symbol, semantic |
 | IR | `compiler/ir/` | IR data model, lowering, verifier | typechecker, ast |
+| Diagnostics | `compiler/diagnostics/` | Source map and per-file diagnostic rendering (ADR-0034) | ast |
 | Optimizer | `compiler/optimizer/` | IR → IR passes (`optimize` seam): folding, DCE, inlining, escape analysis; verifies its output (ADR-0031) | ir |
 | Codegen | `compiler/codegen/` | IR → textual LLVM IR; no LLVM bindings (ADR-0004) | ir |
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
-| Runtime | `runtime/` | Growable arena (ADR-0033), bigint helpers, strings, arrays, objects, stdlib I/O (`io/`) and console; closure environments reuse the object ABI (ADR-0027); same-function exceptions and synchronous promises need no runtime ABI (ADR-0028/0029) | codegen ABI contract |
+| Runtime | `runtime/` | Conservative GC + growable arena (ADR-0033/0034), tagged values, bigint helpers, strings, arrays, objects, stdlib I/O (`io/`) and console; closure environments reuse the object ABI (ADR-0027) | codegen ABI contract |
 | Tests | `tests/` | Tests for every public interface, plus the Phase 7 tsc/Node compatibility corpus | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a

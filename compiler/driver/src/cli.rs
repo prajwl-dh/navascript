@@ -176,17 +176,17 @@ fn dispatch(command: Command) -> i32 {
             let source = loaded.source;
             let parsed = navascript_parser::parse(&source);
             if parsed.diagnostics.has_errors() {
-                eprint!("{}", parsed.diagnostics.render(&source));
+                eprint!("{}", parsed.diagnostics.render_with(&loaded.map));
                 return 1;
             }
             let checked = navascript_typechecker::check(&parsed.program, &source);
             if checked.diagnostics.has_errors() {
-                eprint!("{}", checked.diagnostics.render(&source));
+                eprint!("{}", checked.diagnostics.render_with(&loaded.map));
                 return 1;
             }
             let lowered = navascript_ir::lower(&parsed.program, &checked.typed, &source);
             if lowered.diagnostics.has_errors() {
-                eprint!("{}", lowered.diagnostics.render(&source));
+                eprint!("{}", lowered.diagnostics.render_with(&loaded.map));
                 return 1;
             }
             let level = if no_opt {

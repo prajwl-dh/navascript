@@ -10,6 +10,7 @@
 | Clang | Apple clang 21 (Command Line Tools) | native toolchain integration |
 | Git | 2.54.0 | version control |
 | Python 3 | 3.14.6 | test and compatibility harness scripts |
+| Node.js / TypeScript | (optional) | Phase 7 compatibility corpus only |
 | Node.js / TypeScript | 26.13.1 / 7.0.2 (`tsc`) | Phase 7 reference behaviour for the compatibility corpus |
 | CMake | 4.5.1 (Homebrew) | available for future CMake/C++ builds |
 | Ninja | 1.13.2 (Homebrew) | available as a CMake generator |
@@ -185,8 +186,8 @@ code 1.
 
 ## 7. Current limitations
 
-- Runtime memory uses a growable program-lifetime bump arena; nothing is
-  reclaimed until process exit (ADR-0033 supersedes ADR-0005).
+- Runtime memory uses a growable arena with conservative mark-sweep reclamation
+  via `collect()` (ADR-0034); collection is explicit and can retain garbage.
 - Exceptions work within one function (ADR-0028): `throw` targets the innermost
   enclosing catch and body/catch converge through `finally`. Cross-function
   throws, abrupt control flow out of protected regions and unannotated catch

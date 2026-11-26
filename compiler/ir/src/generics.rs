@@ -15,6 +15,7 @@ fn type_key(ty: &IrType) -> String {
         IrType::Boolean => "boolean".to_owned(),
         IrType::String => "string".to_owned(),
         IrType::Void => "void".to_owned(),
+        IrType::Dynamic => "any".to_owned(),
         IrType::Opaque => "opaque".to_owned(),
         IrType::Function { params, ret } => format!(
             "fn{}_{}",

@@ -25,6 +25,8 @@ pub enum IrType {
         ret: Box<IrType>,
     },
     Void,
+    /// A runtime-tagged value that can hold any primitive or reference.
+    Dynamic,
     /// A type whose layout is not fixed until the runtime phase.
     Opaque,
 }
@@ -48,6 +50,7 @@ impl IrType {
                 ret.display()
             ),
             IrType::Void => "void".to_owned(),
+            IrType::Dynamic => "any".to_owned(),
             IrType::Opaque => "opaque".to_owned(),
         }
     }

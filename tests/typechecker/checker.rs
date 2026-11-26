@@ -445,15 +445,11 @@ fn accepts_union_assignment_in_either_member_order() {
 }
 
 #[test]
-fn rejects_unions_with_mixed_runtime_representations() {
+fn mixed_unions_require_tagged_values() {
     let (output, _) = check_source("let u: number | string = 1;");
-    assert!(
-        messages(&output)
-            .iter()
-            .any(|message| message.contains("union members must share a runtime representation")),
-        "{:?}",
-        messages(&output)
-    );
+    assert!(output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source("let u: number | string = to_any_number(1);");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
     let (output, _) = check_source("let n: number | null = 1;");
     assert!(
         messages(&output)
@@ -893,4 +889,19 @@ fn rejects_generated_code_name_patterns() {
         "{:?}",
         messages(&output)
     );
+}
+
+#[test]
+fn any_requires_explicit_tagged_conversion() {
+    let (output, _) = check_source("let v: any = to_any_number(1); console.log(tag_of(v));");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+    let (output, _) = check_source("let v: any = 1;");
+    assert!(output.diagnostics.has_errors());
+}
+
+#[test]
+fn mixed_unions_use_tagged_values() {
+    let (output, _) =
+        check_source("let v: number | string = to_any_string(\"x\"); console.log(as_string(v));");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
 }

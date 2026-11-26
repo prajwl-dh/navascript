@@ -274,8 +274,10 @@ pub(super) fn ir_type_expr(expr: &TypeExpr) -> IrType {
             "string" => IrType::String,
             "boolean" => IrType::Boolean,
             "void" => IrType::Void,
+            "any" => IrType::Dynamic,
             _ => IrType::Opaque,
         },
+        TypeExpr::Union(members) if annotation_union_needs_tag(members) => IrType::Dynamic,
         TypeExpr::Union(members) => members
             .iter()
             .filter(|member| !matches!(member, TypeExpr::Named(name) if name == "null"))
@@ -303,12 +305,14 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
         Type::String => IrType::String,
         Type::Boolean => IrType::Boolean,
         Type::Void => IrType::Void,
+        Type::Any => IrType::Dynamic,
         Type::ClassInstance { fields, .. } => IrType::Object(
             fields
                 .iter()
                 .map(|(name, field_ty)| (name.clone(), ir_type_from_symbol(field_ty, subst)))
                 .collect(),
         ),
+        Type::Union(members) if union_needs_tag(members) => IrType::Dynamic,
         Type::Union(members) => members
             .iter()
             .filter(|member| !matches!(member, Type::Null))
@@ -362,4 +366,36 @@ pub(super) fn ir_type_from_symbol(ty: &Type, subst: &HashMap<String, IrType>) ->
         ),
         _ => IrType::Opaque,
     }
+}
+
+/// Mixed primitive/reference unions are represented by a runtime-tagged value.
+fn union_needs_tag(members: &[navascript_symbol::Type]) -> bool {
+    let mut categories = std::collections::BTreeSet::new();
+    for member in members {
+        if !matches!(member, navascript_symbol::Type::Null) {
+            categories.insert(member.runtime_category());
+        }
+    }
+    categories.len() > 1
+}
+
+fn annotation_union_needs_tag(members: &[TypeExpr]) -> bool {
+    let mut categories = std::collections::BTreeSet::new();
+    for member in members {
+        if matches!(member, TypeExpr::Named(name) if name == "null") {
+            continue;
+        }
+        let category = match ir_type_expr(member) {
+            IrType::Number => "number",
+            IrType::BigInt => "bigint",
+            IrType::Boolean => "boolean",
+            IrType::Dynamic => "tagged",
+            IrType::String | IrType::Array(_) | IrType::Object(_) | IrType::Function { .. } => {
+                "reference"
+            }
+            _ => "other",
+        };
+        categories.insert(category);
+    }
+    categories.len() > 1
 }

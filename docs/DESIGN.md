@@ -17,7 +17,7 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 `runtime.rs`. Internal seams stay private; only the façade is tested from
 `tests/` (ADR-0012).
 
-Status: **accepted and implemented through the Phase 9 pre-bootstrap audit**. The compiler seams below
+Status: **accepted and implemented through Phase 8.1 (pre-bootstrap representation hardening)**. The compiler seams below
 are unchanged; Phase 8 inserted the narrow `navascript_optimizer::optimize(&IrModule,
 Level) -> OptimizeOutput` seam between `lower` and `generate`, with private
 folding/DCE/inlining/escape modules and re-verification before returning

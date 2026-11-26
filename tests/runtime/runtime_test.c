@@ -11,7 +11,7 @@ int navascript_runtime_test_main(void) {
     void *b = navascript_alloc(7);
     assert(((uintptr_t)a % 8) == 0);
     assert(((uintptr_t)b % 8) == 0);
-    assert((unsigned char *)b == (unsigned char *)a + 8);
+    assert((uintptr_t)b >= (uintptr_t)a + 8);
 
     char *hello = navascript_string_concat("hello ", "world");
     assert(strcmp(hello, "hello world") == 0);

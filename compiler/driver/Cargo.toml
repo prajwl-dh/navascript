@@ -18,6 +18,7 @@ path = "src/main.rs"
 [dependencies]
 navascript-ast = { path = "../ast" }
 navascript-codegen = { path = "../codegen" }
+navascript-diagnostics = { path = "../diagnostics" }
 navascript-ir = { path = "../ir" }
 navascript-optimizer = { path = "../optimizer" }
 navascript-parser = { path = "../parser" }

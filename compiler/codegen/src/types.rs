@@ -94,6 +94,7 @@ pub(super) fn llvm_type(ty: &IrType) -> Result<String, String> {
         IrType::BigInt => Ok("i64".to_owned()),
         IrType::Boolean => Ok("i1".to_owned()),
         IrType::Void => Ok("void".to_owned()),
+        IrType::Dynamic => Ok("ptr".to_owned()),
         IrType::String | IrType::Array(_) | IrType::Object(_) | IrType::Function { .. } => {
             Ok("ptr".to_owned())
         }

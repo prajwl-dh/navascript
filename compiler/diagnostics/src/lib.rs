@@ -5,7 +5,9 @@
 
 use std::fmt;
 
-use navascript_ast::Span;
+use std::collections::BTreeMap;
+
+use navascript_ast::{FileId, Span};
 
 /// Severity of a compiler diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -140,6 +142,88 @@ impl Diagnostics {
             out.push('\n');
             out.push_str("  ");
             out.push_str(&" ".repeat(diagnostic.column.saturating_sub(1) as usize));
+            let width = diagnostic.span.len().max(1) as usize;
+            out.push_str(&"^".repeat(width));
+            out.push('\n');
+        }
+        out
+    }
+}
+
+/// Maps concatenated-source byte offsets back to the originating file.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SourceMap {
+    files: BTreeMap<FileId, SourceFile>,
+    ranges: Vec<(u32, u32, FileId)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceFile {
+    name: String,
+    source: String,
+    start: u32,
+}
+
+impl SourceMap {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Register a file that begins at `start` in the concatenated source.
+    pub fn add(
+        &mut self,
+        id: FileId,
+        name: impl Into<String>,
+        source: impl Into<String>,
+        start: u32,
+    ) {
+        let source = source.into();
+        let end = start + source.len() as u32;
+        self.ranges.push((start, end, id));
+        self.files.insert(
+            id,
+            SourceFile {
+                name: name.into(),
+                source,
+                start,
+            },
+        );
+    }
+
+    /// Look up the file containing a concatenated-source offset.
+    pub fn file_at(&self, offset: u32) -> Option<&SourceFile> {
+        self.ranges
+            .iter()
+            .find(|(start, end, _)| offset >= *start && offset < *end)
+            .and_then(|(_, _, id)| self.files.get(id))
+    }
+}
+
+impl Diagnostics {
+    /// Render diagnostics against their originating files, falling back to
+    /// `<input>` when a span has no registered file.
+    pub fn render_with(&self, map: &SourceMap) -> String {
+        let mut out = String::new();
+        for diagnostic in &self.items {
+            let Some(file) = map.file_at(diagnostic.span.start) else {
+                out.push_str(&format!(
+                    "<input>:{}:{}: {}: {}\n",
+                    diagnostic.line, diagnostic.column, diagnostic.severity, diagnostic.message
+                ));
+                continue;
+            };
+            let lines = LineIndex::new(&file.source);
+            let offset = diagnostic.span.start.saturating_sub(file.start);
+            let (line, column) = lines.position(offset);
+            out.push_str(&format!(
+                "{}:{}:{}: {}: {}\n",
+                file.name, line, column, diagnostic.severity, diagnostic.message
+            ));
+            out.push_str("  ");
+            out.push_str(lines.line_text(&file.source, line));
+            out.push('\n');
+            out.push_str("  ");
+            out.push_str(&" ".repeat(column.saturating_sub(1) as usize));
             let width = diagnostic.span.len().max(1) as usize;
             out.push_str(&"^".repeat(width));
             out.push('\n');

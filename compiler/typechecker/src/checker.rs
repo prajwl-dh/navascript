@@ -184,6 +184,19 @@ impl<'a> Checker<'a> {
                 vec![string_array.clone(), string.clone()],
                 string_array,
             ),
+            // Tagged dynamic values (`any` and mixed unions).
+            builtin("to_any_number", vec![number.clone()], Type::Any),
+            builtin("to_any_bigint", vec![Type::BigInt], Type::Any),
+            builtin("to_any_bool", vec![Type::Boolean], Type::Any),
+            builtin("to_any_string", vec![string.clone()], Type::Any),
+            builtin("to_any_null", vec![], Type::Any),
+            builtin("as_number", vec![Type::Any], number.clone()),
+            builtin("as_bigint", vec![Type::Any], Type::BigInt),
+            builtin("as_bool", vec![Type::Any], Type::Boolean),
+            builtin("as_string", vec![Type::Any], string.clone()),
+            builtin("tag_of", vec![Type::Any], number.clone()),
+            builtin("collect", vec![], Type::Void),
+            builtin("live_bytes", vec![], Type::Number),
         ] {
             self.symbols.insert(symbol);
         }

@@ -58,8 +58,33 @@ int navascript_object_get_bool(NavaScriptObject *object, int64_t index);
 void navascript_object_set_ptr(NavaScriptObject *object, int64_t index, void *value);
 void *navascript_object_get_ptr(NavaScriptObject *object, int64_t index);
 
+/* ----------------------- tagged dynamic values -------------------------- */
+typedef struct {
+    int64_t tag; /* 0 number, 1 bigint, 2 boolean, 3 string, 4 reference, 5 null */
+    union {
+        double number;
+        int64_t bigint;
+        int32_t boolean;
+        void *ref;
+    } payload;
+} NavaScriptValue;
+
+NavaScriptValue *navascript_box_number(double value);
+NavaScriptValue *navascript_box_bigint(int64_t value);
+NavaScriptValue *navascript_box_bool(int32_t value);
+NavaScriptValue *navascript_box_string(const char *value);
+NavaScriptValue *navascript_box_null(void);
+double navascript_as_number(NavaScriptValue *value);
+int64_t navascript_as_bigint(NavaScriptValue *value);
+int32_t navascript_as_bool(NavaScriptValue *value);
+const char *navascript_as_string(NavaScriptValue *value);
+double navascript_tag_of(NavaScriptValue *value);
+
 /* ------------------------- stdlib / process I/O -------------------------- */
 void navascript_init_io(int argc, char **argv);
+void navascript_gc_init(void);
+void navascript_collect(void);
+double navascript_live_bytes(void);
 char *navascript_read_file(const char *path);
 void navascript_write_file(const char *path, const char *contents);
 NavaScriptArray *navascript_get_argv(void);

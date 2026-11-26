@@ -75,22 +75,20 @@ would use `read_file`/`write_file`/`get_argv` instead of Rust I/O.
 
 ## 3. Remaining long-term gaps (deliberately NOT claimed in this increment)
 
-The chosen "full breadth" scope also named GC, tagged unions, per-file
-namespaces and `any`. They are **not implemented**, and claiming otherwise
-would be false. Each needs a representation change rather than an incremental
-feature, and shipping a partial version would break the "no silent
-miscompiles" rule:
+The chosen "full breadth" scope named GC, tagged unions, per-file namespaces
+and `any`. Phase 8.1 implemented most of them; the table below records what
+remains partial rather than overclaiming:
 
-| Gap | Why it is not a small increment | Current safe behaviour |
+| Gap | Phase 8.1 status | Remaining limitation |
 | --- | --- | --- |
-| Garbage collection | Runtime values are unboxed and have no type tags; a tracing collector needs tags, root tracking and write barriers across strings, arrays, objects, closures and promises. | Growable bump arena; memory is reclaimed at process exit. Fatal, documented (ADR-0005/ADR-0033). |
-| Tagged unions / discriminated narrowing | Mixed-representation unions have no runtime tag or common layout, so narrowing cannot be sound without redesigning `Type`, `IrType` and the object ABI. | Mixed unions are diagnosed, never silently miscompiled (ADR-0025). |
-| Per-file module namespaces | Imports are concatenated into one program; proper namespaces require file-aware symbol tables, `Span::FileId` in diagnostics, and per-file import binding. | One module-wide namespace; diagnostics refer to concatenated source (ADR-0026). |
-| `any` / `unknown` | A source-level `any` needs a tagged runtime value that can hold numbers, strings, references and functions; the checker's internal `Type::Unknown` is only an inference fallback and cannot be lowered generically. | `unknown` is internal only; heterogeneous values use interfaces/classes/arrays. |
+| Garbage collection | Conservative mark-sweep with block headers and explicit `collect()` (ADR-0034). | Not automatic/generational; conservative scans may retain garbage and register scanning is AArch64-specific. |
+| Tagged unions | Mixed unions now use tagged values with checked conversions. | No tag-based narrowing; nullable primitives remain diagnosed. |
+| Per-file namespaces | Diagnostics name the originating file via `SourceMap`. | Symbol scoping is still one global namespace. |
+| `any` | `Type::Any` / `IrType::Dynamic` with explicit boxed conversions. | No automatic coercion or narrowing; `unknown` remains internal only. |
 
-These gaps are recorded in `COMPATIBILITY.md` §6 and must be addressed as
-explicit phases before they are used by ported compiler components. This audit
-does **not** claim a 100% TypeScript-compatible or fully self-hosted compiler;
+Phase 8.1 closed most of these gaps; the remaining limitations above are
+recorded in `COMPATIBILITY.md` §6. This audit does **not** claim a 100%
+TypeScript-compatible or fully self-hosted compiler;
 it claims that every supported feature is tested and every unsupported feature
 is diagnosed rather than miscompiled.
 

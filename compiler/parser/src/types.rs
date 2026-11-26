@@ -43,7 +43,7 @@ impl<'a> Parser<'a> {
 
     fn parse_postfix_type(&mut self) -> Option<TypeExpr> {
         let mut base = match self.kind() {
-            TokenKind::Ident | TokenKind::Void | TokenKind::Null => {
+            TokenKind::Ident | TokenKind::Void | TokenKind::Null | TokenKind::Any => {
                 let token = self.current().clone();
                 self.bump();
                 if self.kind() == TokenKind::Lt {

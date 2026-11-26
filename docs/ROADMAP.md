@@ -395,6 +395,36 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 
 ---
 
+## Phase 8.1 — Pre-bootstrap Representation Hardening
+
+**Objectives**
+- Close the representation gaps that block a compiler written in NavaScript.
+
+**Implementation tasks** (delivered 2026-11-25; status in `PROGRESS.md`)
+- Per-file diagnostics: `SourceMap` attributes spans to the originating file.
+- Tagged values: `any` type, mixed unions, explicit boxing/unboxing builtins
+  with runtime tag checks (ADR-0034).
+- Reclamation: conservative mark-sweep with an explicit `collect()` builtin and
+  recycled-block tracking (ADR-0034).
+- File I/O, argv and string/array helpers landed in the pre-bootstrap audit.
+
+**Tests**
+- Typechecker, IR and native tests for `any`, mixed unions, tag checks, the
+  tagged ABI and two successive collection cycles.
+
+**Acceptance criteria**
+- A compiler can be written using dynamic values and explicit reclamation;
+  unsupported combinations are diagnosed rather than miscompiled.
+
+**Known limitations**
+- Per-file **name scoping** is not implemented: imports are still compiled into
+  one namespace. Only diagnostic attribution is per-file.
+- Collection is explicit and conservative; false positives may retain garbage,
+  and collector correctness relies on scanning stack roots and AArch64
+  callee-saved registers.
+
+---
+
 ## Phase 9 — Compiler Rewrite in NavaScript
 
 **Objectives**
