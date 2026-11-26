@@ -21,7 +21,8 @@ Options:
   -h, --help        Print this help message
   -V, --version     Print the compiler version
   -o, --output PATH Output executable path (default: source file stem)
-      --release     Enable LLVM optimizations (default: debug)
+      --release     Enable aggressive IR + LLVM optimizations (default: debug)
+      --no-opt      Build the unoptimized baseline (for benchmarks)
       --emit-ir     With build, print LLVM IR instead of compiling
 
 Examples:
@@ -44,6 +45,7 @@ pub enum Command {
         output: Option<PathBuf>,
         emit_ir: bool,
         release: bool,
+        no_opt: bool,
     },
     /// An invalid invocation, with a human-readable reason.
     Error(String),
@@ -84,6 +86,7 @@ where
             let rest: Vec<String> = args.map(|value| value.as_ref().to_owned()).collect();
             let mut emit_ir = false;
             let mut release = false;
+            let mut no_opt = false;
             let mut output = None;
             let mut inputs = Vec::new();
             let mut iter = rest.iter();
@@ -91,6 +94,7 @@ where
                 match arg.as_str() {
                     "--emit-ir" => emit_ir = true,
                     "--release" => release = true,
+                    "--no-opt" => no_opt = true,
                     "-o" | "--output" => match iter.next() {
                         Some(path) => output = Some(PathBuf::from(path)),
                         None => {
@@ -112,6 +116,7 @@ where
                     output,
                     emit_ir,
                     release,
+                    no_opt,
                 },
                 _ => Command::Error("navascript build: expected exactly one input file".to_owned()),
             }
@@ -144,6 +149,7 @@ fn dispatch(command: Command) -> i32 {
             output,
             emit_ir,
             release,
+            no_opt,
         } => {
             let loaded = match super::modules::load(&input) {
                 Ok(loaded) => loaded,
@@ -168,6 +174,14 @@ fn dispatch(command: Command) -> i32 {
                 eprint!("{}", lowered.diagnostics.render(&source));
                 return 1;
             }
+            let level = if no_opt {
+                navascript_optimizer::Level::None
+            } else if release {
+                navascript_optimizer::Level::Aggressive
+            } else {
+                navascript_optimizer::Level::Minimal
+            };
+            let optimized = navascript_optimizer::optimize(&lowered.module, level);
             let triple = match super::build::host_triple() {
                 Ok(triple) => triple,
                 Err(error) => {
@@ -175,7 +189,7 @@ fn dispatch(command: Command) -> i32 {
                     return 1;
                 }
             };
-            let llvm_ir = match navascript_codegen::generate(&lowered.module, &triple) {
+            let llvm_ir = match navascript_codegen::generate(&optimized.module, &triple) {
                 Ok(ir) => ir,
                 Err(error) => {
                     eprintln!("navascript: code generation failed: {error}");
@@ -183,7 +197,17 @@ fn dispatch(command: Command) -> i32 {
                 }
             };
             if emit_ir {
-                print!("{llvm_ir}");
+                if release && !no_opt {
+                    match super::build::optimize_llvm_ir(&llvm_ir) {
+                        Ok(optimized_ir) => print!("{optimized_ir}"),
+                        Err(error) => {
+                            eprintln!("navascript: LLVM optimization failed: {error}");
+                            return 1;
+                        }
+                    }
+                } else {
+                    print!("{llvm_ir}");
+                }
                 return 0;
             }
 
@@ -199,7 +223,7 @@ fn dispatch(command: Command) -> i32 {
                 &llvm_ir,
                 navascript_codegen::RUNTIME_FILES,
                 &output,
-                release,
+                release && !no_opt,
             ) {
                 eprintln!("navascript: native build failed: {error}");
                 return 1;

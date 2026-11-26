@@ -23,9 +23,13 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Run tests
         run: cargo test --workspace
-      - name: Run compatibility harness tests
-        run: python3 -m unittest discover -s tests/compatibility -p 'test_*.py'
+      - name: Run compatibility and benchmark harness tests
+        run: |
+          python3 -m unittest discover -s tests/compatibility -p 'test_*.py'
+          python3 -m unittest discover -s tests/benchmark -p 'test_*.py'
       - name: Check the committed compatibility report is reproducible
         run: |
           cargo build --workspace
           python3 scripts/compat.py --check
+      - name: Check benchmark output equivalence
+        run: python3 scripts/benchmark.py --check

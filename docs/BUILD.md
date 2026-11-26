@@ -79,29 +79,37 @@ captures, exceptions, async/await, dynamic indices, runtime errors, debug/releas
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 | `tests/compatibility/corpus.rs` | corpus integrity; every `match` case reaches valid IR; report coverage |
 | `tests/compatibility/test_compat.py` | harness validation, classification, pinned divergences, deterministic rendering, CLI façade |
+| `tests/optimizer/{optimize,inline,blocks,native}.rs` | fold/DCE, inlining with renamed results, escape analysis, branch folding, unreachable blocks, baseline/optimized output equivalence |
+| `tests/benchmark/test_benchmark.py` | instruction counting, derived metrics, deterministic report rendering, CLI façade |
 
 `tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`
-landed in Phase 7 with the tsc/Node corpus. `tests/codegen/` and
-`tests/driver/native.rs` landed in Phase 4. The corpus runner is in `scripts/`:
+landed in Phase 7 with the tsc/Node corpus; `tests/optimizer/` landed in Phase 8.
+`tests/codegen/` and `tests/driver/native.rs` landed in Phase 4. The runners are
+in `scripts/`:
 
 ```bash
 cargo build --workspace
 python3 scripts/compat.py                    # regenerate docs/COMPATIBILITY_REPORT.md
 python3 scripts/compat.py --check            # fail if the committed report is stale
 python3 -m unittest discover -s tests/compatibility -p 'test_*.py'
+
+python3 scripts/benchmark.py                 # regenerate docs/BENCHMARKS.md
+python3 scripts/benchmark.py --check         # re-measure deterministic facts
+python3 -m unittest discover -s tests/benchmark -p 'test_*.py'
 ```
 
-It needs `tsc` and `node` on `PATH` plus the LLVM tools used by native builds.
+The compatibility runner needs `tsc` and `node` on `PATH`; the benchmark runner
+needs the LLVM `opt` tool as well as `llc` and `clang`.
 
 Cargo only discovers `tests/` inside a package root, so every file is
 registered as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`.
 Tests import the crates they exercise through `[dev-dependencies]`. Moving a
 test out of a crate means it can only use that crate's public interface — which
 is the intended contract. `.github/workflows/ci.yml` runs fmt, clippy, the full
-Rust suite, the Python harness tests and the `--check` reproducibility gate on
-macOS (installing TypeScript for the corpus). `scripts/test.sh` runs the Rust
-suite plus the Python harness tests locally; the corpus run itself is a
-separate command because it invokes `tsc`, Node and LLVM.
+Rust suite, both Python harness test sets and both `--check` reproducibility
+gates on macOS (installing TypeScript for the corpus). `scripts/test.sh` runs
+the Rust suite plus the Python harness tests locally; the corpus and benchmark
+runs are separate commands because they invoke `tsc`, Node and LLVM.
 
 ## 4. CLI usage
 
@@ -119,18 +127,23 @@ target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
 ./fibonacci                     # prints 55
 target/debug/navascript build --release examples/fibonacci.ns -o fibonacci
-target/debug/navascript build --emit-ir examples/fibonacci.ns   # LLVM IR
+target/debug/navascript build --emit-ir examples/fibonacci.ns   # final LLVM IR
+target/debug/navascript build --emit-ir --release examples/fibonacci.ns
+target/debug/navascript build --no-opt examples/fibonacci.ns -o fibonacci-baseline
 target/debug/navascript build examples/modules.ns -o modules    # resolves imports
 ```
 
-`navascript build` parses, type-checks, lowers and compiles the source to a native
-Mach-O executable. `-o` sets the output path (default: source file stem),
-`--release` enables `-O3`/`-O2` (debug uses `-O0`; source-level debug info is
-Phase 11), and `--emit-ir` prints LLVM IR instead of linking. The external
-toolchain is discovered from `LLVM_SYS_231_PREFIX` (or
-`/opt/homebrew/opt/llvm`): `llvm-config` supplies the host target triple,
+`navascript build` parses, type-checks, lowers, optimizes and compiles the source
+to a native Mach-O executable. `-o` sets the output path (default: source file
+stem). Debug applies IR folding/DCE with `llc -O0`; `--release` adds inlining and
+escape analysis, then runs `opt -passes=default<O3>`, `llc -O3` and `clang -O2`
+(source-level debug info is Phase 11). `--no-opt` skips all IR and LLVM passes
+for benchmark baselines. `--emit-ir` prints the final LLVM IR instead of linking;
+with `--release` it includes the `opt` pipeline. The external toolchain is
+discovered from `LLVM_SYS_231_PREFIX` (or `/opt/homebrew/opt/llvm`):
+`llvm-config` supplies the host target triple, `opt` runs the release pipeline,
 `llc` emits the object, and `clang` compiles the small C runtime and links.
-No CMake or Ninja is required.
+`opt` is required only for optimized builds. No CMake or Ninja is required.
 
 Tests that need the native toolchain call
 `navascript_driver::build::native_tools_available()` and skip cleanly when it is
@@ -191,6 +204,8 @@ code 1.
   through function values until nullable callables exist.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
-- Debug builds are unoptimized (`-O0`); source-level debug info is Phase 11.
+- Debug builds apply IR folding/DCE only and use `llc -O0`; source-level debug
+  info is Phase 11. The optimization pass set and benchmark results are in
+  `docs/BENCHMARKS.md` (ADR-0031).
 - CMake 4.5.1 and Ninja 1.13.2 are installed but not required by the chosen
   LLVM integration.

@@ -18,6 +18,21 @@ fn parses_build_with_one_input() {
             output: None,
             emit_ir: false,
             release: false,
+            no_opt: false,
+        }
+    );
+}
+
+#[test]
+fn parses_no_opt_and_release_flags() {
+    assert_eq!(
+        parse_args(["build", "--release", "--no-opt", "examples/fibonacci.ns"]),
+        Command::Build {
+            input: PathBuf::from("examples/fibonacci.ns"),
+            output: None,
+            emit_ir: false,
+            release: true,
+            no_opt: true,
         }
     );
 }

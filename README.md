@@ -4,9 +4,9 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phases 0–7 complete. All Phase 6 expansion features are delivered,
-and Phase 7 measured compatibility against `tsc` + Node with a reproducible
-32-case corpus and checked-in report. Phase 8 (Optimization) is next.
+**Status:** Phases 0–8 complete. Phase 7 measured compatibility against `tsc` +
+Node with a reproducible 32-case corpus, and Phase 8 added IR optimization,
+LLVM pipelines and a measured benchmark report. Phase 9 (Self-hosting) is next.
 
 ## Goals (tracked independently)
 
@@ -50,7 +50,8 @@ compiler/    lexer, parser, ast, diagnostics, symbol, semantic, typechecker, ir,
 runtime/     navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/, objects/,
              console/ sources (one concern per directory)
 tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-             driver, runtime, compatibility (32-case tsc/Node corpus in Phase 7)
+             driver, runtime, compatibility (32-case corpus), optimizer
+benchmarks/  Phase 8 baseline/optimized programs
 docs/        planning and tracking documents
 examples/    sample programs
 scripts/     helper scripts
@@ -60,10 +61,13 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 280 tests through Phase 7 (3 corpus integrity tests added)
+cargo test --workspace     # 289 tests through Phase 8 (optimizer passes added)
 python3 -m unittest discover -s tests/compatibility -p 'test_*.py'  # 8 harness tests
+python3 -m unittest discover -s tests/benchmark -p 'test_*.py'      # 4 harness tests
 python3 scripts/compat.py   # regenerate docs/COMPATIBILITY_REPORT.md (needs tsc + node)
 python3 scripts/compat.py --check  # fail if the committed report is stale
+python3 scripts/benchmark.py       # regenerate docs/BENCHMARKS.md (needs LLVM opt)
+python3 scripts/benchmark.py --check  # re-measure deterministic benchmark facts
 target/debug/navascript --version
 target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
@@ -72,10 +76,10 @@ target/debug/navascript build --release examples/fibonacci.ns -o fibonacci
 target/debug/navascript build --emit-ir examples/fibonacci.ns   # print LLVM IR
 ```
 
-Helper scripts: `scripts/build.sh`, `scripts/test.sh` (Rust + Python suite) and
-`scripts/compat.py` (compatibility corpus). CI runs fmt, clippy, the full Rust
-suite, the harness tests and the report `--check` gate on macOS
-(`.github/workflows/ci.yml`). Full build,
+Helper scripts: `scripts/build.sh`, `scripts/test.sh` (Rust + Python suites),
+`scripts/compat.py` (compatibility corpus) and `scripts/benchmark.py` (Phase 8).
+CI runs fmt, clippy, the full Rust suite, both Python harness suites and both
+report `--check` gates on macOS (`.github/workflows/ci.yml`). Full build,
 test and LLVM toolchain instructions are in `docs/BUILD.md`.
 
 Phases 0–5 are complete: the CLI parses, type-checks, lowers to NavaScript IR, emits
@@ -124,7 +128,10 @@ fibonacci printing `55` without Node.js — is verified by
 
 All Phase 6 expansion items are now delivered. Phase 7 adds the measured
 compatibility report: `docs/COMPATIBILITY_REPORT.md` (19 executed cases pass,
-13 documented skips), generated from `tests/compatibility/corpus/` (ADR-0030).
+13 documented skips, ADR-0030). Phase 8 adds IR folding/DCE/inlining and escape
+analysis, LLVM `opt -passes=default<O3>` in release builds, and
+`docs/BENCHMARKS.md` (100 → 59 LLVM IR instructions, 4/4 speedups, 4/4 matching
+outputs, ADR-0031).
 
 ## Documentation
 
@@ -136,6 +143,7 @@ compatibility report: `docs/COMPATIBILITY_REPORT.md` (19 executed cases pass,
 - `docs/LANGUAGE_SPEC.md` — supported language subset.
 - `docs/COMPATIBILITY.md` — TypeScript compatibility matrix and unsupported-feature register.
 - `docs/COMPATIBILITY_REPORT.md` — measured, reproducible Phase 7 results.
+- `docs/BENCHMARKS.md` — Phase 8 baseline/optimized results.
 - `docs/BOOTSTRAP.md` — three-stage self-hosting strategy.
 - `docs/DECISIONS.md` — architecture decision records.
 

@@ -4,8 +4,41 @@
 //! the target triple is queried from `llvm-config` and never hardcoded.
 
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+
+/// The aggressive LLVM pipeline used by optimized builds and `--emit-ir`.
+const LLVM_OPT_PASSES: &str = "-passes=default<O3>";
+
+/// Run the LLVM optimization pipeline over textual IR, returning optimized IR.
+/// Shared by native builds and `--emit-ir` so both show the same final code.
+pub fn optimize_llvm_ir(ir: &str) -> Result<String, String> {
+    let mut child = Command::new(llvm_tool("opt"))
+        .arg(LLVM_OPT_PASSES)
+        .arg("-S")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| format!("could not run opt: {error}"))?;
+    child
+        .stdin
+        .take()
+        .ok_or_else(|| "opt has no stdin".to_owned())?
+        .write_all(ir.as_bytes())
+        .map_err(|error| format!("could not feed opt: {error}"))?;
+    let output = child
+        .wait_with_output()
+        .map_err(|error| format!("could not wait for opt: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "opt failed:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    String::from_utf8(output.stdout).map_err(|error| format!("opt emitted invalid IR: {error}"))
+}
 
 /// Locate the LLVM installation.
 pub fn llvm_prefix() -> PathBuf {
@@ -33,6 +66,12 @@ pub fn native_tools_available() -> bool {
         && present(&PathBuf::from("clang"))
 }
 
+/// `opt` is only needed for optimized builds; unoptimized builds stay usable
+/// without it.
+pub fn llvm_optimizer_available() -> bool {
+    llvm_tool("opt").is_file()
+}
+
 /// Ask LLVM for the host target triple.
 pub fn host_triple() -> Result<String, String> {
     let output = Command::new(llvm_tool("llvm-config"))
@@ -53,12 +92,18 @@ pub fn emit_native(
     ir: &str,
     runtime_files: &[(&str, &str, &str)],
     output: &Path,
-    release: bool,
+    optimized: bool,
 ) -> Result<(), String> {
     if !native_tools_available() {
         return Err(format!(
             "native toolchain not found (LLVM prefix {}); install LLVM with `brew install llvm` or set LLVM_SYS_231_PREFIX",
             llvm_prefix().display()
+        ));
+    }
+    if optimized && !llvm_optimizer_available() {
+        return Err(format!(
+            "LLVM opt not found at {}; install LLVM or use --no-opt",
+            llvm_tool("opt").display()
         ));
     }
 
@@ -73,7 +118,7 @@ pub fn emit_native(
     fs::create_dir_all(&workdir)
         .map_err(|error| format!("could not create build directory: {error}"))?;
 
-    let result = build_in(&workdir, ir, runtime_files, output, release);
+    let result = build_in(&workdir, ir, runtime_files, output, optimized);
     let _ = fs::remove_dir_all(&workdir);
     result
 }
@@ -83,11 +128,23 @@ fn build_in(
     ir: &str,
     runtime_files: &[(&str, &str, &str)],
     output: &Path,
-    release: bool,
+    optimized: bool,
 ) -> Result<(), String> {
     let ir_path = workdir.join("program.ll");
     let object_path = workdir.join("program.o");
     fs::write(&ir_path, ir).map_err(|error| format!("could not write LLVM IR: {error}"))?;
+
+    // The LLVM pipeline runs only for optimized builds: `opt` applies the
+    // aggressive default pipeline, then `llc` lowers the optimized IR.
+    let llc_input = if optimized {
+        let optimized_ir = optimize_llvm_ir(ir)?;
+        let path = workdir.join("program.opt.ll");
+        fs::write(&path, optimized_ir)
+            .map_err(|error| format!("could not write optimized LLVM IR: {error}"))?;
+        path
+    } else {
+        ir_path.clone()
+    };
 
     let mut runtime_objects = Vec::new();
     for (index, (name, _, source)) in runtime_files.iter().enumerate() {
@@ -100,7 +157,7 @@ fn build_in(
         let object = workdir.join(format!("runtime_{index}.o"));
         run(
             Command::new("clang")
-                .args(["-c", if release { "-O2" } else { "-O0" }])
+                .args(["-c", if optimized { "-O2" } else { "-O0" }])
                 .arg("-I")
                 .arg(workdir)
                 .arg(&path)
@@ -112,13 +169,13 @@ fn build_in(
     }
 
     let triple = host_triple()?;
-    let opt = if release { "-O3" } else { "-O0" };
+    let opt = if optimized { "-O3" } else { "-O0" };
     run(
         Command::new(llvm_tool("llc"))
             .args(["-filetype=obj", opt, "-mtriple", &triple])
             .arg("-o")
             .arg(&object_path)
-            .arg(&ir_path),
+            .arg(&llc_input),
         "llc",
     )?;
     run(

@@ -6,8 +6,10 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-25 — Phases 0–7 are complete. Phase 7 measured the matrix
-below against `tsc` + Node; results are in `docs/COMPATIBILITY_REPORT.md`.
+Last updated: 2026-11-25 — Phases 0–8 are complete. Phase 7 measured the matrix
+below against `tsc` + Node (results in `docs/COMPATIBILITY_REPORT.md`); Phase 8
+verified that optimized builds preserve all 19 executed outputs and measured
+the speedups in `docs/BENCHMARKS.md`.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects, closure environments
 and fatal error reporting; Phase 6 has delivered loops with

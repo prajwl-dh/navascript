@@ -1,0 +1,6 @@
+// Loop-heavy workload with a mutable accumulator (Phase 8 benchmark).
+let total: number = 0;
+for (let i = 0; i < 2000000; i = i + 1) {
+    total = total + i % 7;
+}
+console.log(total);

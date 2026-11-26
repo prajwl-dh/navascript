@@ -689,6 +689,39 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0031 — IR optimization seam and practical escape analysis
+
+- **Date:** 2026-11-25
+- **Status:** Accepted
+- **Context:** Phase 8 requires measurable improvements without correctness
+  loss. The IR has typed stack slots, single-block helper functions and pure
+  instructions; the backend already emits textual LLVM IR (ADR-0004) and LLVM
+  ships an external `opt` tool. Earlier attempts to rename only operands during
+  inlining left the call result undefined, which the verifier rejected and the
+  driver silently discarded — statistics must therefore reflect passes that
+  actually survive verification.
+- **Decision:** Expose one seam, `navascript_optimizer::optimize(&IrModule,
+  Level) -> OptimizeOutput`, with private passes for constant/branch folding,
+  dead instruction and unreachable-block elimination, small side-effect-free
+  inlining, and escape analysis that promotes single-block, single-store slots
+  to SSA values. Every rewritten instruction result is renamed along with its
+  operands. The returned module is re-verified; a failure falls back to the
+  input with zeroed statistics. Driver levels are `None` (`--no-opt`), `Minimal`
+  (debug: folding/DCE) and `Aggressive` (release: plus inlining and escape
+  analysis). Release additionally runs `opt -passes=default<O3>` before `llc`,
+  through the shared `build::optimize_llvm_ir` seam used by both the native
+  pipeline and `--emit-ir`. Operand/result/slot accessors live in private
+  `ir/access.rs`; IR data types and public seams are unchanged.
+- **Consequences:** Benchmarks improve from 100 to 59 LLVM IR instructions with
+  4/4 wall-clock speedups above 1x and unchanged output, and the Phase 7
+  compatibility report is byte-identical. Escape analysis is deliberately
+  local: slots shared across blocks or captured by closures, tagged values and
+  garbage collection remain future work. LLVM may unroll a loop and raise its
+  instruction count while reducing runtime (`loops`), so wall-clock time is
+  the decisive benchmark metric.
+
+---
+
 ## Template for new decisions
 
 ```

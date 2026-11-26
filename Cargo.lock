@@ -11,6 +11,7 @@ dependencies = [
  "navascript-diagnostics",
  "navascript-ir",
  "navascript-lexer",
+ "navascript-optimizer",
  "navascript-parser",
  "navascript-symbol",
  "navascript-typechecker",
@@ -51,6 +52,9 @@ version = "0.1.0"
 [[package]]
 name = "navascript-optimizer"
 version = "0.1.0"
+dependencies = [
+ "navascript-ir",
+]
 
 [[package]]
 name = "navascript-parser"

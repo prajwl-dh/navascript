@@ -1,0 +1,8 @@
+// Small helper calls that the IR inliner can absorb (Phase 8 benchmark).
+function inc(n: number): number { return n + 1; }
+function twice(n: number): number { return n * 2; }
+let total: number = 0;
+for (let i = 0; i < 1000000; i = i + 1) {
+    total = total + twice(inc(i));
+}
+console.log(total);

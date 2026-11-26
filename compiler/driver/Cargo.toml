@@ -19,6 +19,7 @@ path = "src/main.rs"
 navascript-ast = { path = "../ast" }
 navascript-codegen = { path = "../codegen" }
 navascript-ir = { path = "../ir" }
+navascript-optimizer = { path = "../optimizer" }
 navascript-parser = { path = "../parser" }
 navascript-typechecker = { path = "../typechecker" }
 
@@ -30,6 +31,7 @@ navascript-codegen = { path = "../codegen" }
 navascript-diagnostics = { path = "../diagnostics" }
 navascript-ir = { path = "../ir" }
 navascript-lexer = { path = "../lexer" }
+navascript-optimizer = { path = "../optimizer" }
 navascript-symbol = { path = "../symbol" }
 
 [[test]]
@@ -103,3 +105,19 @@ path = "../../tests/runtime/runtime.rs"
 [[test]]
 name = "compatibility_corpus"
 path = "../../tests/compatibility/corpus.rs"
+
+[[test]]
+name = "optimizer_fold_dce"
+path = "../../tests/optimizer/optimize.rs"
+
+[[test]]
+name = "optimizer_inline"
+path = "../../tests/optimizer/inline.rs"
+
+[[test]]
+name = "optimizer_blocks"
+path = "../../tests/optimizer/blocks.rs"
+
+[[test]]
+name = "optimizer_native"
+path = "../../tests/optimizer/native.rs"

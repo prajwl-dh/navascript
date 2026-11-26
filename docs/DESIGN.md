@@ -17,11 +17,16 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 `runtime.rs`. Internal seams stay private; only the façade is tested from
 `tests/` (ADR-0012).
 
-Status: **accepted and implemented through Phase 7**. The compiler seams below
-are unchanged; Phase 7 added a separate measurement seam — `scripts/compat.py`
+Status: **accepted and implemented through Phase 8**. The compiler seams below
+are unchanged; Phase 8 inserted the narrow `navascript_optimizer::optimize(&IrModule,
+Level) -> OptimizeOutput` seam between `lower` and `generate`, with private
+folding/DCE/inlining/escape modules and re-verification before returning
+(ADR-0031). Operand accessors live in private `ir/access.rs`, so the IR façade
+stays small. Phase 7 added a separate measurement seam — `scripts/compat.py`
 (CLI) over `scripts/compat_core.py` (discovery/execution/classification) and
 `scripts/compat_report.py` (pure rendering) — with the corpus as its input and
-`docs/COMPATIBILITY_REPORT.md` as its output (ADR-0030). Phase 6 delivered loops
+`docs/COMPATIBILITY_REPORT.md` as its output (ADR-0030). Phase 8's benchmark
+seam is `scripts/benchmark.py` over `docs/BENCHMARKS.md`. Phase 6 delivered loops
 with `break`/`continue`, additional literals/operators, arrow functions,
 optional chaining, bigint, optional calls, generics, classes, unions, structural
 typing, modules, closures, same-function exceptions and synchronous async/await.

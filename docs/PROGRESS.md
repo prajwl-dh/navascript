@@ -6,9 +6,9 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-25
-- **Current phase:** Phase 7 (Compatibility) complete — a 32-case corpus against
-  `tsc` + Node with a measured, reproducible report in
-  `docs/COMPATIBILITY_REPORT.md`; Phase 6 expansion is also complete
+- **Current phase:** Phase 8 (Optimization) complete — IR folding/DCE/inlining,
+  escape analysis, LLVM `opt -passes=default<O3>` and a reproducible benchmark
+  report in `docs/BENCHMARKS.md`; Phases 0–7 are also complete
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -29,13 +29,13 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 5 — Runtime | [x] Complete (closures/exceptions deferred, ADR-0015) |
 | Phase 6 — Language expansion | [x] Complete (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions, async/await; exit suite delivered in Phase 7) |
 | Phase 7 — Compatibility | [x] Complete (32-case corpus, measured report, 19/19 executed cases pass) |
-| Phase 8 — Optimization | [ ] Not started |
+| Phase 8 — Optimization | [x] Complete (IR passes, LLVM pipelines, escape analysis, 4-benchmark report) |
 | Phase 9 — Self-hosting | [ ] Not started |
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 7 of 12 implementation phases complete; Phases 0–7 are done and
-Phase 8 (Optimization) is next. Phase 6's expanded compatibility suite was
+**Overall:** 8 of 12 implementation phases complete; Phases 0–8 are done and
+Phase 9 (Self-hosting) is next. Phase 6's expanded compatibility suite was
 delivered as the Phase 7 corpus.
 
 ---
@@ -246,11 +246,32 @@ limitations for every milestone.
 - **Exit condition:** reproducible compatibility report exists — satisfied.
 
 ### Phase 8 — Optimization
-- [ ] Constant folding, dead code elimination, inlining
-- [ ] LLVM optimization passes
-- [ ] Escape analysis where practical
-- [ ] Reproducible benchmark suite + comparison
-- **Exit condition:** measurable improvement on defined benchmarks.
+- [x] Constant folding, dead code elimination, inlining — `navascript_optimizer::optimize`
+  with `Level::{None, Minimal, Aggressive}`; folding also simplifies branches and
+  DCE removes unreachable blocks; the result is always re-verified (ADR-0031)
+- [x] LLVM optimization passes — debug uses `llc -O0`, release runs
+  `opt -passes=default<O3>` then `llc -O3`; `--emit-ir` prints the final IR;
+  `--no-opt` provides the baseline
+- [x] Escape analysis where practical — single-block slots with one store are
+  promoted to SSA values; slots shared across blocks or captured by closures are
+  left alone, so memory layout changes only where provably safe
+- [x] Reproducible benchmark suite + comparison — `benchmarks/` (4 programs),
+  `scripts/benchmark.py` and `docs/BENCHMARKS.md`; `--check` re-measures the
+  deterministic IR counts and output equality
+- **Current evidence:** `cargo fmt --all -- --check`,
+  `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`
+  (289 passed, 0 failed), 8 compatibility and 4 benchmark Python tests,
+  `python3 scripts/compat.py --check` (identical report) and
+  `python3 scripts/benchmark.py --check` all succeed. Benchmarks show 100 → 59
+  LLVM IR instructions, 4/4 wall-clock speedups above 1x (median 1.68x) and
+  4/4 identical outputs.
+- **Exit condition:** measurable improvement on defined benchmarks without
+  correctness loss — satisfied; `loops` gains wall-clock speed while LLVM
+  unrolling increases its IR instruction count (recorded in `BENCHMARKS.md`).
+- **Accepted deviation:** "efficient memory layout" is realised by eliminating
+  provably non-escaping stack slots, not by changing runtime object layouts;
+  general escape analysis across blocks or closures, tagged values and garbage
+  collection remain future work (ADR-0031).
 
 ### Phase 9 — Self-hosting (rewrite in NavaScript)
 - [ ] Lexer → Parser → AST → Symbol table → Semantic → Type checker → IR → Driver
@@ -998,15 +1019,48 @@ limitations for every milestone.
   -- -D warnings`, `cargo test --workspace` (280 passed), the 8 Python harness
   tests, and `python3 scripts/compat.py --check` all succeed.
 
+### 2026-11-25 — Phase 8 (optimization)
+- Added `navascript_optimizer` as a real crate behind one seam,
+  `optimize(&IrModule, Level) -> OptimizeOutput` (ADR-0031). Private passes:
+  constant folding (including branch folding), dead-code and unreachable-block
+  elimination, small side-effect-free function inlining, and escape analysis.
+- Escape analysis promotes single-block, single-store stack slots to SSA values;
+  slots shared across blocks or captured by closures remain untouched. This is
+  the "where practical" interpretation of the roadmap task and the phase's
+  memory-layout improvement; it is recorded as an accepted deviation below.
+- IR operand/result/slot accessors moved into private `compiler/ir/src/access.rs`
+  so the `ir.rs` data-model façade stays within ADR-0016 (284 lines). The IR
+  public interface is unchanged; the verifier and optimizer share one traversal.
+- `--release` now runs `opt -passes=default<O3>` before `llc -O3` and `clang -O2`;
+  debug uses `llc -O0`. `--emit-ir` prints final (post-pipeline) LLVM IR and
+  `--no-opt` builds an unoptimized baseline. `opt` is required only for
+  optimized builds; `build::optimize_llvm_ir` is the shared pipeline seam.
+- Two-axis code review of the working-tree diff was applied before this doc
+  update. The Spec axis found that inlining renamed operands but not the copied
+  instruction's own `result`, so normal programs silently fell back to the
+  unoptimized module; it is fixed and covered by a mismatched-id regression
+  test. Missing escape analysis, branch folding, unreachable-block removal and
+  deterministic benchmark `--check` were also added. The Standards axis prompted
+  moving IR accessors out of the façade, deduplicating the `opt` invocation and
+  splitting the optimizer tests into four files.
+- Benchmarks (`benchmarks/`, `scripts/benchmark.py`, `docs/BENCHMARKS.md`):
+  arithmetic, calls, fibonacci and loops. 100 → 59 LLVM IR instructions,
+  4/4 speedups above 1x (median 1.68x), 4/4 identical outputs. `--check`
+  re-measures counts and compares them to the committed report.
+- Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (289 passed),
+  8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
+  (report byte-identical, so optimization preserved all 19 executed outputs)
+  and `python3 scripts/benchmark.py --check`.
+
 ---
 
 ## 6. Next actions (in order)
 
-1. Phase 7 is complete: the measured compatibility report is committed and CI
-   verifies it is reproducible. Phase 8 (Optimization) is next.
+1. Phase 8 is complete: the benchmark report is committed and CI verifies its
+   deterministic facts. Phase 9 (Self-hosting) is next.
 2. Add x86-64 target validation once LLVM targets beyond the host are needed.
-3. Keep the corpus current: re-run `python3 scripts/compat.py` on every commit
-   touching semantics, and investigate any failing case before proceeding.
+3. Keep both reports current: re-run `python3 scripts/compat.py` after semantic
+   changes and `python3 scripts/benchmark.py` after pipeline changes.
 
 ---
 
