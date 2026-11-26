@@ -155,7 +155,7 @@ scripts/      build/test/compatibility/benchmark helper scripts
 - Optimizer unit tests assert each pass preserves semantics and verifiability;
   native tests compare optimized output with the `--no-opt` baseline. Benchmarks
   in `benchmarks/` record baseline and optimized results in `docs/BENCHMARKS.md`.
-- Every stage of bootstrap runs the same test suite (see `BOOTSTRAP.md`).
+- Every stage of bootstrap runs the same test suite (see `ROADMAP.md` Phase 10).
 
 ## 8. Architectural invariants
 

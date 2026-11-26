@@ -450,21 +450,33 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - A substantial portion of the compiler is written in NavaScript.
 
 **Prerequisites (completed 2026-11-25)**
-- `docs/PREBOOTSTRAP_AUDIT.md` records the whole-codebase audit: provable bugs
-  fixed, typed file I/O / argv / string and array builtins added and tested, and
-  generated names reserved so ported code cannot collide with compiler output.
+- The pre-bootstrap audit fixed provable bugs, added typed file I/O / argv /
+  string and array builtins, and reserved generated names. Phase 8.1 added
+  tagged `any`/unions, conservative GC and per-file diagnostics.
 
 **Known limitations**
 - Rust driver still required to invoke the compiler until Phase 10.
-- GC, tagged unions, per-file namespaces and `any` are NOT implemented; ported
-  code must avoid them. They are recorded in `COMPATIBILITY.md` §6 and the audit.
+- Per-file *name scoping* is not implemented; ported code must not rely on it
+  (see `COMPATIBILITY.md` §6).
 
 ---
 
 ## Phase 10 — Full Self-Hosting / Bootstrap
 
 **Objectives**
-- Achieve and verify the three-stage bootstrap (see `BOOTSTRAP.md`).
+- Achieve and verify the three-stage bootstrap. Self-hosting by itself does not
+  prove correctness or reproducibility; the verification protocol below does.
+
+**Three-stage bootstrap**
+```
+Stage 0  nova0 (Rust compiler)  compiles NavaScript compiler source → nova1
+Stage 1  nova1                  compiles the same source            → nova2
+Stage 2  nova2                  compiles the same source            → nova3
+```
+`nova0` is built once with Cargo and is the only artifact that depends on Rust.
+`nova2` and `nova3` are produced entirely by NavaScript compilers. Artifacts
+live under `bootstrap/stage0`, `bootstrap/stage1` and `bootstrap/stage2`
+(recreated from ADR-0016's removed placeholders).
 
 **Implementation tasks**
 - Stage 0: Rust compiler compiles the NavaScript compiler source → `nova1`.
@@ -473,16 +485,27 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 - Run the full compiler test suite at every stage.
 - Compare program behavior across stages; pursue reproducible builds.
 
+**Verification protocol (per stage)**
+- [ ] Build the compiler from the same source tree.
+- [ ] Run the full compiler test suite; all tests must pass.
+- [ ] Compile a representative program corpus and compare stdout/exit codes.
+- [ ] Compare generated outputs where byte-equality is practical.
+- [ ] Record toolchain versions and exact commands used.
+- [ ] Confirm no hidden dependency on Rust for normal NavaScript compilation.
+
 **Tests**
 - All stages pass the same tests.
 - Equivalent behavior on a representative program corpus.
 - Byte-identical outputs where toolchain permits.
 
 **Acceptance criteria**
-- NavaScript compiles its own compiler from source with no hidden Rust dependency.
+- `nova3` exists and compiles NavaScript source without invoking `nova0`.
+- All stages pass the same tests; any remaining differences are documented.
 
 **Known limitations**
 - Reproducible builds are "where practical," not an absolute gate.
+- Risks: language gaps are closed in the Rust compiler first; semantic drift is
+  caught by differential tests at every port; toolchain variance is documented.
 
 ---
 

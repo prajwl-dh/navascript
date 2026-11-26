@@ -316,7 +316,7 @@ limitations for every milestone.
 - Inspected environment; recorded versions and missing tools in §2.
 - Created full directory skeleton and initialized Git.
 - Authored all tracking documents: `ROADMAP.md`, `ARCHITECTURE.md`,
-  `LANGUAGE_SPEC.md`, `COMPATIBILITY.md`, `BOOTSTRAP.md`, `DECISIONS.md`, and
+  `LANGUAGE_SPEC.md`, `COMPATIBILITY.md`, `DECISIONS.md`, and
   this `PROGRESS.md` (the central tracker).
 - Wrote `README.md` with quick-start and links.
 - **No compiler code written yet** — implementation begins with Phase 0 next.
@@ -665,7 +665,7 @@ limitations for every milestone.
     arrays, objects, member/index access and `console.log`; `null` is marked
     partial after verifying that an inferred `null` value fails codegen while
     `console.log(null)` prints `null`.
-  - `BUILD.md`'s test-surface note, `BOOTSTRAP.md`'s future artifact paths and
+  - `BUILD.md`'s test-surface note and
     the `Program` snippet in `DESIGN.md` were corrected.
 - Verified the environment versions and `cargo test --workspace` (120 passed).
   No compiler code changed.
@@ -1087,10 +1087,9 @@ limitations for every milestone.
   `array_push_number` was covered by the stdlib example, `verify.rs` call checks
   were split into a private module, and string helpers now use the validated
   index conversion.
-- `docs/PREBOOTSTRAP_AUDIT.md` records every fix and explicitly lists the four
-  long-term gaps that were NOT claimed: GC, tagged unions, per-file namespaces
-  and `any`. Each needs a representation redesign and is diagnosed today rather
-  than silently miscompiled.
+- The audit work log recorded every fix and explicitly listed four long-term
+  gaps that were NOT claimed then: GC, tagged unions, per-file namespaces and
+  `any`. Phase 8.1 closed most of them; see `COMPATIBILITY.md` §6.
 - Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (299 passed),
   8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
   and `python3 scripts/benchmark.py --check`.

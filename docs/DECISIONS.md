@@ -15,7 +15,7 @@ a new number and references the old one. Keep entries short and factual.
   defined by the bootstrap strategy, to avoid confusing the compiler name with
   stage artifacts.
 - **Consequences:** All docs, paths, and commands use `navascript`; stage artifacts
-  use the `novaN` convention from `BOOTSTRAP.md`.
+  use the `novaN` convention from `ROADMAP.md` Phase 10.
 
 ## ADR-0002 — Rust as the bootstrap implementation language
 
@@ -102,7 +102,7 @@ a new number and references the old one. Keep entries short and factual.
   conflated.
 - **Decision:** Track and report them separately; never claim one as evidence
   of another.
-- **Consequences:** `COMPATIBILITY.md`, `PROGRESS.md`, and `BOOTSTRAP.md` each
+- **Consequences:** `COMPATIBILITY.md` and `PROGRESS.md` each
   measure their own goal.
 
 ---
@@ -746,8 +746,8 @@ a new number and references the old one. Keep entries short and factual.
   reclaimed during execution — this is arena growth, not GC; tracing
   collection needs tagged values and write barriers and remains future work.
   All generated names are now impossible to declare in user source, and IR
-  emission is byte-reproducible. `docs/PREBOOTSTRAP_AUDIT.md` records the audit,
-  the fixes and the remaining long-term gaps.
+  emission is byte-reproducible. The fixes and remaining long-term gaps are
+  recorded in `PROGRESS.md` and `COMPATIBILITY.md` §6.
 
 ---
 
