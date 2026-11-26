@@ -85,6 +85,8 @@ pub(super) struct Checker<'a> {
     pub(super) call_instantiations: HashMap<Span, Vec<Type>>,
     pub(super) classes: HashMap<String, ClassInfo>,
     pub(super) class_resolved: HashSet<String>,
+    /// Classes currently being resolved, to diagnose inheritance cycles.
+    pub(super) class_resolving: HashSet<String>,
     pub(super) method_calls: HashMap<Span, String>,
     /// The class whose body is currently being checked (for `super(...)`).
     pub(super) current_class: Option<String>,
@@ -109,6 +111,7 @@ impl<'a> Checker<'a> {
             call_instantiations: HashMap::new(),
             classes: HashMap::new(),
             class_resolved: HashSet::new(),
+            class_resolving: HashSet::new(),
             method_calls: HashMap::new(),
             current_class: None,
             super_calls: HashMap::new(),
@@ -132,6 +135,58 @@ impl<'a> Checker<'a> {
             ty: Type::Object(console),
             span: Span::new(FileId(0), 0, 0),
         });
+
+        // Stdlib builtins required to implement the compiler in NavaScript.
+        // Each name maps to a `navascript_<name>` runtime function in codegen.
+        let number = Type::Number;
+        let string = Type::String;
+        let string_array = Type::Array(Box::new(Type::String));
+        let number_array = Type::Array(Box::new(Type::Number));
+        let builtin = |name: &str, params: Vec<Type>, ret: Type| Symbol {
+            name: name.to_owned(),
+            kind: SymbolKind::Function,
+            ty: Type::Function {
+                params,
+                ret: Box::new(ret),
+            },
+            span: Span::new(FileId(0), 0, 0),
+        };
+        for symbol in [
+            builtin("read_file", vec![string.clone()], string.clone()),
+            builtin(
+                "write_file",
+                vec![string.clone(), string.clone()],
+                Type::Void,
+            ),
+            builtin("get_argv", vec![], string_array.clone()),
+            builtin(
+                "str_slice",
+                vec![string.clone(), number.clone(), number.clone()],
+                string.clone(),
+            ),
+            builtin(
+                "str_index_of",
+                vec![string.clone(), string.clone()],
+                number.clone(),
+            ),
+            builtin(
+                "str_char_code_at",
+                vec![string.clone(), number.clone()],
+                number.clone(),
+            ),
+            builtin(
+                "array_push_number",
+                vec![number_array.clone(), number.clone()],
+                number_array,
+            ),
+            builtin(
+                "array_push_string",
+                vec![string_array.clone(), string.clone()],
+                string_array,
+            ),
+        ] {
+            self.symbols.insert(symbol);
+        }
     }
 
     pub(super) fn error(&mut self, message: impl Into<String>, span: Span) {

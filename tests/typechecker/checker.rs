@@ -839,3 +839,58 @@ fn rejects_comparisons_of_non_orderable_types() {
             .any(|message| message.contains("comparison requires two numbers or two strings"))
     );
 }
+
+#[test]
+fn rejects_circular_inheritance() {
+    let (output, _) = check_source("class A extends B {} class B extends A {}");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("circular inheritance")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn rejects_compiler_reserved_names() {
+    let (output, _) = check_source("function __navascript_entry(): void {}");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("reserved name")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn rejects_unsupported_string_coercion() {
+    let (output, _) =
+        check_source("interface P { x: number; } let p: P = { x: 1 }; let s = \"x\" + p;");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("string concatenation requires")),
+        "{:?}",
+        messages(&output)
+    );
+}
+
+#[test]
+fn accepts_string_ordering_comparison() {
+    let (output, _) = check_source("let b = \"a\" < \"b\";");
+    assert!(!output.diagnostics.has_errors(), "{:?}", messages(&output));
+}
+
+#[test]
+fn rejects_generated_code_name_patterns() {
+    let (output, _) = check_source("function arrow__0(): number { return 1; }");
+    assert!(
+        messages(&output)
+            .iter()
+            .any(|message| message.contains("reserved name")),
+        "{:?}",
+        messages(&output)
+    );
+}

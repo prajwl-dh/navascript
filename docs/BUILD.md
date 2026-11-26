@@ -146,7 +146,8 @@ discovered from `LLVM_SYS_231_PREFIX` (or `/opt/homebrew/opt/llvm`):
 `opt` is required only for optimized builds. No CMake or Ninja is required.
 
 Tests that need the native toolchain call
-`navascript_driver::build::native_tools_available()` and skip cleanly when it is
+`navascript_driver::build::native_tools_available()` (or
+`optimized_native_tools_available()` for `--release`) and skip cleanly when it is
 absent, so `cargo test --workspace` passes on machines without LLVM. CI installs
 LLVM with `brew install llvm` and exports the discovered prefix so the native
 tests actually execute there.
@@ -162,7 +163,7 @@ compiler/
 
 runtime/
   navascript_runtime.h/.c         ABI header and process entry point
-  memory/ bigint/ strings/ arrays/ objects/ console/   one source per concern
+  memory/ bigint/ strings/ arrays/ objects/ io/ console/   one source per concern
 ```
 
 The front end (lexer → AST → type checker → IR) must not depend on LLVM. Only
@@ -184,8 +185,8 @@ code 1.
 
 ## 7. Current limitations
 
-- Runtime memory is a program-lifetime bump arena; nothing is reclaimed until
-  process exit (ADR-0005).
+- Runtime memory uses a growable program-lifetime bump arena; nothing is
+  reclaimed until process exit (ADR-0033 supersedes ADR-0005).
 - Exceptions work within one function (ADR-0028): `throw` targets the innermost
   enclosing catch and body/catch converge through `finally`. Cross-function
   throws, abrupt control flow out of protected regions and unannotated catch
@@ -204,6 +205,9 @@ code 1.
   through function values until nullable callables exist.
 - Only the detected host target is validated; x86-64 and other targets are
   Phase 11.
+- NavaScript source can call typed builtins `read_file`, `write_file`,
+  `get_argv`, `str_slice`, `str_index_of`, `str_char_code_at`, `str_compare`,
+  `array_push_number` and `array_push_string` (ADR-0033).
 - Debug builds apply IR folding/DCE only and use `llc -O0`; source-level debug
   info is Phase 11. The optimization pass set and benchmark results are in
   `docs/BENCHMARKS.md` (ADR-0031).

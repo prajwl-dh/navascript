@@ -31,7 +31,7 @@ pub(super) fn index_arg(
                 let temp = format!("idx{}", out.len());
                 let _ = writeln!(
                     out,
-                    "  %{temp} = fptosi double {} to i64",
+                    "  %{temp} = call i64 @navascript_number_index(double {})",
                     llvm_value(value)
                 );
                 Ok(format!("%{temp}"))
@@ -109,7 +109,7 @@ pub(super) fn llvm_value(value: &Value) -> String {
         Value::BigInt(value) => format!("{value}"),
         Value::Bool(value) => value.to_string(),
         Value::String(id) => format!("@g{id}"),
-        Value::Function { name, .. } => format!("@navascript_{name}"),
+        Value::Function { name, .. } => format!("@{}", super::module::function_symbol(name)),
         Value::Null => "null".to_owned(),
     }
 }

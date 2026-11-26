@@ -21,7 +21,7 @@ fn prints_the_fibonacci_module() {
     assert!(text.contains("br %2 ? bb1 : bb2"), "{text}");
     assert!(text.contains("call fibonacci("), "{text}");
     assert!(text.contains("call console.log("), "{text}");
-    assert!(text.contains("fn main() -> void {"), "{text}");
+    assert!(text.contains("fn __navascript_entry() -> void {"), "{text}");
 }
 
 #[test]

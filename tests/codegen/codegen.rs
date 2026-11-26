@@ -37,7 +37,7 @@ fn emits_target_triple_and_runtime_declaration() {
         "{ir}"
     );
     assert!(
-        ir.contains("declare void @navascript_console_log_bool(i1)"),
+        ir.contains("declare void @navascript_console_log_bool(i32)"),
         "{ir}"
     );
 }
@@ -212,7 +212,10 @@ fn emits_indirect_calls_for_function_values() {
     assert!(ir.contains("bitcast ptr %code"), "{ir}");
     assert!(ir.contains("call double %fpcode"), "{ir}");
     assert!(ir.contains("call void @navascript_object_set_ptr"), "{ir}");
-    assert!(ir.contains("define double @navascript_arrow_0("), "{ir}");
+    assert!(
+        ir.contains("define double @navascript___navascript_arrow_0("),
+        "{ir}"
+    );
 }
 
 #[test]

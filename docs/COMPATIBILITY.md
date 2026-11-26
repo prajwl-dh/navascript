@@ -6,10 +6,11 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-25 — Phases 0–8 are complete. Phase 7 measured the matrix
-below against `tsc` + Node (results in `docs/COMPATIBILITY_REPORT.md`); Phase 8
-verified that optimized builds preserve all 19 executed outputs and measured
-the speedups in `docs/BENCHMARKS.md`.
+Last updated: 2026-11-25 — Phases 0–8 plus the pre-bootstrap audit are complete.
+Phase 7 measured the matrix below against `tsc` + Node (results in
+`docs/COMPATIBILITY_REPORT.md`); Phase 8 measured speedups in
+`docs/BENCHMARKS.md`; the audit added typed file/argv/string/array builtins and
+is recorded in `docs/PREBOOTSTRAP_AUDIT.md`.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects, closure environments
 and fatal error reporting; Phase 6 has delivered loops with
@@ -82,13 +83,15 @@ expansion items are delivered.
 | --- | --- | --- | --- |
 | Arithmetic / comparisons | [x] | `tests/driver/native.rs`, `tests/codegen/` | native `fadd/fsub/fmul/fdiv/frem`, `fcmp`/`icmp`; boolean results print correctly |
 | Recursion | [x] | `tests/driver/native.rs` | fibonacci calls itself natively and prints `55` |
-| Strings | [x] | `tests/driver/native.rs` | literal, `+`, `length`, indexing, `==`, `console.log` |
+| Strings | [x] | `tests/driver/native.rs` | literal, `+`, `length`, indexing, `==`, lexicographic `< <= > >=`, `console.log`, `str_slice`, `str_index_of`, `str_char_code_at`, `str_compare` (ADR-0033) |
 | Arrays & objects | [x] | `tests/driver/native.rs` | literals, get/set, `length`, runtime bounds checks |
 | Closures / function values | [x] | `tests/driver/native.rs`, `examples/closures.ns` | Phase 6; shared captured bindings, higher-order calls and nested closures run natively (ADR-0027) |
 | Async/await | [~] | `tests/driver/native.rs`, `examples/async_await.ns` | Phase 6; `async function` and `await` run natively with synchronous promise values (ADR-0029) |
 | Exceptions | [~] | `tests/driver/native.rs`, `examples/exceptions.ns` | Phase 6; same-function `throw`/`try`/`catch`/`finally` run natively without a runtime ABI (ADR-0028); runtime bounds/field errors are still fatal |
 | `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
-| Memory management | [x] | runtime arena | program-lifetime bump arena, ADR-0005; no reclamation |
+| Memory management | [x] | runtime arena + native test | growable program-lifetime arena, ADR-0033; no reclamation until exit |
+| File I/O and process arguments | [x] | `examples/self_host_stdlib.ns`, `tests/driver/native.rs` | typed `read_file`, `write_file`, `get_argv` builtins (ADR-0033) |
+| Array growth helpers | [x] | `examples/self_host_stdlib.ns` | `array_push_number`, `array_push_string` return a new array |
 
 ## 4. Platform
 
@@ -134,7 +137,9 @@ the measured outcomes are linked from `docs/COMPATIBILITY_REPORT.md`:
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | deferred |
 | Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
 | Indirect call signatures | calls through function values cast the code pointer to the statically known signature; a mismatched function type is diagnosed by the checker, not converted at runtime | Phase 6 (documented) |
-| Garbage collection | allocated runtime objects live until process exit (ADR-0005) | Phase 8+ |
+| Garbage collection | growable arena, but nothing is reclaimed until process exit (ADR-0033) | long-term (needs tagged values and barriers) |
+| String concatenation with objects/functions | diagnosed instead of lowering a pointer through number-to-string coercion | documented |
+| Ported code using GC / tagged unions / per-file namespaces / `any` | unimplemented; see `docs/PREBOOTSTRAP_AUDIT.md` §3 | explicit future phases |
 | Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | deferred (ADR-0026) |
 | `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | Phase 7 |
 | Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | deferred (ADR-0026) |

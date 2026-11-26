@@ -31,8 +31,10 @@ impl Instruction {
             }
             Instruction::IsNull { .. }
             | Instruction::ToBool { .. }
-            | Instruction::StringEquals { .. }
-            | Instruction::NumberToString { .. } => IrType::Boolean,
+            | Instruction::StringEquals { .. } => IrType::Boolean,
+            // Runtime number-to-string coercion returns a string pointer; the
+            // result feeds string concatenation, not a boolean.
+            Instruction::NumberToString { .. } => IrType::String,
             Instruction::StringLength { .. } | Instruction::ArrayLength { .. } => IrType::Number,
             Instruction::StringConcat { .. } | Instruction::StringCharAt { .. } => IrType::String,
             Instruction::ArrayNew { element_ty, .. } => IrType::Array(Box::new(element_ty.clone())),

@@ -90,7 +90,7 @@ impl FunctionBuilder {
             });
         }
         captures.sort_by(|a, b| a.name.cmp(&b.name));
-        let name = lowerer.fresh_closure_name("arrow_");
+        let name = lowerer.fresh_closure_name("__navascript_arrow_");
         let function =
             build_closure_function(&name, params, body, &fn_ty, &captures, expr.span, lowerer);
         lowerer.module.functions.push(function);
@@ -122,8 +122,8 @@ impl FunctionBuilder {
         let thunk = match lowerer.function_values.get(name).cloned() {
             Some(thunk) => thunk,
             None => {
-                let thunk =
-                    lowerer.fresh_closure_name(&format!("fnvalue_{}_", llvm_safe_name(name)));
+                let thunk = lowerer
+                    .fresh_closure_name(&format!("__navascript_fnvalue_{}_", llvm_safe_name(name)));
                 lowerer
                     .module
                     .functions

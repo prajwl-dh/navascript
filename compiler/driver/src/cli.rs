@@ -3,7 +3,7 @@
 //! The parser is deliberately dependency-free: argument handling is simple in
 //! Phase 0 and a hand-rolled parser keeps the bootstrap compiler easy to build.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -128,6 +128,21 @@ where
     }
 }
 
+/// Whether the chosen output path is the input source itself. Refusing this
+/// prevents `build prog` from linking over its own source file.
+fn overwrites_source(input: &Path, output: &Path) -> bool {
+    let source = std::fs::canonicalize(input).unwrap_or_else(|_| input.to_path_buf());
+    let parent = match output.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => Path::new("."),
+    };
+    let destination = match (std::fs::canonicalize(parent), output.file_name()) {
+        (Ok(parent), Some(name)) => parent.join(name),
+        _ => output.to_path_buf(),
+    };
+    source == destination
+}
+
 /// Read the process arguments and return a process exit code.
 pub fn run() -> i32 {
     dispatch(parse_args(std::env::args().skip(1)))
@@ -219,6 +234,13 @@ fn dispatch(command: Command) -> i32 {
                         .unwrap_or("a.out"),
                 )
             });
+            if overwrites_source(&input, &output) {
+                eprintln!(
+                    "navascript: output '{}' would overwrite the source file; use -o",
+                    output.display()
+                );
+                return 1;
+            }
             if let Err(error) = super::build::emit_native(
                 &llvm_ir,
                 navascript_codegen::RUNTIME_FILES,

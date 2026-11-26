@@ -58,6 +58,18 @@ int navascript_object_get_bool(NavaScriptObject *object, int64_t index);
 void navascript_object_set_ptr(NavaScriptObject *object, int64_t index, void *value);
 void *navascript_object_get_ptr(NavaScriptObject *object, int64_t index);
 
+/* ------------------------- stdlib / process I/O -------------------------- */
+void navascript_init_io(int argc, char **argv);
+char *navascript_read_file(const char *path);
+void navascript_write_file(const char *path, const char *contents);
+NavaScriptArray *navascript_get_argv(void);
+char *navascript_str_slice(const char *value, double start, double end);
+double navascript_str_index_of(const char *value, const char *needle);
+double navascript_str_char_code_at(const char *value, double index);
+int64_t navascript_number_index(double value);
+NavaScriptArray *navascript_array_push_number(NavaScriptArray *array, double value);
+NavaScriptArray *navascript_array_push_string(NavaScriptArray *array, const char *value);
+
 /* ---------------------------- console.log ------------------------------- */
 void navascript_console_log_f64(double value);
 void navascript_console_log_i64(int64_t value);

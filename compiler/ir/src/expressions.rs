@@ -103,6 +103,23 @@ impl FunctionBuilder {
                                 return Value::Local(negated);
                             }
                         }
+                        AstBinaryOp::Lt | AstBinaryOp::Le | AstBinaryOp::Gt | AstBinaryOp::Ge => {
+                            // Lexicographic comparison via the runtime helper;
+                            // a raw pointer fcmp would be meaningless.
+                            let comparison = self.fresh_value();
+                            self.emit(Instruction::Call {
+                                result: Some(comparison),
+                                result_ty: IrType::Number,
+                                callee: "str_compare".to_owned(),
+                                args: vec![lhs.clone(), rhs.clone()],
+                            });
+                            self.emit(Instruction::Binary {
+                                result,
+                                op: super::operators::to_ir_binary(*op),
+                                lhs: Value::Local(comparison),
+                                rhs: Value::Number(0.0),
+                            });
+                        }
                         _ => {
                             lowerer.error("unsupported string operator", expr.span);
                         }

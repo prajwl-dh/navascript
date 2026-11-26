@@ -228,7 +228,8 @@ def main(argv: list[str] | None = None) -> int:
         current = args.report.read_text(encoding="utf-8") if args.report.is_file() else ""
         expected = measured_facts(results)
         actual = committed_facts(current)
-        if actual != expected or "Output matches:" not in current:
+        matches_line = f"- Output matches: {sum(r.output_matches for r in results)}/{len(results)}"
+        if actual != expected or matches_line not in current:
             print(
                 f"benchmark report is stale: expected {expected}, committed {actual}",
                 file=sys.stderr,

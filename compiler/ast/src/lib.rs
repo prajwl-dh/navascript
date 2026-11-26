@@ -4,6 +4,10 @@
 //! lowering. The crate has one public surface (this module) and three private
 //! implementation modules: span, expressions, types and declarations.
 
+/// Prefix reserved for compiler-generated IR functions; user declarations
+/// starting with it are diagnosed so they cannot collide with the entry stub.
+pub const RESERVED_NAME_PREFIX: &str = "__navascript_";
+
 mod expr;
 mod item;
 mod span;

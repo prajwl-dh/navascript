@@ -37,7 +37,7 @@ pub fn verify(module: &IrModule) -> Vec<VerifyError> {
         if !names.insert(function.name.clone()) {
             errors.push(error(function, None, "duplicate function name"));
         }
-        verify_function(function, &mut errors);
+        verify_function(function, module, &mut errors);
     }
     let mut globals = HashSet::new();
     for global in &module.globals {
@@ -92,7 +92,7 @@ pub(super) fn error(
     }
 }
 
-fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
+fn verify_function(function: &IrFunction, module: &IrModule, errors: &mut Vec<VerifyError>) {
     let mut block_ids = HashSet::new();
     let mut labels = HashSet::new();
     for block in &function.blocks {
@@ -106,6 +106,13 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
     if function.block(function.entry).is_none() {
         errors.push(error(function, None, "missing entry block"));
         return;
+    }
+    if function
+        .blocks
+        .first()
+        .is_some_and(|block| block.id != function.entry)
+    {
+        errors.push(error(function, None, "entry block is not the first block"));
     }
 
     let mut predecessors: HashMap<BlockId, Vec<BlockId>> = HashMap::new();
@@ -290,9 +297,26 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                     }
                     available_values.insert(*result);
                 }
-                Instruction::Call { result, args, .. } => {
+                Instruction::Call {
+                    result,
+                    result_ty,
+                    callee,
+                    args,
+                } => {
                     for arg in args {
                         check_value(arg, &available_values, function, block.id, errors);
+                    }
+                    if let Some(target) = module.function(callee) {
+                        let signature = super::verify_calls::CallSignature {
+                            params: target.params.iter().map(|param| param.ty.clone()).collect(),
+                            return_ty: target.return_ty.clone(),
+                            args,
+                            result_ty: result_ty.clone(),
+                            defs: &defs,
+                        };
+                        super::verify_calls::check_call_signature(
+                            function, block.id, &signature, errors,
+                        );
                     }
                     if let Some(result) = result {
                         available_values.insert(*result);
@@ -300,20 +324,51 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
                 }
                 Instruction::CallIndirect {
                     result,
+                    result_ty,
                     callee,
                     args,
-                    ..
+                    fn_ty,
                 } => {
                     check_value(callee, &available_values, function, block.id, errors);
                     for arg in args {
                         check_value(arg, &available_values, function, block.id, errors);
                     }
+                    if let IrType::Function { params, ret } = fn_ty {
+                        let signature = super::verify_calls::CallSignature {
+                            params: params.clone(),
+                            return_ty: (**ret).clone(),
+                            args,
+                            result_ty: result_ty.clone(),
+                            defs: &defs,
+                        };
+                        super::verify_calls::check_call_signature(
+                            function, block.id, &signature, errors,
+                        );
+                    }
                     if let Some(result) = result {
                         available_values.insert(*result);
                     }
                 }
-                Instruction::IsNull { result, value }
-                | Instruction::ToBool { result, value }
+                Instruction::IsNull { result, value } => {
+                    check_value(value, &available_values, function, block.id, errors);
+                    let ty = value_type(value, &defs);
+                    if !matches!(
+                        ty,
+                        IrType::String
+                            | IrType::Array(_)
+                            | IrType::Object(_)
+                            | IrType::Function { .. }
+                            | IrType::Opaque
+                    ) {
+                        errors.push(error(
+                            function,
+                            Some(block.id),
+                            format!("IsNull requires a reference, found '{}'", ty.display()),
+                        ));
+                    }
+                    available_values.insert(*result);
+                }
+                Instruction::ToBool { result, value }
                 | Instruction::StringLength { result, value }
                 | Instruction::NumberToString { result, value } => {
                     check_value(value, &available_values, function, block.id, errors);
@@ -391,6 +446,13 @@ fn verify_function(function: &IrFunction, errors: &mut Vec<VerifyError>) {
         if let Some(terminator) = &block.terminator {
             match terminator {
                 Terminator::Return(value) => {
+                    if value.is_some() && function.return_ty == IrType::Void {
+                        errors.push(error(
+                            function,
+                            Some(block.id),
+                            "void function returns a value",
+                        ));
+                    }
                     if let Some(value) = value {
                         check_value(value, &available_values, function, block.id, errors);
                         let actual = value_type(value, &defs);

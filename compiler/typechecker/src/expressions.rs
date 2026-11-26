@@ -290,7 +290,21 @@ impl<'a> Checker<'a> {
         }
         match op {
             BinaryOp::Add if matches!(lhs, Type::String) || matches!(rhs, Type::String) => {
-                Type::String
+                let coercible = |ty: &Type| {
+                    matches!(
+                        ty,
+                        Type::String | Type::Number | Type::BigInt | Type::Unknown | Type::Error
+                    )
+                };
+                if !coercible(lhs) || !coercible(rhs) {
+                    self.error(
+                        "string concatenation requires a string, number or bigint",
+                        span,
+                    );
+                    Type::Error
+                } else {
+                    Type::String
+                }
             }
             BinaryOp::Add
             | BinaryOp::Sub

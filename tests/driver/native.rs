@@ -395,6 +395,9 @@ fn exceptions_run_natively() {
 
 #[test]
 fn release_mode_prints_the_same_result() {
+    if !navascript_driver::build::optimized_native_tools_available() {
+        return;
+    }
     let Some(binary) = compile("fibonacci.ns", "fib-release", &["--release"]) else {
         return;
     };
@@ -421,4 +424,33 @@ fn emit_ir_prints_llvm_ir_without_linking() {
         "{text}"
     );
     assert!(text.contains("target triple"), "{text}");
+}
+
+#[test]
+fn self_hosting_stdlib_builtins_run_natively() {
+    let Some(binary) = compile("self_host_stdlib.ns", "stdlib", &[]) else {
+        return;
+    };
+    let directory = std::env::temp_dir().join(format!("nava-stdlib-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&directory);
+    let input = directory.join("input.txt");
+    let output = directory.join("output.txt");
+    std::fs::write(&input, "abcdef").expect("write input");
+    let run = Command::new(&binary)
+        .arg(&input)
+        .arg(&output)
+        .output()
+        .expect("run stdlib program");
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&run.stdout),
+        "2\n6\nabc\n1\n97\n2\n9\ntrue\ntrue\n"
+    );
+    assert_eq!(std::fs::read_to_string(&output).expect("read output"), "ab");
+    let _ = std::fs::remove_dir_all(&directory);
+    let _ = std::fs::remove_file(binary);
 }

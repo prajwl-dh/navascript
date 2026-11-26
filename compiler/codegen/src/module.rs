@@ -1,6 +1,6 @@
 //! Module-level emission: globals and function definitions.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write;
 
 use navascript_ir::{Instruction, IrFunction, IrModule, IrType, Terminator, ValueId};
@@ -9,6 +9,16 @@ use super::CodegenError;
 use super::instructions::emit_instruction;
 use super::runtime::{RUNTIME_DECLS, encode_field_names, escape_llvm_string, llvm_string_bytes};
 use super::types::{closure_fields, llvm_type, llvm_value, value_types};
+
+/// LLVM symbol for an IR function. A user-defined `main` gets a distinct
+/// symbol from the process-entry shim (`navascript_main`).
+pub(super) fn function_symbol(name: &str) -> String {
+    if name == "main" {
+        "navascript_user_main".to_owned()
+    } else {
+        format!("navascript_{name}")
+    }
+}
 
 pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<String, CodegenError> {
     let mut out = String::new();
@@ -33,7 +43,7 @@ pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<Stri
 
     // Object field-name tables are module-level constants; collect them before
     // emitting any function body.
-    let mut object_globals: HashMap<String, String> = HashMap::new();
+    let mut encoded_names = BTreeSet::new();
     for function in &module.functions {
         for block in &function.blocks {
             for instruction in &block.instructions {
@@ -45,13 +55,17 @@ pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<Stri
                     _ => continue,
                 };
                 let encoded = encode_field_names(&fields);
-                if !object_globals.contains_key(&encoded) {
-                    let name = format!("@obj_names_{}", object_globals.len());
-                    object_globals.insert(encoded, name);
-                }
+                encoded_names.insert(encoded);
             }
         }
     }
+    // Sorted insertion order makes the emitted IR byte-identical regardless
+    // of hash-map iteration order (ADR-0032).
+    let object_globals: BTreeMap<String, String> = encoded_names
+        .into_iter()
+        .enumerate()
+        .map(|(index, encoded)| (encoded, format!("@obj_names_{index}")))
+        .collect();
     for (encoded, name) in &object_globals {
         let byte_len = llvm_string_bytes(encoded);
         let _ = writeln!(
@@ -69,16 +83,27 @@ pub(super) fn emit_module(module: &IrModule, target_triple: &str) -> Result<Stri
         let types = value_types(function);
         emit_function(function, &types, &object_globals, &mut out)?;
     }
-    if module.function("main").is_none() {
-        out.push_str("define void @navascript_main() {\n  ret void\n}\n\n");
-    }
+    // The C runtime always calls `navascript_main`; the synthetic entry holds
+    // top-level statements and now has a reserved name that user code cannot
+    // collide with.
+    let body = if module.function(navascript_ir::ENTRY_FUNCTION).is_some() {
+        format!(
+            "  call void @{}()\n",
+            function_symbol(navascript_ir::ENTRY_FUNCTION)
+        )
+    } else {
+        String::new()
+    };
+    out.push_str(&format!(
+        "define void @navascript_main() {{\n{body}  ret void\n}}\n\n"
+    ));
     Ok(out)
 }
 
 pub(super) fn emit_function(
     function: &IrFunction,
     types: &HashMap<ValueId, IrType>,
-    object_globals: &HashMap<String, String>,
+    object_globals: &BTreeMap<String, String>,
     out: &mut String,
 ) -> Result<(), CodegenError> {
     let ret_ty = llvm_type(&function.return_ty).map_err(|message| CodegenError { message })?;
@@ -95,8 +120,8 @@ pub(super) fn emit_function(
         .join(", ");
     let _ = writeln!(
         out,
-        "define {ret_ty} @navascript_{}({params}) {{",
-        function.name
+        "define {ret_ty} @{}({params}) {{",
+        function_symbol(&function.name)
     );
 
     for block in &function.blocks {

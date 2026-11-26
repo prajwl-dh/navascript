@@ -1,11 +1,15 @@
 /* Arrays: fixed-length sequences of 8-byte slots with typed accessors. */
 #include "navascript_runtime.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 NavaScriptArray *navascript_array_new(int64_t length) {
     if (length < 0) {
         navascript_runtime_error("negative array length");
+    }
+    if (length > (int64_t)(SIZE_MAX / 8)) {
+        navascript_runtime_error("array length too large");
     }
     NavaScriptArray *array = (NavaScriptArray *)navascript_alloc(sizeof(NavaScriptArray));
     array->length = length;
@@ -14,7 +18,7 @@ NavaScriptArray *navascript_array_new(int64_t length) {
 }
 
 static void check_index(NavaScriptArray *array, int64_t index) {
-    if (index < 0 || index >= array->length) {
+    if (array == NULL || index < 0 || index >= array->length) {
         navascript_runtime_error("array index out of bounds");
     }
 }
@@ -60,5 +64,5 @@ void *navascript_array_get_ptr(NavaScriptArray *array, int64_t index) {
 }
 
 int64_t navascript_array_length(NavaScriptArray *array) {
-    return array->length;
+    return array == NULL ? 0 : array->length;
 }

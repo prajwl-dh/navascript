@@ -80,7 +80,9 @@ fn lowers_the_fibonacci_acceptance_program() {
         .count();
     assert_eq!(calls, 2, "fibonacci recurses twice");
 
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     let call = main
         .blocks
         .iter()
@@ -155,7 +157,10 @@ fn inferred_void_functions_have_no_call_result() {
     let parsed = parse(source);
     let typed = check(&parsed.program, source);
     let lowered = lower(&parsed.program, &typed.typed, source);
-    let main = lowered.module.function("main").expect("main");
+    let main = lowered
+        .module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     let call = main
         .blocks
         .iter()
@@ -230,7 +235,9 @@ fn optional_access_lowers_to_a_null_check() {
     let source = "interface Box { name: string; } let b: Box = { name: \"x\" }; let n = b?.name;";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(
         main.blocks
             .iter()
@@ -246,7 +253,7 @@ fn arrow_captures_are_stored_in_the_closure_environment() {
     let arrow = module
         .functions
         .iter()
-        .find(|function| function.name.starts_with("arrow_"))
+        .find(|function| function.name.starts_with("__navascript_arrow_"))
         .expect("generated closure function");
     assert_eq!(
         arrow.params.len(),
@@ -262,7 +269,9 @@ fn arrow_captures_are_stored_in_the_closure_environment() {
             )
         })
     }));
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(|block| {
         block.instructions.iter().any(|instruction| {
             matches!(
@@ -277,7 +286,9 @@ fn arrow_captures_are_stored_in_the_closure_environment() {
 fn function_values_can_be_aliased_and_called() {
     let (module, _) = lower_source("let f = (x: number): number => x; let g = f; let n = g(1);");
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(|block| {
         block.instructions.iter().any(|instruction| {
             matches!(instruction, navascript_ir::Instruction::CallIndirect { .. })
@@ -293,7 +304,7 @@ fn arrow_values_lower_to_closure_functions_and_indirect_calls() {
     let function = module
         .functions
         .iter()
-        .find(|function| function.name.starts_with("arrow_"))
+        .find(|function| function.name.starts_with("__navascript_arrow_"))
         .expect("generated closure function");
     assert_eq!(
         function.params.len(),
@@ -334,7 +345,9 @@ fn lowers_ternary_into_basic_blocks() {
 fn lowers_power_and_compound_updates() {
     let (module, _) = lower_source("let x = 2; x += 3; x++; let p = x ** 2;");
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     let has_power = main
         .blocks
         .iter()
@@ -366,7 +379,9 @@ fn infinite_loops_that_always_return_do_not_need_a_fallthrough() {
 fn for_of_lowers_to_an_index_loop() {
     let (module, _) = lower_source("let xs = [1, 2]; for (let x of xs) { console.log(x); }");
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(
         |block| matches!(block.terminator, Some(Terminator::Br(target)) if target <= block.id)
     ));
@@ -382,7 +397,9 @@ fn for_of_lowers_to_an_index_loop() {
 fn lowers_bigint_literals_and_integer_operations() {
     let (module, _) = lower_source("let a = 123n; let b = a + 1n; let c = a > b; let d = -a;");
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     let instructions: Vec<&Instruction> = main
         .blocks
         .iter()
@@ -438,7 +455,9 @@ fn intersections_merge_object_fields_for_layout() {
     let source = "interface A { a: number; } interface B { b: string; } let both: A & B = { a: 1, b: \"x\" }; console.log(both.b);";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
             instruction,
@@ -452,7 +471,9 @@ fn omitted_optional_reference_field_is_null_initialized() {
     let source = "interface P { name: string; nickname?: string; } let p: P = { name: \"x\" };";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
             instruction,
@@ -474,7 +495,9 @@ fn classes_emit_named_method_functions() {
     assert_eq!(ctor.params[0].name, "this");
     let method = module.function("A_value").expect("method function");
     assert_eq!(method.return_ty, navascript_ir::IrType::Number);
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(|block| {
         block
             .instructions
@@ -569,17 +592,16 @@ fn object_type_arguments_get_distinct_specialization_names() {
 }
 
 #[test]
-fn generic_specializations_do_not_collide_with_user_functions() {
-    let source = "function id__number(value: number): number { return value; } function id<T>(value: T): T { return value; } console.log(id(1));";
+fn generic_specializations_are_disambiguated() {
+    // Names containing `__` are reserved for generated code, so user functions
+    // cannot occupy a specialization name; a near-miss still must not collide.
+    let source = "function idnumber(value: number): number { return value; } function id<T>(value: T): T { return value; } console.log(id(1));";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    assert!(module.function("id__number").is_some());
+    assert!(module.function("idnumber").is_some());
     assert!(
-        module
-            .functions
-            .iter()
-            .any(|function| function.name.starts_with("id__number_")),
-        "specialization should get a disambiguated name"
+        module.function("id__number").is_some(),
+        "generic specialization should be emitted with its mangled name"
     );
 }
 
@@ -603,7 +625,9 @@ fn optional_calls_lower_to_direct_calls() {
     let source = "function f(x: number): number { return x; } console.log(f?.(1));";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(
         |block| block.instructions.iter().any(|instruction| matches!(
             instruction,
@@ -628,7 +652,7 @@ fn named_functions_used_as_values_get_a_closure_thunk() {
         module
             .functions
             .iter()
-            .any(|function| function.name.starts_with("fnvalue_twice_")),
+            .any(|function| function.name.starts_with("__navascript_fnvalue_twice_")),
         "expected a thunk for the named function value"
     );
     let apply = module.function("apply").expect("apply");
@@ -645,7 +669,9 @@ fn captured_bindings_are_boxed_into_shared_cells() {
     let source = "let x = 1; let read = (): number => x; let bump = (): number => { x = x + 1; return x; }; console.log(bump()); console.log(x); console.log(read());";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(|block| {
         block.instructions.iter().any(|instruction| {
             matches!(
@@ -658,7 +684,7 @@ fn captured_bindings_are_boxed_into_shared_cells() {
     let arrow = module
         .functions
         .iter()
-        .find(|function| function.name.starts_with("arrow_"))
+        .find(|function| function.name.starts_with("__navascript_arrow_"))
         .expect("closure function");
     let gets = arrow
         .blocks
@@ -680,7 +706,7 @@ fn nested_closures_capture_environment_fields() {
     let arrows = module
         .functions
         .iter()
-        .filter(|function| function.name.starts_with("arrow_"))
+        .filter(|function| function.name.starts_with("__navascript_arrow_"))
         .count();
     assert_eq!(arrows, 2, "one function per arrow expression");
 }
@@ -690,7 +716,9 @@ fn try_catch_finally_lowers_to_branches_and_a_value_slot() {
     let source = "try { throw \"bad\"; } catch (e: string) { console.log(e); } finally { console.log(\"done\"); } console.log(\"after\");";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     let labels: Vec<&str> = main
         .blocks
         .iter()
@@ -722,7 +750,9 @@ fn async_returns_wrap_values_and_await_unwraps_them() {
         function.return_ty,
         navascript_ir::IrType::Object(vec![("__value".to_owned(), navascript_ir::IrType::Number)])
     );
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(main.blocks.iter().any(|block| {
         block.instructions.iter().any(|instruction| {
             matches!(
@@ -758,7 +788,9 @@ fn a_catch_without_a_throw_is_omitted() {
     let source = "try { console.log(1); } catch (e: string) { console.log(e); } console.log(2);";
     let (module, _) = lower_source(source);
     assert!(navascript_ir::verify(&module).is_empty());
-    let main = module.function("main").expect("main");
+    let main = module
+        .function(navascript_ir::ENTRY_FUNCTION)
+        .expect("main");
     assert!(
         !main
             .blocks

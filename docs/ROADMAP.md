@@ -382,7 +382,7 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 
 **Acceptance criteria**
 - Measurable improvements on the defined benchmarks without correctness loss —
-  100 → 59 LLVM IR instructions, 4/4 speedups above 1x (median 1.68x), 4/4
+  108 → 104 LLVM IR instructions, 4/4 speedups above 1x (median 1.58x), 4/4
   identical outputs and an unchanged Phase 7 compatibility report.
 
 **Known limitations**
@@ -419,8 +419,15 @@ deferred by ADR-0015; they are not Phase 5 tasks.
 **Acceptance criteria**
 - A substantial portion of the compiler is written in NavaScript.
 
+**Prerequisites (completed 2026-11-25)**
+- `docs/PREBOOTSTRAP_AUDIT.md` records the whole-codebase audit: provable bugs
+  fixed, typed file I/O / argv / string and array builtins added and tested, and
+  generated names reserved so ported code cannot collide with compiler output.
+
 **Known limitations**
 - Rust driver still required to invoke the compiler until Phase 10.
+- GC, tagged unions, per-file namespaces and `any` are NOT implemented; ported
+  code must avoid them. They are recorded in `COMPATIBILITY.md` §6 and the audit.
 
 ---
 

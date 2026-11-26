@@ -323,3 +323,16 @@ fn lexes_optional_calls() {
         ]
     );
 }
+
+#[test]
+fn diagnoses_radix_literal_without_digits() {
+    let output = tokenize("let x = 0x;");
+    assert!(
+        output
+            .errors
+            .iter()
+            .any(|error| error.message.contains("no digits")),
+        "{:?}",
+        output.errors
+    );
+}

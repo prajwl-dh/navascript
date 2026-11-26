@@ -213,3 +213,82 @@ fn build_rejects_a_missing_file() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("could not read"));
 }
+
+#[test]
+fn user_main_does_not_collide_with_the_synthetic_entry() {
+    if !navascript_driver::build::native_tools_available() {
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("nava-main-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&directory);
+    let source = directory.join("program.ns");
+    std::fs::write(
+        &source,
+        "function main(): void { console.log(1); }\nconsole.log(2);\nmain();\n",
+    )
+    .expect("write source");
+    let binary = directory.join("program-bin");
+    let output = navascript()
+        .arg("build")
+        .arg(&source)
+        .arg("-o")
+        .arg(&binary)
+        .output()
+        .expect("build program with a user main");
+    assert!(output.status.success(), "{}", stderr(&output));
+    let run = Command::new(&binary).output().expect("run program");
+    assert_eq!(stdout(&run), "2\n1\n");
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+#[test]
+fn default_output_refuses_to_overwrite_the_source_file() {
+    let directory = std::env::temp_dir().join(format!("nava-overwrite-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&directory);
+    let source = directory.join("prog");
+    let original = "console.log(1);\n";
+    std::fs::write(&source, original).expect("write source");
+    let output = navascript()
+        .arg("build")
+        .arg("prog")
+        .current_dir(&directory)
+        .output()
+        .expect("build with default output name");
+    assert!(
+        !output.status.success(),
+        "build must refuse to overwrite source"
+    );
+    assert!(stderr(&output).contains("overwrite"), "{}", stderr(&output));
+    assert_eq!(
+        std::fs::read_to_string(&source).expect("read source"),
+        original
+    );
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+#[test]
+fn user_names_cannot_collide_with_generated_closures() {
+    if !navascript_driver::build::native_tools_available() {
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("nava-closure-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&directory);
+    let source = directory.join("program.ns");
+    std::fs::write(
+        &source,
+        "function arrow_0(): number { return 7; }\nlet f = (x: number): number => x + 1;\nconsole.log(arrow_0());\nconsole.log(f(2));\n",
+    )
+    .expect("write source");
+    let binary = directory.join("program-bin");
+    let output = navascript()
+        .arg("build")
+        .arg(&source)
+        .arg("-o")
+        .arg(&binary)
+        .output()
+        .expect("build program with a generated-name-like function");
+    assert!(output.status.success(), "{}", stderr(&output));
+    let run = Command::new(&binary).output().expect("run program");
+    assert_eq!(stdout(&run), "7\n3\n");
+    let _ = std::fs::remove_dir_all(&directory);
+}

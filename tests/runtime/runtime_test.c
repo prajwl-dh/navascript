@@ -2,6 +2,7 @@
 #include "navascript_runtime.h"
 
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -21,6 +22,14 @@ int navascript_runtime_test_main(void) {
     assert(strcmp(first, "h") == 0);
     char *as_text = navascript_number_to_string(42.0);
     assert(strcmp(as_text, "42") == 0);
+    assert(strcmp(navascript_number_to_string(NAN), "NaN") == 0);
+    assert(strcmp(navascript_number_to_string(INFINITY), "Infinity") == 0);
+    assert(strcmp(navascript_number_to_string(-INFINITY), "-Infinity") == 0);
+
+    /* The arena grows beyond its initial chunk without moving earlier data. */
+    void *large = navascript_alloc(2u * 1024u * 1024u);
+    assert(((uintptr_t)large % 8) == 0);
+    assert(strcmp(hello, "hello world") == 0);
 
     NavaScriptArray *numbers = navascript_array_new(2);
     navascript_array_set_f64(numbers, 0, 3.5);

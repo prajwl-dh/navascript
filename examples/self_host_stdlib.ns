@@ -1,0 +1,18 @@
+// Stdlib surface needed by a compiler written in NavaScript (Phase 9 readiness).
+// Usage: self_host_stdlib <input-file> <output-file>
+let args: string[] = get_argv();
+console.log(args.length);
+let text: string = read_file(args[0]);
+console.log(text.length);
+console.log(str_slice(text, 0, 3));
+console.log(str_index_of(text, "bc"));
+console.log(str_char_code_at(text, 0));
+let lines: string[] = ["a"];
+lines = array_push_string(lines, text);
+console.log(lines.length);
+let numbers: number[] = [1];
+numbers = array_push_number(numbers, 9);
+console.log(numbers[1]);
+write_file(args[1], str_slice(text, 0, 2));
+console.log("abc" < "abd");
+console.log("b" >= "a");

@@ -5,8 +5,8 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 fn build_binary(name: &str, flags: &[&str]) -> Option<PathBuf> {
-    if !navascript_driver::build::native_tools_available() {
-        eprintln!("skipping native optimizer test: LLVM toolchain not available");
+    if !navascript_driver::build::optimized_native_tools_available() {
+        eprintln!("skipping native optimizer test: optimized LLVM toolchain not available");
         return None;
     }
     let source = Path::new(env!("CARGO_MANIFEST_DIR"))

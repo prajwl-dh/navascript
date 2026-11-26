@@ -85,6 +85,13 @@ impl<'a> Checker<'a> {
     }
 
     pub(super) fn declare(&mut self, name: &Ident, ty: Type, kind: SymbolKind) {
+        if name.name.starts_with(navascript_ast::RESERVED_NAME_PREFIX) || name.name.contains("__") {
+            self.error(
+                format!("'{}' uses a compiler-reserved name", name.name),
+                name.span,
+            );
+            return;
+        }
         if self
             .symbols
             .insert(Symbol {

@@ -102,7 +102,8 @@ impl<'a> Lowerer<'a> {
     }
 
     pub(super) fn lower_main(&mut self, items: &[&navascript_ast::Item]) {
-        let mut builder = FunctionBuilder::new("main".to_owned(), Vec::new(), IrType::Void);
+        let mut builder =
+            FunctionBuilder::new(super::ENTRY_FUNCTION.to_owned(), Vec::new(), IrType::Void);
         builder.set_captured_names(captures_in_items(items));
         for item in items {
             match item.kind.unwrap_export() {

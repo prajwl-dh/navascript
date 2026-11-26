@@ -10,7 +10,15 @@
 void navascript_format_number(double value, char *buffer, size_t capacity) {
     char general[64];
 
-    if (value == (double)(long long)value && value >= -9e18 && value <= 9e18) {
+    if (isnan(value)) {
+        snprintf(buffer, capacity, "NaN");
+        return;
+    }
+    if (isinf(value)) {
+        snprintf(buffer, capacity, value < 0 ? "-Infinity" : "Infinity");
+        return;
+    }
+    if (fabs(value) <= 9e18 && value == trunc(value)) {
         snprintf(buffer, capacity, "%lld", (long long)value);
         return;
     }

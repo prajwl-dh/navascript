@@ -27,11 +27,16 @@ mod results;
 mod statements;
 mod values;
 mod verify;
+mod verify_calls;
 
 pub use ir::{
     BasicBlock, BinaryOp, BlockId, GlobalId, Instruction, IrFunction, IrGlobal, IrModule, IrParam,
     IrType, SlotId, Terminator, UnaryOp, Value, ValueId,
 };
+
+/// IR name of the synthetic function holding top-level statements. It uses the
+/// reserved prefix from `navascript-ast`, so user code cannot define it.
+pub const ENTRY_FUNCTION: &str = "__navascript_entry";
 pub use lower::{LowerOutput, lower};
 pub use print::print;
 pub use verify::{VerifyError, verify};

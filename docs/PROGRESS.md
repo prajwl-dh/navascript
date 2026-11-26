@@ -6,9 +6,10 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 
 - **Status key:** `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked
 - **Last updated:** 2026-11-25
-- **Current phase:** Phase 8 (Optimization) complete — IR folding/DCE/inlining,
-  escape analysis, LLVM `opt -passes=default<O3>` and a reproducible benchmark
-  report in `docs/BENCHMARKS.md`; Phases 0–7 are also complete
+- **Current phase:** Pre-bootstrap audit complete (2026-11-25); Phases 0–8 are
+  complete. Phase 9 (Compiler Rewrite in NavaScript) is ready to start with the
+  lexer port; the audit, fixes and remaining long-term gaps are recorded in
+  `docs/PREBOOTSTRAP_AUDIT.md`
 - **Tracking doc owner:** OpenCode agent (this project)
 
 ---
@@ -30,7 +31,8 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 6 — Language expansion | [x] Complete (loops + jumps, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions, async/await; exit suite delivered in Phase 7) |
 | Phase 7 — Compatibility | [x] Complete (32-case corpus, measured report, 19/19 executed cases pass) |
 | Phase 8 — Optimization | [x] Complete (IR passes, LLVM pipelines, escape analysis, 4-benchmark report) |
-| Phase 9 — Self-hosting | [ ] Not started |
+| Pre-bootstrap audit | [x] Complete (provable bugs fixed, stdlib/argv/file I/O added, gaps recorded) |
+| Phase 9 — Self-hosting | [ ] Not started (readiness established by the audit) |
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
@@ -260,10 +262,10 @@ limitations for every milestone.
   deterministic IR counts and output equality
 - **Current evidence:** `cargo fmt --all -- --check`,
   `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`
-  (289 passed, 0 failed), 8 compatibility and 4 benchmark Python tests,
+  (299 passed, 0 failed), 8 compatibility and 4 benchmark Python tests,
   `python3 scripts/compat.py --check` (identical report) and
-  `python3 scripts/benchmark.py --check` all succeed. Benchmarks show 100 → 59
-  LLVM IR instructions, 4/4 wall-clock speedups above 1x (median 1.68x) and
+  `python3 scripts/benchmark.py --check` all succeed. Benchmarks show 108 → 104
+  LLVM IR instructions, 4/4 wall-clock speedups above 1x (median 1.58x) and
   4/4 identical outputs.
 - **Exit condition:** measurable improvement on defined benchmarks without
   correctness loss — satisfied; `loops` gains wall-clock speed while LLVM
@@ -1044,22 +1046,53 @@ limitations for every milestone.
   moving IR accessors out of the façade, deduplicating the `opt` invocation and
   splitting the optimizer tests into four files.
 - Benchmarks (`benchmarks/`, `scripts/benchmark.py`, `docs/BENCHMARKS.md`):
-  arithmetic, calls, fibonacci and loops. 100 → 59 LLVM IR instructions,
-  4/4 speedups above 1x (median 1.68x), 4/4 identical outputs. `--check`
+  arithmetic, calls, fibonacci and loops. 108 → 104 LLVM IR instructions,
+  4/4 speedups above 1x (median 1.58x), 4/4 identical outputs. `--check`
   re-measures counts and compares them to the committed report.
-- Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (289 passed),
+- Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (299 passed),
   8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
   (report byte-identical, so optimization preserved all 19 executed outputs)
+  and `python3 scripts/benchmark.py --check`.
+
+### 2026-11-25 — Pre-bootstrap codebase audit
+- Four parallel read-only audits (language/type system, runtime/stdlib,
+  driver/diagnostics, tests/known gaps) produced a prioritised defect list;
+  the resulting diff was independently reviewed on the Standards and Spec axes.
+- Fixed provable bugs: `NumberToString` IR type, source-file overwrite by the
+  default output name, user `main`/generated-name collisions, nondeterministic
+  LLVM IR object globals, boolean `console.log` ABI, call-signature/IsNull/void
+  verifier gaps, circular inheritance, malformed radix literals, unsupported
+  string coercion and pointer-based string ordering, runtime allocation overflow,
+  null access, number-formatting UB and unvalidated computed indices.
+- Added self-hosting primitives: typed `read_file`, `write_file`, `get_argv`,
+  `str_slice`, `str_index_of`, `str_char_code_at`, `str_compare`,
+  `array_push_number` and `array_push_string` builtins, OS argv bridging and a
+  growable program-lifetime arena (ADR-0033 supersedes the fixed-arena part of
+  ADR-0005). `examples/self_host_stdlib.ns` exercises the full path natively.
+- Review-driven follow-ups: generated names moved to a reserved prefix, string
+  ordering was restored with a real lexicographic helper rather than removed,
+  `array_push_number` was covered by the stdlib example, `verify.rs` call checks
+  were split into a private module, and string helpers now use the validated
+  index conversion.
+- `docs/PREBOOTSTRAP_AUDIT.md` records every fix and explicitly lists the four
+  long-term gaps that were NOT claimed: GC, tagged unions, per-file namespaces
+  and `any`. Each needs a representation redesign and is diagnosed today rather
+  than silently miscompiled.
+- Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (299 passed),
+  8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
   and `python3 scripts/benchmark.py --check`.
 
 ---
 
 ## 6. Next actions (in order)
 
-1. Phase 8 is complete: the benchmark report is committed and CI verifies its
-   deterministic facts. Phase 9 (Self-hosting) is next.
-2. Add x86-64 target validation once LLVM targets beyond the host are needed.
-3. Keep both reports current: re-run `python3 scripts/compat.py` after semantic
+1. The pre-bootstrap audit is complete: provable bugs are fixed and the
+   self-hosting stdlib is tested. Phase 9 (Self-hosting) can now start with the
+   lexer port, using only features proven by `docs/PREBOOTSTRAP_AUDIT.md`.
+2. Do not use GC, tagged unions, per-file namespaces or `any` in ported code;
+   they are unimplemented and recorded in `COMPATIBILITY.md` §6.
+3. Add x86-64 target validation once LLVM targets beyond the host are needed.
+4. Keep both reports current: re-run `python3 scripts/compat.py` after semantic
    changes and `python3 scripts/benchmark.py` after pipeline changes.
 
 ---

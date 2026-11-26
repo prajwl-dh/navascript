@@ -67,9 +67,14 @@ pub fn native_tools_available() -> bool {
 }
 
 /// `opt` is only needed for optimized builds; unoptimized builds stay usable
-/// without it.
+/// without it. Optimized tests use this seam to skip cleanly when absent.
 pub fn llvm_optimizer_available() -> bool {
     llvm_tool("opt").is_file()
+}
+
+/// Native toolchain check for tests that request `--release`.
+pub fn optimized_native_tools_available() -> bool {
+    native_tools_available() && llvm_optimizer_available()
 }
 
 /// Ask LLVM for the host target triple.

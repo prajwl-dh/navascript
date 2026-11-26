@@ -15,17 +15,17 @@ Both builds must print identical output.
 
 | Benchmark | Baseline IR | Optimized IR | Reduction | Baseline ms | Optimized ms | Speedup | Output |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `arithmetic` | 28 | 9 | 67.9% | 6.83 | 3.16 | 2.16x | match |
-| `calls` | 32 | 14 | 56.2% | 8.59 | 3.25 | 2.64x | match |
-| `fibonacci` | 19 | 13 | 31.6% | 3.30 | 2.76 | 1.20x | match |
-| `loops` | 21 | 23 | -9.5% | 36.70 | 32.88 | 1.12x | match |
+| `arithmetic` | 30 | 18 | 40.0% | 7.83 | 4.08 | 1.92x | match |
+| `calls` | 34 | 24 | 29.4% | 9.18 | 4.07 | 2.26x | match |
+| `fibonacci` | 21 | 16 | 23.8% | 4.27 | 3.41 | 1.25x | match |
+| `loops` | 23 | 46 | -100.0% | 38.61 | 35.58 | 1.09x | match |
 
 ## Summary
 
 - Benchmarks: 4
 - Output matches: 4/4
-- LLVM IR instructions: 100 → 59
+- LLVM IR instructions: 108 → 104
 - Wall-clock speedups above 1x: 4/4
-- Median speedup: 1.68x
+- Median speedup: 1.58x
 - An LLVM pass can increase instruction counts while unrolling a loop;
   wall-clock time, not instruction count alone, is the decisive metric.

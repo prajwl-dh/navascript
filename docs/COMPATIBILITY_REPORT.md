@@ -14,7 +14,8 @@ is the runtime behaviour of the JavaScript emitted by `tsc` (which emits
 even when it reports type errors); `type_error` records that deliberate
 choice. Skipped cases are declared from `COMPATIBILITY.md` §6 and are not
 executed. Known-difference cases pin both the reference output and the
-expected NavaScript outcome, so an arbitrary failure cannot count as a pass.
+expected NavaScript outcome (exact output or build failure), so an
+arbitrary failure cannot count as a pass where an exact output is pinned.
 
 ## Summary
 

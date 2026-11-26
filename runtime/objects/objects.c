@@ -2,9 +2,13 @@
  * compiler's inferred type (sorted by name). */
 #include "navascript_runtime.h"
 
+#include <stdint.h>
 #include <string.h>
 
 NavaScriptObject *navascript_object_new(int64_t count, const char *names) {
+    if (count < 0 || count > (int64_t)(SIZE_MAX / 8)) {
+        navascript_runtime_error("object field count too large");
+    }
     NavaScriptObject *object = (NavaScriptObject *)navascript_alloc(sizeof(NavaScriptObject));
     object->count = count;
     object->names = (const char **)navascript_alloc((size_t)count * sizeof(const char *));
@@ -18,7 +22,7 @@ NavaScriptObject *navascript_object_new(int64_t count, const char *names) {
 }
 
 static void check_field(NavaScriptObject *object, int64_t index) {
-    if (index < 0 || index >= object->count) {
+    if (object == NULL || index < 0 || index >= object->count) {
         navascript_runtime_error("unknown object field");
     }
 }

@@ -62,7 +62,15 @@ impl Scanner<'_> {
         if let Some((radix, _)) = radix_prefix(&self.source[self.pos..]) {
             self.advance_char();
             self.advance_char();
+            let digits_start = self.pos;
             self.lex_digits(radix);
+            if self.pos == digits_start {
+                self.errors.push(LexError {
+                    start: start as u32,
+                    end: self.pos as u32,
+                    message: format!("radix literal has no digits in base {radix}"),
+                });
+            }
             self.push_number(start, true);
             return;
         }

@@ -4,9 +4,11 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phases 0–8 complete. Phase 7 measured compatibility against `tsc` +
-Node with a reproducible 32-case corpus, and Phase 8 added IR optimization,
-LLVM pipelines and a measured benchmark report. Phase 9 (Self-hosting) is next.
+**Status:** Phases 0–8 complete plus a pre-bootstrap audit. Phase 7 measured
+compatibility against `tsc` + Node with a reproducible 32-case corpus, Phase 8
+added IR optimization, and the audit fixed provable bugs and added typed
+file/argv/string/array builtins. Phase 9 (Self-hosting) is next; see
+`docs/PREBOOTSTRAP_AUDIT.md`.
 
 ## Goals (tracked independently)
 
@@ -53,7 +55,7 @@ tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
              driver, runtime, compatibility (32-case corpus), optimizer
 benchmarks/  Phase 8 baseline/optimized programs
 docs/        planning and tracking documents
-examples/    sample programs
+examples/    sample programs (self_host_stdlib.ns exercises Phase 9 builtins)
 scripts/     helper scripts
 ```
 
@@ -61,7 +63,7 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 289 tests through Phase 8 (optimizer passes added)
+cargo test --workspace     # 299 tests after the pre-bootstrap audit
 python3 -m unittest discover -s tests/compatibility -p 'test_*.py'  # 8 harness tests
 python3 -m unittest discover -s tests/benchmark -p 'test_*.py'      # 4 harness tests
 python3 scripts/compat.py   # regenerate docs/COMPATIBILITY_REPORT.md (needs tsc + node)
@@ -130,7 +132,7 @@ All Phase 6 expansion items are now delivered. Phase 7 adds the measured
 compatibility report: `docs/COMPATIBILITY_REPORT.md` (19 executed cases pass,
 13 documented skips, ADR-0030). Phase 8 adds IR folding/DCE/inlining and escape
 analysis, LLVM `opt -passes=default<O3>` in release builds, and
-`docs/BENCHMARKS.md` (100 → 59 LLVM IR instructions, 4/4 speedups, 4/4 matching
+`docs/BENCHMARKS.md` (108 → 104 LLVM IR instructions, 4/4 speedups, 4/4 matching
 outputs, ADR-0031).
 
 ## Documentation
@@ -144,6 +146,7 @@ outputs, ADR-0031).
 - `docs/COMPATIBILITY.md` — TypeScript compatibility matrix and unsupported-feature register.
 - `docs/COMPATIBILITY_REPORT.md` — measured, reproducible Phase 7 results.
 - `docs/BENCHMARKS.md` — Phase 8 baseline/optimized results.
+- `docs/PREBOOTSTRAP_AUDIT.md` — audit findings, fixes and remaining long-term gaps.
 - `docs/BOOTSTRAP.md` — three-stage self-hosting strategy.
 - `docs/DECISIONS.md` — architecture decision records.
 

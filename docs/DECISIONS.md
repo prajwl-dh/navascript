@@ -66,7 +66,7 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0005 — Memory management strategy
 
 - **Date:** 2026-11-20 (decision 2026-11-21)
-- **Status:** Accepted
+- **Status:** Superseded by ADR-0033 (arena growth and stdlib builtins)
 - **Context:** Need a documented strategy for allocation and reclamation; a
   tracing GC is a large undertaking early on.
 - **Decision:** Use a **program-lifetime bump arena** in the C runtime. Every
@@ -719,6 +719,35 @@ a new number and references the old one. Keep entries short and factual.
   garbage collection remain future work. LLVM may unroll a loop and raise its
   instruction count while reducing runtime (`loops`), so wall-clock time is
   the decisive benchmark metric.
+
+---
+
+## ADR-0033 — Growable arena, reserved generated names and self-hosting builtins
+
+- **Date:** 2026-11-25
+- **Status:** Accepted (supersedes the fixed-arena part of ADR-0005)
+- **Context:** The pre-bootstrap audit found that a fixed 16 MiB arena, no
+  process arguments and no file I/O make it impossible to write the compiler
+  driver in NavaScript. It also found that user `main` and generated
+  `arrow_N`/`fnvalue_*` names could collide with compiler-generated functions,
+  and that hash-order emission made LLVM IR non-reproducible.
+- **Decision:** Keep program-lifetime allocation but grow the arena in linked
+  chunks (1 MiB doubling to 64 MiB) without moving existing pointers. Reserve
+  the `__navascript_` prefix and all names containing `__` for generated code;
+  the synthetic entry is `__navascript_entry` and user `main` gets a separate
+  LLVM symbol. Emit object-name globals in sorted order. Add typed stdlib
+  builtins backed by `runtime/io/io.c` — `read_file`, `write_file`, `get_argv`,
+  `str_slice`, `str_index_of`, `str_char_code_at`, `str_compare`,
+  `array_push_number`, `array_push_string` — and pass OS arguments through the
+  runtime entry bridge. Numeric arguments use LLVM `double` so checker types
+  and C signatures agree without implicit conversion at the call boundary.
+- **Consequences:** A compiler written in NavaScript can read source files,
+  inspect argv, process text and write artifacts. Memory is still never
+  reclaimed during execution — this is arena growth, not GC; tracing
+  collection needs tagged values and write barriers and remains future work.
+  All generated names are now impossible to declare in user source, and IR
+  emission is byte-reproducible. `docs/PREBOOTSTRAP_AUDIT.md` records the audit,
+  the fixes and the remaining long-term gaps.
 
 ---
 

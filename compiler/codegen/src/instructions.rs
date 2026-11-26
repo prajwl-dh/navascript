@@ -1,11 +1,12 @@
 //! Instruction-level LLVM IR emission.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Write;
 
 use navascript_ir::{BinaryOp, Instruction, IrType, UnaryOp, Value, ValueId};
 
 use super::CodegenError;
+use super::module::function_symbol;
 use super::runtime::encode_field_names;
 use super::types::{bool_to_i32, closure_fields, index_arg, llvm_type, llvm_value, require_type};
 use super::types::{slot_suffix, value_type};
@@ -13,7 +14,7 @@ use super::types::{slot_suffix, value_type};
 pub(super) fn emit_instruction(
     instruction: &Instruction,
     types: &HashMap<ValueId, IrType>,
-    object_globals: &HashMap<String, String>,
+    object_globals: &BTreeMap<String, String>,
     out: &mut String,
 ) -> Result<(), CodegenError> {
     match instruction {
@@ -180,10 +181,19 @@ pub(super) fn emit_instruction(
             args,
         } => {
             let arg_tys: Vec<IrType> = args.iter().map(|arg| value_type(arg, types)).collect();
+            // The C runtime takes `int` for booleans, so widen the i1 argument
+            // at the call boundary instead of emitting an ill-typed LLVM call.
+            let widen_bool =
+                callee == "console.log" && arg_tys.first().is_some_and(|ty| *ty == IrType::Boolean);
             let args = args
                 .iter()
                 .zip(&arg_tys)
                 .map(|(arg, ty)| {
+                    if widen_bool && *ty == IrType::Boolean {
+                        let temp = format!("boolarg{}", out.len());
+                        let _ = writeln!(out, "  %{temp} = zext i1 {} to i32", llvm_value(arg));
+                        return Ok(format!("i32 %{temp}"));
+                    }
                     let llvm_ty = llvm_type(ty).map_err(|message| CodegenError { message })?;
                     Ok(format!("{llvm_ty} {}", llvm_value(arg)))
                 })
@@ -210,7 +220,7 @@ pub(super) fn emit_instruction(
                 (name.to_owned(), "void".to_owned())
             } else {
                 (
-                    format!("navascript_{callee}"),
+                    function_symbol(callee),
                     llvm_type(result_ty).map_err(|message| CodegenError { message })?,
                 )
             };

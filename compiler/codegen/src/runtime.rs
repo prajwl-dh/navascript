@@ -36,6 +36,7 @@ pub const RUNTIME_FILES: &[(&str, &str, &str)] = &[
         "bigint/bigint.c",
         include_str!("../../../runtime/bigint/bigint.c"),
     ),
+    ("io.c", "io/io.c", include_str!("../../../runtime/io/io.c")),
     (
         "console.c",
         "console/console.c",
@@ -51,7 +52,7 @@ pub const RUNTIME_FILES: &[(&str, &str, &str)] = &[
 pub(super) const RUNTIME_DECLS: &[&str] = &[
     "declare double @llvm.pow.f64(double, double) nounwind readnone",
     "declare void @navascript_console_log_f64(double) nounwind",
-    "declare void @navascript_console_log_bool(i1) nounwind",
+    "declare void @navascript_console_log_bool(i32) nounwind",
     "declare void @navascript_console_log_str(ptr) nounwind",
     "declare void @navascript_console_log_i64(i64) nounwind",
     "declare i64 @navascript_bigint_div(i64, i64) nounwind",
@@ -82,6 +83,20 @@ pub(super) const RUNTIME_DECLS: &[&str] = &[
     "declare i32 @navascript_object_get_bool(ptr, i64) nounwind",
     "declare void @navascript_object_set_ptr(ptr, i64, ptr) nounwind",
     "declare ptr @navascript_object_get_ptr(ptr, i64) nounwind",
+    // Internal helpers declared for ABI completeness (ADR-0016 audit).
+    "declare ptr @navascript_alloc(i64) nounwind",
+    "declare void @navascript_format_number(double, ptr, i64) nounwind",
+    // Phase 9 stdlib: file I/O, process arguments and collection helpers.
+    "declare ptr @navascript_read_file(ptr) nounwind",
+    "declare void @navascript_write_file(ptr, ptr) nounwind",
+    "declare ptr @navascript_get_argv() nounwind",
+    "declare ptr @navascript_str_slice(ptr, double, double) nounwind",
+    "declare double @navascript_str_index_of(ptr, ptr) nounwind",
+    "declare double @navascript_str_compare(ptr, ptr) nounwind",
+    "declare double @navascript_str_char_code_at(ptr, double) nounwind",
+    "declare i64 @navascript_number_index(double)",
+    "declare ptr @navascript_array_push_number(ptr, double) nounwind",
+    "declare ptr @navascript_array_push_string(ptr, ptr) nounwind",
 ];
 
 pub(super) fn escape_llvm_string(text: &str) -> String {

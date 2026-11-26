@@ -78,13 +78,26 @@ impl Checker<'_> {
         let Some(decl) = decl else {
             return;
         };
+        if !self.class_resolving.insert(name.to_owned()) {
+            self.error(
+                format!("circular inheritance involving '{name}'"),
+                decl.name.span,
+            );
+            return;
+        }
         if let Some(base) = &decl.base {
-            if self.classes.contains_key(&base.name) {
+            if base.name == name {
+                self.error(
+                    format!("circular inheritance involving '{name}'"),
+                    base.span,
+                );
+            } else if self.classes.contains_key(&base.name) {
                 self.ensure_class(&base.name);
             } else {
                 self.error(format!("unknown base class '{}'", base.name), base.span);
             }
         }
+        self.class_resolving.remove(name);
         let info = self.resolve_class(&decl);
         self.classes.insert(name.to_owned(), info);
         self.class_resolved.insert(name.to_owned());
