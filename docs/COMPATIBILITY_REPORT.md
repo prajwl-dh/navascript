@@ -102,7 +102,7 @@ Executed-pass rate: 100.0% (19/19 executed cases).
 ### `d_ts_resolution` — .d.ts and package resolution
 
 - Expectation: skip (outcome: skip)
-- Reason: Only relative .ns (or extensionless) specifiers are resolved from the entry file; .d.ts and package resolution are Phase 7+ work (ADR-0026).
+- Reason: Only relative .ns (or extensionless) specifiers are resolved from the entry file; .d.ts and package resolution remain unsupported long-term work (ADR-0026).
 
 ### `decorators` — Decorators
 
@@ -128,7 +128,7 @@ Executed-pass rate: 100.0% (19/19 executed cases).
 ### `lib_dt` — Full lib.d.ts surface
 
 - Expectation: skip (outcome: skip)
-- Reason: The standard library exposes only console, strings, arrays, objects, bigint helpers and synchronous promises; Array.prototype.map and the rest of lib.d.ts are long-term work.
+- Reason: The standard library exposes console, strings, arrays, objects, bigint helpers, synchronous promises, file I/O, argv, tagged values and explicit collection; Array.prototype.map and the rest of lib.d.ts remain long-term work.
 
 ### `node_interop` — Node.js CommonJS interop
 

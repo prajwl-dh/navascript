@@ -10,8 +10,7 @@
 | Clang | Apple clang 21 (Command Line Tools) | native toolchain integration |
 | Git | 2.54.0 | version control |
 | Python 3 | 3.14.6 | test and compatibility harness scripts |
-| Node.js / TypeScript | (optional) | Phase 7 compatibility corpus only |
-| Node.js / TypeScript | 26.13.1 / 7.0.2 (`tsc`) | Phase 7 reference behaviour for the compatibility corpus |
+| Node.js / TypeScript | 26.13.1 / 7.0.2 (`tsc`) | Phase 7 compatibility corpus only |
 | CMake | 4.5.1 (Homebrew) | available for future CMake/C++ builds |
 | Ninja | 1.13.2 (Homebrew) | available as a CMake generator |
 
@@ -76,7 +75,8 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/ir/` | lowering, verifier rejection cases, and textual IR output |
 | `tests/codegen/` | NavaScript IR → LLVM IR translation |
 | `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, bigint, optional calls, generics, classes/inheritance, unions/intersections, modules, closures/higher-order functions with shared
-captures, exceptions, async/await, dynamic indices, runtime errors, debug/release) |
+captures, exceptions, async/await, tagged `any`/unions, two-cycle collection,
+dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
 | `tests/compatibility/corpus.rs` | corpus integrity; every `match` case reaches valid IR; report coverage |
 | `tests/compatibility/test_compat.py` | harness validation, classification, pinned divergences, deterministic rendering, CLI façade |
@@ -208,7 +208,9 @@ code 1.
   Phase 11.
 - NavaScript source can call typed builtins `read_file`, `write_file`,
   `get_argv`, `str_slice`, `str_index_of`, `str_char_code_at`, `str_compare`,
-  `array_push_number` and `array_push_string` (ADR-0033).
+  `array_push_number` and `array_push_string` (ADR-0033), plus tagged-value
+  (`to_any_*`, `as_*`, `tag_of`) and GC (`collect`, `live_bytes`) builtins
+  (ADR-0034).
 - Debug builds apply IR folding/DCE only and use `llc -O0`; source-level debug
   info is Phase 11. The optimization pass set and benchmark results are in
   `docs/BENCHMARKS.md` (ADR-0031).

@@ -66,7 +66,7 @@ a new number and references the old one. Keep entries short and factual.
 ## ADR-0005 — Memory management strategy
 
 - **Date:** 2026-11-20 (decision 2026-11-21)
-- **Status:** Superseded by ADR-0033 (arena growth and stdlib builtins)
+- **Status:** Superseded by ADR-0033 (arena growth) and ADR-0034 (reclamation)
 - **Context:** Need a documented strategy for allocation and reclamation; a
   tracing GC is a large undertaking early on.
 - **Decision:** Use a **program-lifetime bump arena** in the C runtime. Every
@@ -529,11 +529,10 @@ a new number and references the old one. Keep entries short and factual.
   object fields in sorted order so member indices match object literals.
   Narrowing refines symbol types for null tests in `if`, `while`, `&&` and
   `||`; it lives in a private `typechecker/narrowing.rs`.
-- **Consequences:** Tagged unions, discriminated narrowing, ternary/post-
-  assignment flow analysis and optional parameters remain out of scope and are
-  recorded in `COMPATIBILITY.md`. Mixed-representation unions are diagnosed
-  rather than silently miscompiled, satisfying the "never silently miscompile"
-  working rule.
+- **Consequences:** Partially superseded by ADR-0034: mixed-representation
+  unions now lower to tagged values with checked conversions. Discriminated
+  narrowing, ternary/post-assignment flow analysis and optional parameters
+  remain out of scope and are recorded in `COMPATIBILITY.md`.
 
 ---
 
@@ -556,10 +555,10 @@ a new number and references the old one. Keep entries short and factual.
   loader lives in `compiler/driver/src/modules.rs` behind the build pipeline.
 - **Consequences:** All files share one namespace — non-exported names are
   visible across files, and two modules declaring the same name collide.
-  Diagnostics are rendered against the concatenated source, so line/column
-  point into combined text rather than the originating file. Resolution covers
-  relative `.ns`/extensionless paths only; `.d.ts`, packages and per-file
-  namespaces are out of scope and recorded in `COMPATIBILITY.md`.
+  Originally diagnostics pointed into the concatenated source; ADR-0034 added
+  a `SourceMap` so they name the originating file and its own line/column.
+  Resolution covers relative `.ns`/extensionless paths only; `.d.ts`, packages
+  and per-file name scoping are out of scope and recorded in `COMPATIBILITY.md`.
 
 ---
 
@@ -712,13 +711,13 @@ a new number and references the old one. Keep entries short and factual.
   through the shared `build::optimize_llvm_ir` seam used by both the native
   pipeline and `--emit-ir`. Operand/result/slot accessors live in private
   `ir/access.rs`; IR data types and public seams are unchanged.
-- **Consequences:** Benchmarks improve from 100 to 59 LLVM IR instructions with
-  4/4 wall-clock speedups above 1x and unchanged output, and the Phase 7
-  compatibility report is byte-identical. Escape analysis is deliberately
-  local: slots shared across blocks or captured by closures, tagged values and
-  garbage collection remain future work. LLVM may unroll a loop and raise its
-  instruction count while reducing runtime (`loops`), so wall-clock time is
-  the decisive benchmark metric.
+- **Consequences:** Benchmarks improved from 108 to 104 LLVM IR instructions
+  with 4/4 wall-clock speedups above 1x and unchanged output; the Phase 7
+  compatibility report stayed byte-identical. Escape analysis is deliberately
+  local: slots shared across blocks or captured by closures remain future work.
+  Tagged values and conservative GC were delivered in Phase 8.1 (ADR-0034).
+  LLVM may unroll a loop and raise its instruction count while reducing
+  runtime (`loops`), so wall-clock time is the decisive benchmark metric.
 
 ---
 
@@ -742,12 +741,11 @@ a new number and references the old one. Keep entries short and factual.
   runtime entry bridge. Numeric arguments use LLVM `double` so checker types
   and C signatures agree without implicit conversion at the call boundary.
 - **Consequences:** A compiler written in NavaScript can read source files,
-  inspect argv, process text and write artifacts. Memory is still never
-  reclaimed during execution — this is arena growth, not GC; tracing
-  collection needs tagged values and write barriers and remains future work.
-  All generated names are now impossible to declare in user source, and IR
-  emission is byte-reproducible. The fixes and remaining long-term gaps are
-  recorded in `PROGRESS.md` and `COMPATIBILITY.md` §6.
+  inspect argv, process text and write artifacts. This ADR grew the arena but
+  did not reclaim memory; ADR-0034 later added explicit conservative
+  collection. All generated names are now impossible to declare in user
+  source, and IR emission is byte-reproducible. The fixes and remaining
+  long-term gaps are recorded in `PROGRESS.md` and `COMPATIBILITY.md` §6.
 
 ---
 

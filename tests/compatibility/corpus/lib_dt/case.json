@@ -3,5 +3,5 @@
   "title": "Full lib.d.ts surface",
   "category": "stdlib",
   "expect": "skip",
-  "reason": "The standard library exposes only console, strings, arrays, objects, bigint helpers and synchronous promises; Array.prototype.map and the rest of lib.d.ts are long-term work."
+  "reason": "The standard library exposes console, strings, arrays, objects, bigint helpers, synchronous promises, file I/O, argv, tagged values and explicit collection; Array.prototype.map and the rest of lib.d.ts remain long-term work."
 }

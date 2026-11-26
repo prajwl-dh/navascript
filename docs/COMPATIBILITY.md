@@ -87,7 +87,7 @@ expansion items are delivered.
 | Closures / function values | [x] | `tests/driver/native.rs`, `examples/closures.ns` | Phase 6; shared captured bindings, higher-order calls and nested closures run natively (ADR-0027) |
 | Async/await | [~] | `tests/driver/native.rs`, `examples/async_await.ns` | Phase 6; `async function` and `await` run natively with synchronous promise values (ADR-0029) |
 | Exceptions | [~] | `tests/driver/native.rs`, `examples/exceptions.ns` | Phase 6; same-function `throw`/`try`/`catch`/`finally` run natively without a runtime ABI (ADR-0028); runtime bounds/field errors are still fatal |
-| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no fix scheduled in the current Phase 6 increment |
+| `console.log` | [~] | `tests/driver/native.rs` | numbers, booleans, strings and bigints print natively; object/array values are not meaningfully supported (raw bytes printed); no structured console representation is scheduled |
 | Memory management | [~] | `examples/gc.ns`, `tests/driver/native.rs` | conservative mark-sweep via `collect()` with block headers and root scanning; explicit, may retain garbage (ADR-0034) |
 | File I/O and process arguments | [x] | `examples/self_host_stdlib.ns`, `tests/driver/native.rs` | typed `read_file`, `write_file`, `get_argv` builtins (ADR-0033) |
 | Array growth helpers | [x] | `examples/self_host_stdlib.ns` | `array_push_number`, `array_push_string` return a new array |
@@ -131,18 +131,17 @@ the measured outcomes are linked from `docs/COMPATIBILITY_REPORT.md`:
 | JSX / TSX | no DOM/UI target | deferred |
 | Conditional / mapped types | high complexity | long-term |
 | Full `lib.d.ts` | large surface | long-term |
-| Node.js interop beyond documented subset | platform scope | Phase 7 best effort |
+| Node.js interop beyond documented subset | platform scope; only the CommonJS sample is measured | deferred |
 | `eval` / dynamic code | incompatible with native model | not planned |
 | `strictFunctionTypes` parameter contravariance | function parameters are checked covariantly | deferred |
-| Mixed string/number `+` coercion | supported in Phase 5 via runtime number-to-string conversion | Phase 7 (full JS coercion rules) |
+| Mixed string/number `+` coercion | supported via runtime number-to-string conversion; full JS coercion rules still differ | long-term |
 | Indirect call signatures | calls through function values cast the code pointer to the statically known signature; a mismatched function type is diagnosed by the checker, not converted at runtime | Phase 6 (documented) |
 | Garbage collection | conservative mark-sweep is explicit (`collect()`), not automatic or generational (ADR-0034) | incremental/automatic collection |
 | String concatenation with objects/functions | diagnosed instead of lowering a pointer through number-to-string coercion | documented |
-| Per-file name scoping | diagnostics are per-file but imports still share one namespace (ADR-0034) | future phase |
 | Automatic coercion for `any` / unions | values must be explicitly boxed and unboxed; no narrowing from tag tests | future phase |
-| Per-file module namespaces | imported files are concatenated into one program, so names are module-wide | deferred (ADR-0026) |
-| `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | Phase 7 |
-| Per-module diagnostic attribution | line/column refer to the concatenated source, not the originating file | deferred (ADR-0026) |
+| Per-file module namespaces / name scoping | imports are concatenated into one program, so names are module-wide (ADR-0026/0034) | future phase |
+| `.d.ts` and package resolution | only relative `.ns`/extensionless paths are resolved from the entry file | long-term |
+| Per-module diagnostic attribution | implemented: `SourceMap` renders `file:line:column` from the originating file (ADR-0034); only name scoping remains | done |
 | Mixed-representation unions | now boxed into tagged values; untagged assignment is diagnosed; nullable primitives still rejected | Phase 8.1 (tagged values) |
 | Optional chaining on nullable receivers | IR emits `IsNull`, but the checker rejects `T | null` receivers; narrowing on `b != null` works | deferred |
 | Tagged unions and discriminated narrowing | narrowing covers null tests in `if`/`while`/`&&`/`||` only, not ternaries or assignments | deferred |

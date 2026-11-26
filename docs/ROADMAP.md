@@ -299,14 +299,14 @@ deferred by ADR-0015; they are not Phase 5 tasks.
   method dispatch — there is no virtual dispatch, so a base-typed reference
   calls the base implementation. Class field initialisers are not supported;
   assign fields in a constructor.
-  Unions must share one runtime representation: `number | string` and nullable
-  primitives (`number | null`) are diagnosed, not silently miscompiled; only
-  nullable reference types are usable today. Narrowing covers null tests in
+  Nullable reference unions keep pointer representation; mixed-representation
+  unions such as `number | string` now use tagged values (ADR-0034). Nullable
+  primitives remain diagnosed, not silently miscompiled. Narrowing covers null tests in
   `if`, `while`, `&&`/`||` and branch bodies, not ternary or post-assignment
   flow. Modules share one namespace (no per-file scoping), resolve relative
-  `.ns` paths (extensionless specifiers get `.ns`), and render diagnostics
-  against the concatenated source rather than the originating file; `.d.ts`
-  and package resolution are out of scope. Closures capture shared cells
+  `.ns` paths (extensionless specifiers get `.ns`). Diagnostics name the
+  originating file via `SourceMap`, but names still share one namespace;
+  `.d.ts` and package resolution are out of scope. Closures capture shared cells
   (ADR-0027), but a binding cannot be captured before it is initialised, so
   recursion must use a named function; parenthesised nested function types in
   annotations need a type alias. Exceptions are handled within one function

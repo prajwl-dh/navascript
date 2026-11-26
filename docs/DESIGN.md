@@ -69,6 +69,7 @@ impl Diagnostics {
     pub fn has_errors(&self) -> bool;
     pub fn iter(&self) -> impl Iterator<Item = &Diagnostic>;
     pub fn render(&self, source: &str) -> String; // '<input>:line:col: error: ...' + caret
+    pub fn render_with(&self, map: &SourceMap) -> String; // file:line:col + caret
 }
 
 pub struct Diagnostic {
@@ -125,14 +126,16 @@ diagnostics or a type checker streaming into the same sink).
 | --- | --- |
 | Facade in `navascript_driver::front_end` | Couples the front end to the CLI crate; a future language server would depend on the driver. |
 | `parse(&[Source], &mut dyn DiagnosticSink)` now | Larger interface before a second adapter exists; Phase 6 modules concatenate sources instead (ADR-0026). |
-| `FileId`-threading through every phase now | Phase 6 modules concatenate files into one program and still parse with `FileId(0)`; per-file spans/diagnostics remain deferred (ADR-0026). `Span` already carries `FileId`, so the change is contained when it arrives. |
+| `FileId`-threading through every phase now | Modules are concatenated and parsed with `FileId(0)`; ADR-0034 added a `SourceMap` so diagnostics name the originating file. Per-file *name scoping* remains deferred (ADR-0026/0034). |
 | Flags/options for recovery policy or incremental ranges | Speculative generality; use a separate function when a real second caller appears. |
 
 ## 5. Consequences for other modules
 
-- **Driver (`cli.rs`)** reads the file, calls `navascript_parser::parse(&source)`,
-  renders `diagnostics`, checks `has_errors()`, then passes `program` to the
-  next phase. It never imports lexer or AST internals beyond the leaf types.
+- **Driver (`cli.rs`)** loads the entry file and its imports via
+  `modules::load`, calls `navascript_parser::parse(&loaded.source)`, renders
+  diagnostics with `render_with(&loaded.map)`, checks `has_errors()`, then
+  passes `program` to the next phase. It never imports lexer or AST internals
+  beyond the leaf types.
 - **Type checker (Phase 2)** consumes `&Program` and reports into the same
   `Diagnostics` shape; it does not change `parse`'s signature.
 - **IR lowering (Phase 3)** consumes the typed program through

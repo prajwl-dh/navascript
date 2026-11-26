@@ -6,9 +6,9 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 > Full TypeScript compatibility is a long-term target. The Phase 7 compatibility
 > suite (`tests/compatibility/corpus/`, report in `docs/COMPATIBILITY_REPORT.md`)
-> measures a representative subset: 19 executed cases pass, 13 documented
-> divergences are skipped. Do not claim compatibility beyond what that report
-> and the matrix in `COMPATIBILITY.md` prove.
+> measures a representative subset: 19 executed cases pass (12 matches and 7
+> documented divergences); 13 unsupported cases are skipped. Do not claim
+> compatibility beyond what that report and `COMPATIBILITY.md` prove.
 
 ## 1. Source files
 
@@ -102,12 +102,14 @@ and the intent to grow toward broad compatibility. Status values mirror
 - [x] Union / intersection types (Phase 6) — `A | B` and `A & B` with nullable
    reference unions (`T | null`), control-flow narrowing on null tests in
    `if`/`while`/`&&`/`||`, and merged object layouts (ADR-0025). Mixed
-   representations such as `number | string` are diagnosed.
+   representations such as `number | string` use tagged values with explicit
+   conversions (ADR-0034).
 - [x] Optional properties (`field?: T`) (Phase 6) — may be omitted from object
    literals; omitted reference fields are initialized to null and scalar ones
    to zero. Optional *parameters* remain unsupported.
 - [ ] Overloads
-- [ ] `any` / `unknown` (restricted semantics; document divergence)
+- [~] `any` — tagged value with explicit `to_any_*` / `as_*` conversions and
+   no automatic narrowing (ADR-0034); `unknown` is an inference fallback only
 - [ ] Decorators (deferred)
 - [ ] Conditional / mapped types (long-term)
 
@@ -190,8 +192,8 @@ and the intent to grow toward broad compatibility. Status values mirror
 
 ## 8. Runtime semantics
 
-- [x] Memory allocation: program-lifetime bump arena (ADR-0005); no
-  reclamation during execution (documented divergence from JS GC).
+- [x] Memory allocation: growable arena with explicit conservative `collect()`
+  (ADR-0034); collection is not automatic or generational.
 - [x] Strings: NUL-terminated arena buffers; literals, concatenation, `length`,
   indexing and equality work natively.
 - [x] Arrays and objects at runtime: typed slot accessors with bounds and field

@@ -36,9 +36,9 @@ completed task. Anything marked `[~]` or `[!]` should have a note in the
 | Phase 10 — Bootstrap | [ ] Not started |
 | Phase 11 — Production readiness | [ ] Not started |
 
-**Overall:** 8 of 12 implementation phases complete; Phases 0–8 are done and
-Phase 9 (Self-hosting) is next. Phase 6's expanded compatibility suite was
-delivered as the Phase 7 corpus.
+**Overall:** Phases 0–8 and 8.1 (10 milestones) are complete; Phase 9
+(Self-hosting) is next. Phase 6's expanded compatibility suite was delivered
+as the Phase 7 corpus.
 
 ---
 
@@ -83,7 +83,8 @@ navascript/
 ├── tests/             # ast, diagnostics, lexer, parser, symbol, typechecker,
 │                      # ir, codegen, driver, runtime
 ├── docs/              # ROADMAP, ARCHITECTURE, LANGUAGE_SPEC, COMPATIBILITY,
-│                      # BOOTSTRAP, DECISIONS, DESIGN, PROGRESS, BUILD
+│                      # DECISIONS, DESIGN, PROGRESS, BUILD; bootstrap
+│                      # strategy lives in ROADMAP Phase 10
 ├── examples/
 ├── scripts/
 └── README.md
@@ -272,8 +273,8 @@ limitations for every milestone.
   unrolling increases its IR instruction count (recorded in `BENCHMARKS.md`).
 - **Accepted deviation:** "efficient memory layout" is realised by eliminating
   provably non-escaping stack slots, not by changing runtime object layouts;
-  general escape analysis across blocks or closures, tagged values and garbage
-  collection remain future work (ADR-0031).
+  general escape analysis across blocks or closures remains future work;
+  tagged values and conservative GC were delivered in Phase 8.1 (ADR-0034).
 
 ### Phase 8.1 — Representation hardening
 - [x] `any` and mixed unions use runtime-tagged values with checked boxing and
@@ -1064,8 +1065,8 @@ limitations for every milestone.
   re-measures counts and compares them to the committed report.
 - Verified: fmt, clippy `-D warnings`, `cargo test --workspace` (299 passed),
   8 compatibility + 4 benchmark Python tests, `python3 scripts/compat.py --check`
-  (report byte-identical, so optimization preserved all 19 executed outputs)
-  and `python3 scripts/benchmark.py --check`.
+  (debug-build report byte-identical) and `python3 scripts/benchmark.py --check`
+  (optimized-vs-baseline output equivalence).
 
 ### 2026-11-25 — Pre-bootstrap codebase audit
 - Four parallel read-only audits (language/type system, runtime/stdlib,

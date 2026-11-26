@@ -3,5 +3,5 @@
   "title": ".d.ts and package resolution",
   "category": "modules",
   "expect": "skip",
-  "reason": "Only relative .ns (or extensionless) specifiers are resolved from the entry file; .d.ts and package resolution are Phase 7+ work (ADR-0026)."
+  "reason": "Only relative .ns (or extensionless) specifiers are resolved from the entry file; .d.ts and package resolution remain unsupported long-term work (ADR-0026)."
 }

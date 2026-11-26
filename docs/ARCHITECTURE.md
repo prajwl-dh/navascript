@@ -122,9 +122,9 @@ hardcoded to ARM64. The driver owns tool discovery and build errors.
 compiler/     source modules + Cargo crates (workspace); each crate has one
               public façade (lib.rs) and private implementation modules
 runtime/      navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/,
-              objects/, console/ — one source directory per runtime concern
+              objects/, io/, console/ — one source directory per runtime concern
 tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-              driver, runtime, compatibility (32-case corpus in Phase 7)
+              driver, runtime, optimizer, compatibility (32-case corpus), benchmark
 docs/         this documentation set
 examples/     sample .ns programs, starting with fibonacci.ns
 benchmarks/   .ns programs for the Phase 8 baseline/optimized comparison
