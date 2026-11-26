@@ -659,6 +659,36 @@ a new number and references the old one. Keep entries short and factual.
 
 ---
 
+## ADR-0030 — Measuring compatibility with a tsc/Node corpus
+
+- **Date:** 2026-11-25
+- **Status:** Accepted
+- **Context:** Phase 7 needs a measured, reproducible compatibility report, not
+  another hand-written claim in the matrix. `tsc` reports type errors through
+  its exit status but still emits JavaScript by default, and NavaScript's
+  deliberate divergences range from different output to a diagnosed build
+  failure; a naive "both commands exited successfully" comparison would score
+  both cases incorrectly.
+- **Decision:** Keep one case per feature in
+  `tests/compatibility/corpus/<id>/` (`case.json`, `program.ts`, `program.ns`).
+  Split the harness into a CLI façade (`scripts/compat.py`), a testable logic
+  seam (`scripts/compat_core.py`) and a pure renderer (`scripts/compat_report.py`).
+  Compare normalised stdout and exit status of tsc-emitted JavaScript under
+  Node against the native NavaScript binary. Classify each case as `match`,
+  `differ` or `skip`; require differ cases to pin the measured Node output and
+  the expected NavaScript outcome (exact output or build failure). Render a
+  deterministic Markdown report (`docs/COMPATIBILITY_REPORT.md`) with no
+  timestamps, versions or machine paths, and verify it in CI with `--check`.
+- **Consequences:** A crash or arbitrary output cannot be counted as the
+  documented divergence, and a rerun on another machine is byte-identical.
+  Skipped cases are declared from `COMPATIBILITY.md` §6 rather than executed,
+  so skip counts are manifest counts, not observations. The reference is the
+  runtime behaviour of emitted JavaScript, so tsc type errors do not fail a
+  case; `type_error` documents this explicitly. The corpus complements, rather
+  than replaces, the compatibility matrix and its unsupported-feature register.
+
+---
+
 ## Template for new decisions
 
 ```

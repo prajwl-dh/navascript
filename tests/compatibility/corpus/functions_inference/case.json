@@ -1,0 +1,6 @@
+{
+  "id": "functions_inference",
+  "title": "Function calls, recursion and inferred return types",
+  "category": "typing",
+  "expect": "match"
+}

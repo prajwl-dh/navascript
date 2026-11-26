@@ -1,0 +1,9 @@
+{
+  "id": "object_log",
+  "title": "console.log of object and array values",
+  "category": "known-difference",
+  "expect": "differ",
+  "reason": "Node pretty-prints objects and arrays; NavaScript has no structured console representation and emits raw slot bytes.",
+  "reference_output": "{ a: 1 }\n[ 1, 2 ]",
+  "navascript_fails": false
+}

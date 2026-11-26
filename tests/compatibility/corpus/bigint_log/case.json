@@ -1,0 +1,10 @@
+{
+  "id": "bigint_log",
+  "title": "Bigint rendering in console.log",
+  "category": "known-difference",
+  "expect": "differ",
+  "reason": "Node prints the n suffix (1n); NavaScript-backed bigints are i64 values and print as bare numbers (ADR-0022).",
+  "reference_output": "1n",
+  "navascript_output": "1",
+  "navascript_fails": false
+}

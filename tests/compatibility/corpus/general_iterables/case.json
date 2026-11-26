@@ -1,0 +1,7 @@
+{
+  "id": "general_iterables",
+  "title": "for-of over general iterables",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "Only arrays and strings are lowered to index loops; objects and custom iterables are unsupported (COMPATIBILITY.md §6)."
+}

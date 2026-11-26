@@ -1,0 +1,7 @@
+{
+  "id": "class_field_initializers",
+  "title": "Class field initialisers",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "Fields are declared without initialisers; assign them in a constructor instead (ADR-0024)."
+}

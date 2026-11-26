@@ -1,0 +1,6 @@
+{
+  "id": "async_await",
+  "title": "Async functions and await with promise values",
+  "category": "runtime",
+  "expect": "match"
+}

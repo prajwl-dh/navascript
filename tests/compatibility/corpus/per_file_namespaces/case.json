@@ -1,0 +1,7 @@
+{
+  "id": "per_file_namespaces",
+  "title": "Per-file module namespaces",
+  "category": "modules",
+  "expect": "skip",
+  "reason": "Imports are concatenated into one program, so names are module-wide rather than per-file; diagnostics refer to the combined source (ADR-0026)."
+}

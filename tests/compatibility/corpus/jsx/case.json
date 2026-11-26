@@ -1,0 +1,7 @@
+{
+  "id": "jsx",
+  "title": "JSX / TSX",
+  "category": "syntax",
+  "expect": "skip",
+  "reason": "There is no DOM/UI target, so .nsx/.tsx syntax is deferred (COMPATIBILITY.md §6)."
+}

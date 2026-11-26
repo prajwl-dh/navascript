@@ -1,0 +1,2 @@
+const compute = async (): Promise<number> => 1;
+console.log(await compute());

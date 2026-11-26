@@ -1,0 +1,6 @@
+const greeting: string = "hello";
+console.log(greeting + " world");
+console.log(greeting.length);
+console.log(greeting[1]);
+console.log(greeting == "hello");
+console.log("a" + 1);

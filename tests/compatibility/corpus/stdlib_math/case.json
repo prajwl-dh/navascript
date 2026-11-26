@@ -1,0 +1,9 @@
+{
+  "id": "stdlib_math",
+  "title": "Math standard-library object",
+  "category": "stdlib",
+  "expect": "differ",
+  "reason": "Node provides Math.max; the NavaScript stdlib has no Math object, so the member call is diagnosed instead of executed.",
+  "reference_output": "2",
+  "navascript_fails": true
+}

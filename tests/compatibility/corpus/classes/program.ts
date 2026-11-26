@@ -1,0 +1,11 @@
+class Base {
+    x: number;
+    constructor(x: number) { this.x = x; }
+    value(): number { return this.x; }
+}
+class Derived extends Base {
+    constructor(x: number) { super(x + 1); }
+    double(): number { return this.value() * 2; }
+}
+const d: Derived = new Derived(4);
+console.log(d.double());

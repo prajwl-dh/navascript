@@ -1,0 +1,6 @@
+{
+  "id": "classes",
+  "title": "Classes, constructors, methods and inheritance",
+  "category": "runtime",
+  "expect": "match"
+}

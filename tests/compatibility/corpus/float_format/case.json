@@ -1,0 +1,10 @@
+{
+  "id": "float_format",
+  "title": "Floating-point result formatting",
+  "category": "known-difference",
+  "expect": "differ",
+  "reason": "Node prints the shortest round-trip representation (0.30000000000000004); the NavaScript runtime formats a compact decimal (0.3).",
+  "reference_output": "0.30000000000000004",
+  "navascript_output": "0.3",
+  "navascript_fails": false
+}

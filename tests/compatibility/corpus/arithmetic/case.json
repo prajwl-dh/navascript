@@ -1,0 +1,6 @@
+{
+  "id": "arithmetic",
+  "title": "Arithmetic, precedence and comparisons",
+  "category": "runtime",
+  "expect": "match"
+}

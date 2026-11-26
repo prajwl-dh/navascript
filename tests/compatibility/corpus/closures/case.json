@@ -1,0 +1,6 @@
+{
+  "id": "closures",
+  "title": "Closures, higher-order calls and shared captured bindings",
+  "category": "runtime",
+  "expect": "match"
+}

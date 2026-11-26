@@ -9,7 +9,8 @@
 | LLVM | 23.1.6 at `/opt/homebrew/opt/llvm` | optimization + native codegen (Phase 4+) |
 | Clang | Apple clang 21 (Command Line Tools) | native toolchain integration |
 | Git | 2.54.0 | version control |
-| Python 3 | 3.14.6 | test and benchmark scripts |
+| Python 3 | 3.14.6 | test and compatibility harness scripts |
+| Node.js / TypeScript | 26.13.1 / 7.0.2 (`tsc`) | Phase 7 reference behaviour for the compatibility corpus |
 | CMake | 4.5.1 (Homebrew) | available for future CMake/C++ builds |
 | Ninja | 1.13.2 (Homebrew) | available as a CMake generator |
 
@@ -76,17 +77,31 @@ remain in `compiler/`. Each test target calls only public interfaces:
 | `tests/driver/native.rs` | end-to-end native compile + run (fibonacci, strings, arrays, objects, loops, `break`/`continue`, compound/updates/power/ternary, arrows, optional chaining, bigint, optional calls, generics, classes/inheritance, unions/intersections, modules, closures/higher-order functions with shared
 captures, exceptions, async/await, dynamic indices, runtime errors, debug/release) |
 | `tests/runtime/runtime_test.c` | C runtime unit tests, compiled and run by `tests/runtime/runtime.rs` |
+| `tests/compatibility/corpus.rs` | corpus integrity; every `match` case reaches valid IR; report coverage |
+| `tests/compatibility/test_compat.py` | harness validation, classification, pinned divergences, deterministic rendering, CLI façade |
 
 `tests/runtime/` (C runtime unit tests) landed in Phase 5; `tests/compatibility/`
-is reserved for the Phase 7 corpus. `tests/codegen/` and `tests/driver/native.rs`
-landed in Phase 4.
+landed in Phase 7 with the tsc/Node corpus. `tests/codegen/` and
+`tests/driver/native.rs` landed in Phase 4. The corpus runner is in `scripts/`:
+
+```bash
+cargo build --workspace
+python3 scripts/compat.py                    # regenerate docs/COMPATIBILITY_REPORT.md
+python3 scripts/compat.py --check            # fail if the committed report is stale
+python3 -m unittest discover -s tests/compatibility -p 'test_*.py'
+```
+
+It needs `tsc` and `node` on `PATH` plus the LLVM tools used by native builds.
 
 Cargo only discovers `tests/` inside a package root, so every file is
 registered as an explicit `[[test]]` target in `compiler/driver/Cargo.toml`.
 Tests import the crates they exercise through `[dev-dependencies]`. Moving a
 test out of a crate means it can only use that crate's public interface — which
-is the intended contract. `.github/workflows/ci.yml` runs fmt, clippy and the
-full test suite on macOS.
+is the intended contract. `.github/workflows/ci.yml` runs fmt, clippy, the full
+Rust suite, the Python harness tests and the `--check` reproducibility gate on
+macOS (installing TypeScript for the corpus). `scripts/test.sh` runs the Rust
+suite plus the Python harness tests locally; the corpus run itself is a
+separate command because it invokes `tsc`, Node and LLVM.
 
 ## 4. CLI usage
 

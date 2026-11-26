@@ -1,0 +1,7 @@
+{
+  "id": "decorators",
+  "title": "Decorators",
+  "category": "syntax",
+  "expect": "skip",
+  "reason": "Decorators are deferred and outside the initial language scope (COMPATIBILITY.md §6)."
+}

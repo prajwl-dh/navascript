@@ -1,0 +1,7 @@
+{
+  "id": "conditional_types",
+  "title": "Conditional and mapped types",
+  "category": "typing",
+  "expect": "skip",
+  "reason": "Conditional/mapped types are a long-term item; the checker has no conditional type syntax (COMPATIBILITY.md §6)."
+}

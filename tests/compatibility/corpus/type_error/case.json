@@ -1,0 +1,9 @@
+{
+  "id": "type_error",
+  "title": "Incompatible assignment diagnostics",
+  "category": "known-difference",
+  "expect": "differ",
+  "reason": "tsc emits JavaScript despite the error and Node prints the value; NavaScript treats type errors as build failures and produces no executable.",
+  "reference_output": "not a number",
+  "navascript_fails": true
+}

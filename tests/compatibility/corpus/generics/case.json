@@ -1,0 +1,6 @@
+{
+  "id": "generics",
+  "title": "Generic functions and interfaces with explicit type arguments",
+  "category": "typing",
+  "expect": "match"
+}

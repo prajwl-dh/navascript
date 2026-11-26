@@ -17,10 +17,15 @@ and the codegen crate has `module.rs`, `instructions.rs`, `types.rs` and
 `runtime.rs`. Internal seams stay private; only the façade is tested from
 `tests/` (ADR-0012).
 
-Status: **accepted and implemented through Phase 6 (loops with
-`break`/`continue`, additional literals/operators, arrow functions, optional
-chaining, bigint, optional calls, generics, classes, unions, structural typing,
-modules, closures, same-function exceptions and synchronous async/await)**. The front-end seam (`parse`),
+Status: **accepted and implemented through Phase 7**. The compiler seams below
+are unchanged; Phase 7 added a separate measurement seam — `scripts/compat.py`
+(CLI) over `scripts/compat_core.py` (discovery/execution/classification) and
+`scripts/compat_report.py` (pure rendering) — with the corpus as its input and
+`docs/COMPATIBILITY_REPORT.md` as its output (ADR-0030). Phase 6 delivered loops
+with `break`/`continue`, additional literals/operators, arrow functions,
+optional chaining, bigint, optional calls, generics, classes, unions, structural
+typing, modules, closures, same-function exceptions and synchronous async/await.
+The front-end seam (`parse`),
 the shared diagnostics leaf, the type-checker seam (`check`), the IR seam
 (`lower`) and the backend seam (`generate`) are all in use by the driver pipeline
 and covered by tests in `tests/`. Loop, operator, call, optional-access, bigint,

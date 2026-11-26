@@ -4,8 +4,11 @@ NavaScript uses TypeScript syntax. This document describes the **supported subse
 and the intent to grow toward broad compatibility. Status values mirror
 `docs/COMPATIBILITY.md`: `[x]` supported/tested, `[~]` partial, `[ ]` planned.
 
-> Full TypeScript compatibility is a long-term target. Never claim 100%
-> compatibility until verified by the compatibility suite.
+> Full TypeScript compatibility is a long-term target. The Phase 7 compatibility
+> suite (`tests/compatibility/corpus/`, report in `docs/COMPATIBILITY_REPORT.md`)
+> measures a representative subset: 19 executed cases pass, 13 documented
+> divergences are skipped. Do not claim compatibility beyond what that report
+> and the matrix in `COMPATIBILITY.md` prove.
 
 ## 1. Source files
 

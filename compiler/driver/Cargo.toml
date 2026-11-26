@@ -99,3 +99,7 @@ path = "../../tests/driver/native.rs"
 [[test]]
 name = "runtime_unit"
 path = "../../tests/runtime/runtime.rs"
+
+[[test]]
+name = "compatibility_corpus"
+path = "../../tests/compatibility/corpus.rs"

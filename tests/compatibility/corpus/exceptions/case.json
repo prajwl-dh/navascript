@@ -1,0 +1,6 @@
+{
+  "id": "exceptions",
+  "title": "Same-function throw, catch and finally",
+  "category": "runtime",
+  "expect": "match"
+}

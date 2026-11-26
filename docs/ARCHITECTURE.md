@@ -72,7 +72,7 @@ dependency-free leaf shared with the type checker and IR lowering.
 | Build | `compiler/driver/src/build.rs` | llc/clang invocation, host triple query | codegen, external tools |
 | Driver | `compiler/driver/` | CLI, orchestration, link invocation | all above |
 | Runtime | `runtime/` | Allocator, bigint helpers, strings, arrays, objects, console; closure environments reuse the object ABI (ADR-0027); same-function exceptions and synchronous promises need no runtime ABI (ADR-0028/0029) | codegen ABI contract |
-| Tests | `tests/` | Tests for every public interface, plus future compatibility suites | — |
+| Tests | `tests/` | Tests for every public interface, plus the Phase 7 tsc/Node compatibility corpus | — |
 
 All tests live in the top-level `tests/` tree (ADR-0012); each module has a
 corresponding test file there and is exercised only through its public
@@ -123,7 +123,7 @@ compiler/     source modules + Cargo crates (workspace); each crate has one
 runtime/      navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/,
               objects/, console/ — one source directory per runtime concern
 tests/        ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-              driver, runtime; compatibility added in Phase 7
+              driver, runtime, compatibility (32-case corpus in Phase 7)
 docs/         this documentation set
 examples/     sample .ns programs, starting with fibonacci.ns
 scripts/      build/test/benchmark helper scripts
@@ -145,7 +145,9 @@ scripts/      build/test/benchmark helper scripts
 - Interface tests for the lexer and parser; golden-style output assertions for
   textual IR and generated LLVM IR.
 - End-to-end tests compile `.ns` → executable → run → assert stdout/exit code.
-- Compatibility corpus compares behavior against `tsc`/Node where applicable.
+- Compatibility corpus (`tests/compatibility/corpus/`) compares behavior against
+  `tsc`/Node; the measured, reproducible report is
+  `docs/COMPATIBILITY_REPORT.md` (ADR-0030).
 - Every stage of bootstrap runs the same test suite (see `BOOTSTRAP.md`).
 
 ## 8. Architectural invariants

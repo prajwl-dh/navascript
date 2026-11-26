@@ -1,0 +1,7 @@
+{
+  "id": "async_arrows",
+  "title": "Async arrows and methods",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "Only async function declarations are parsed; async arrows/methods are diagnosed (ADR-0029)."
+}

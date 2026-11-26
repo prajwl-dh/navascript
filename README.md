@@ -4,12 +4,9 @@ A long-term compiler project: a language with TypeScript-compatible syntax that
 compiles to optimized native machine code, with the goal of becoming
 self-hosting.
 
-**Status:** Phase 6 (Language expansion) in progress — loops (with
-`break`/`continue`), the additional literals/operators, arrow functions,
-optional chaining, bigint literals, optional calls, generics, classes with
-inheritance, unions/intersections, full structural typing, modules,
-closures/higher-order functions, same-function exceptions and synchronous
-async/await are complete — Phase 6 is the last remaining expansion milestone.
+**Status:** Phases 0–7 complete. All Phase 6 expansion features are delivered,
+and Phase 7 measured compatibility against `tsc` + Node with a reproducible
+32-case corpus and checked-in report. Phase 8 (Optimization) is next.
 
 ## Goals (tracked independently)
 
@@ -41,7 +38,8 @@ Compile to a native macOS executable that prints `55` without Node.js.
 | LLVM | 23.1.6 | `/opt/homebrew/opt/llvm`, AArch64 + X86 |
 | Clang | Apple clang 21 | Command Line Tools |
 | Git | 2.54.0 | configured |
-| Python | 3.14.6 | for test/benchmark scripts |
+| Python | 3.14.6 | for test and compatibility harness scripts |
+| Node / TypeScript | 26.13.1 / 7.0.2 (`tsc`) | Phase 7 reference behaviour |
 | CMake / Ninja | 4.5.1 / 1.13.2 — installed via Homebrew | available for future C++/CMake work; the current backend uses textual LLVM IR + `llc`/`clang` |
 
 ## Repository layout
@@ -52,7 +50,7 @@ compiler/    lexer, parser, ast, diagnostics, symbol, semantic, typechecker, ir,
 runtime/     navascript_runtime.h/.c plus memory/, bigint/, strings/, arrays/, objects/,
              console/ sources (one concern per directory)
 tests/       ast, diagnostics, lexer, parser, symbol, typechecker, ir, codegen,
-             driver, runtime (compatibility added in Phase 7)
+             driver, runtime, compatibility (32-case tsc/Node corpus in Phase 7)
 docs/        planning and tracking documents
 examples/    sample programs
 scripts/     helper scripts
@@ -62,7 +60,10 @@ scripts/     helper scripts
 
 ```bash
 cargo build --workspace
-cargo test --workspace     # 277 tests through Phase 6 (loops, operators, arrows, optional chaining, bigint, optional calls, generics, classes, unions, modules, closures, exceptions, async/await)
+cargo test --workspace     # 280 tests through Phase 7 (3 corpus integrity tests added)
+python3 -m unittest discover -s tests/compatibility -p 'test_*.py'  # 8 harness tests
+python3 scripts/compat.py   # regenerate docs/COMPATIBILITY_REPORT.md (needs tsc + node)
+python3 scripts/compat.py --check  # fail if the committed report is stale
 target/debug/navascript --version
 target/debug/navascript --help
 target/debug/navascript build examples/fibonacci.ns -o fibonacci
@@ -71,8 +72,10 @@ target/debug/navascript build --release examples/fibonacci.ns -o fibonacci
 target/debug/navascript build --emit-ir examples/fibonacci.ns   # print LLVM IR
 ```
 
-Helper scripts: `scripts/build.sh` and `scripts/test.sh`. CI runs the same
-fmt/clippy/test checks on macOS (`.github/workflows/ci.yml`). Full build,
+Helper scripts: `scripts/build.sh`, `scripts/test.sh` (Rust + Python suite) and
+`scripts/compat.py` (compatibility corpus). CI runs fmt, clippy, the full Rust
+suite, the harness tests and the report `--check` gate on macOS
+(`.github/workflows/ci.yml`). Full build,
 test and LLVM toolchain instructions are in `docs/BUILD.md`.
 
 Phases 0–5 are complete: the CLI parses, type-checks, lowers to NavaScript IR, emits
@@ -119,7 +122,9 @@ fibonacci printing `55` without Node.js — is verified by
    value and `await` unwraps it synchronously; there is no event loop,
    microtask queue, `.then`/`.catch` or `Promise.all` (ADR-0029).
 
-All Phase 6 expansion items are now delivered.
+All Phase 6 expansion items are now delivered. Phase 7 adds the measured
+compatibility report: `docs/COMPATIBILITY_REPORT.md` (19 executed cases pass,
+13 documented skips), generated from `tests/compatibility/corpus/` (ADR-0030).
 
 ## Documentation
 
@@ -129,7 +134,8 @@ All Phase 6 expansion items are now delivered.
 - `docs/ARCHITECTURE.md` — module boundaries and data flow.
 - `docs/DESIGN.md` — deep-module interfaces and seams.
 - `docs/LANGUAGE_SPEC.md` — supported language subset.
-- `docs/COMPATIBILITY.md` — TypeScript compatibility matrix.
+- `docs/COMPATIBILITY.md` — TypeScript compatibility matrix and unsupported-feature register.
+- `docs/COMPATIBILITY_REPORT.md` — measured, reproducible Phase 7 results.
 - `docs/BOOTSTRAP.md` — three-stage self-hosting strategy.
 - `docs/DECISIONS.md` — architecture decision records.
 

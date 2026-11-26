@@ -1,0 +1,7 @@
+{
+  "id": "promise_methods",
+  "title": "Promise combinators and methods",
+  "category": "stdlib",
+  "expect": "skip",
+  "reason": "Promises are synchronous values; .then, .catch, Promise.resolve and Promise.all are not provided (ADR-0029)."
+}

@@ -1,0 +1,6 @@
+async function compute(): Promise<number> { return 40 + 2; }
+async function run(): Promise<void> {
+    const value: number = await compute();
+    console.log(value);
+}
+run();

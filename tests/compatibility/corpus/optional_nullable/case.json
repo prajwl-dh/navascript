@@ -1,0 +1,9 @@
+{
+  "id": "optional_nullable",
+  "title": "Optional chaining on a nullable receiver",
+  "category": "known-difference",
+  "expect": "differ",
+  "reason": "Node short-circuits s?.length to undefined; NavaScript diagnoses a nullable optional-chain receiver even though IR has an IsNull branch (ADR-0025).",
+  "reference_output": "undefined",
+  "navascript_fails": true
+}

@@ -1,0 +1,9 @@
+{
+  "id": "node_interop",
+  "title": "Node.js CommonJS interop",
+  "category": "modules",
+  "expect": "differ",
+  "reason": "Node resolves require(\"path\") at runtime; NavaScript emits a standalone native executable with no Node runtime, so require is diagnosed.",
+  "reference_output": "object",
+  "navascript_fails": true
+}

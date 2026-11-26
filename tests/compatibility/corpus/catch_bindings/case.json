@@ -1,0 +1,7 @@
+{
+  "id": "catch_bindings",
+  "title": "Untyped catch bindings",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "NavaScript requires a type annotation on catch bindings, unlike JavaScript's untyped catch (ADR-0028)."
+}

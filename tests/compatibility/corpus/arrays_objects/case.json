@@ -1,0 +1,6 @@
+{
+  "id": "arrays_objects",
+  "title": "Array and object literals, access and mutation",
+  "category": "runtime",
+  "expect": "match"
+}

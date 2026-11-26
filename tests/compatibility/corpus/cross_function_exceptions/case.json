@@ -1,0 +1,7 @@
+{
+  "id": "cross_function_exceptions",
+  "title": "Cross-function exception unwinding",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "A throw must have a handler in the same function; unwinding through a called function needs a runtime ABI (ADR-0028)."
+}

@@ -1,0 +1,6 @@
+{
+  "id": "modules",
+  "title": "Module resolution through extensionless relative imports",
+  "category": "modules",
+  "expect": "match"
+}

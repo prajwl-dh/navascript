@@ -6,7 +6,8 @@ TypeScript. A feature is only marked supported when a test proves it.
 **Legend:** `[x]` supported + tested · `[~]` partial · `[ ]` not started ·
 `[-]` intentionally unsupported / divergent (with note)
 
-Last updated: 2026-11-24 — Phases 0–5 are complete and Phase 6 is in progress.
+Last updated: 2026-11-25 — Phases 0–7 are complete. Phase 7 measured the matrix
+below against `tsc` + Node; results are in `docs/COMPATIBILITY_REPORT.md`.
 Syntax, type-system, IR, codegen and native-execution entries are implemented
 and tested. The runtime provides strings, arrays, objects, closure environments
 and fatal error reporting; Phase 6 has delivered loops with
@@ -97,17 +98,28 @@ expansion items are delivered.
 | Debug info / debugger | [ ] | — | Phase 11 |
 | No Node.js dependency at runtime | [x] | `tests/driver/native.rs` | native Mach-O, C runtime shim only |
 
-## 5. Compatibility testing strategy (Phase 7)
+## 5. Compatibility testing strategy (Phase 7 — implemented)
 
-- Build a corpus of small TypeScript programs with expected stdout/exit code.
-- Run each through `tsc` + Node (reference behavior) and through NavaScript.
-- Classify results: pass / fail / skip (unsupported) / known-difference.
-- Commit the report with counts and links to failing cases.
+- The corpus is `tests/compatibility/corpus/<id>/`: a `case.json`, a TypeScript
+  program and its NavaScript counterpart (multi-file cases add more sources).
+- `scripts/compat.py` runs each case through `tsc` + Node and through the
+  NavaScript CLI, comparing normalised stdout and exit status.
+- Outcomes are pass / fail / skipped / blocked; `expect` is `match`, `differ`
+  (documented divergence) or `skip` (declared unsupported). Differ cases pin
+  the measured Node output and the expected NavaScript outcome.
+- The committed report is `docs/COMPATIBILITY_REPORT.md`: 32 cases, 19 executed
+  (12 `match`, 7 `differ`), 13 skips, 0 failures. Regenerate it with
+  `python3 scripts/compat.py`; CI verifies it with `--check`.
 - Re-run on every milestone touching semantics; regressions must be investigated.
+- The reference is the runtime behaviour of tsc-emitted JavaScript. tsc's own
+  exit status is not a case failure when JavaScript was emitted; the `type_error`
+  case records this. Skipped cases are declared from §6 and are not executed.
 
 ## 6. Unsupported features register
 
-Maintain this list so gaps are explicit and never silently miscompiled:
+Maintain this list so gaps are explicit and never silently miscompiled. Phase 7
+adds a representative `tests/compatibility/corpus/<id>/` case for the major rows;
+the measured outcomes are linked from `docs/COMPATIBILITY_REPORT.md`:
 
 | Feature | Reason | Planned phase |
 | --- | --- | --- |

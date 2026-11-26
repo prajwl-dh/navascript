@@ -1,0 +1,6 @@
+{
+  "id": "structural_types",
+  "title": "Interfaces and structural assignability with optional properties",
+  "category": "typing",
+  "expect": "match"
+}

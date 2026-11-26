@@ -1,0 +1,7 @@
+{
+  "id": "virtual_dispatch",
+  "title": "Virtual method dispatch",
+  "category": "runtime",
+  "expect": "skip",
+  "reason": "Class methods are mangled direct calls, so a base-typed reference calls the base implementation rather than the derived override (ADR-0024)."
+}
